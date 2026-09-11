@@ -46,6 +46,24 @@ member/board를 나눈 것은 소유 데이터가 완전히 갈라지기 때문�
 
 **의존 방향은 `auth → member` 단방향이다.** `member` 패키지는 `auth`를 참조하지 않는다. 이 규칙을 지키면 훗날 auth를 별도 서비스로 승격시킬 때 잘라낼 지점이 이미 정해져 있다.
 
+### 예외 — 토큰 무효화
+
+**`member`는 비밀번호 변경·회원 탈퇴 시의 토큰 무효화에 한해 `auth.repository.RefreshTokenRepository`를 참조할 수 있다.**
+
+[../requirements/member.md §3](../requirements/member.md) 규칙 4가 "비밀번호 변경·탈퇴 시 Refresh Token을 삭제한다"를 요구한다. 이 동작의 주체는 `member`이고 대상 데이터는 `auth` 소유이므로 단방향 규칙과 충돌한다.
+
+대안을 검토했다.
+
+| 방식 | 판단 |
+| --- | --- |
+| **예외 명시 (채택)** | 한 줄로 끝난다. 참조 지점이 두 곳(비밀번호 변경·탈퇴)으로 한정되어 추적 가능하다 |
+| `ApplicationEvent` 구독 | 방향은 지켜지지만 같은 트랜잭션을 보장하려면 `@TransactionalEventListener(BEFORE_COMMIT)`이 필요하다. 1차에 들일 복잡도가 아니다 |
+| `auth`가 노출한 메서드로 감싸기 | 참조는 그대로 남으므로 예외 명시와 실익이 같고 간접 계층만 는다 |
+
+**예외의 범위**는 `RefreshTokenRepository`의 삭제 연산뿐이다. `member`가 `auth`의 서비스·컨트롤러·DTO를 참조하는 것은 여전히 금지한다. auth를 별도 서비스로 승격시킬 때 잘라낼 지점은 이 두 호출뿐이며, 그때는 이벤트 방식으로 전환한다.
+
+> 이 예외를 명시하지 않으면 해당 작업 항목이 이 ADR과 [../plan/phase1.md](../plan/phase1.md) §2.5(소유 경계를 넘어야 할 때)에 끼여 반드시 한 번 멈춘다.
+
 ## 결과
 
 **API 경로도 이 구분을 반영한다.**

@@ -33,6 +33,8 @@ com.example.member
 
 `auth`와 `member`의 책임 구분과 의존 방향은 [adr/0006](adr/0006-auth-inside-member-service.md)을 본다. **의존 방향은 `auth → member` 단방향이다.** `member` 패키지는 `auth`를 참조하지 않는다.
 
+**예외 하나**: `member`는 비밀번호 변경·탈퇴 시의 토큰 무효화에 한해 `auth.repository.RefreshTokenRepository`를 참조할 수 있다. 범위와 근거는 [adr/0006 §예외](adr/0006-auth-inside-member-service.md)에 있다. 그 외의 `auth` 참조는 금지한다.
+
 ### 1.2 board-service
 
 ```
