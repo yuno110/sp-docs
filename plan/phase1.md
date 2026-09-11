@@ -13,27 +13,80 @@ related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements
 
 절차는 [../process/dev-workflow.md](../process/dev-workflow.md)를 따른다. **상태는 이 문서에 적지 않는다.**
 
-## 1. 병렬 구간
+## 1. 의존 그래프와 병렬 구간
 
 ```
-member 저장소                    board 저장소
-─────────────                    ────────────
-M-01 스캐폴딩                     B-01 스캐폴딩
-M-02 공통 기반                    B-02 공통 기반          <- 여기부터 완전 병렬
-M-03 Member 엔티티                B-03 JWT 검증
-M-04 회원가입                     B-04 Post 엔티티
-M-05 JWT 발급                     B-05 게시글 작성·상세
-M-06 로그인                       B-06 목록·검색
-M-07 토큰 재발급·로그아웃          B-07 수정·삭제
-M-08 내 정보                      B-08 댓글
-M-09 비밀번호·탈퇴                 B-09 마무리
-M-10 프로필·내부 API
+member 저장소                          board 저장소
+─────────────                          ────────────
+M-01 스캐폴딩                           B-01 스캐폴딩
+  │                                       │
+M-02 공통 기반                          B-02 공통 기반
+  │                                       │
+M-03 Member 엔티티                    ┌───┴───┐
+  │                                  B-03     B-04      ← 병렬
+┌─┴──┐                               JWT검증  Post엔티티
+M-04  M-05          ← 병렬            └───┬───┘
+회원가입 JWT발급                          │
+└─┬──┘                                 B-05 작성·상세
+  │                                       │
+M-06 로그인                             B-06 목록·검색
+  │                                       │
+┌─┴──┐                                 B-07 수정·삭제
+M-07  M-08          ← 병렬                │
+재발급  내정보                          B-08 댓글
+└─┬──┘                                    │
+  │                                    B-09 마무리
+M-09 비밀번호·탈퇴
+  │
+M-10 프로필·내부API
+  │
 M-11 마무리
-        \                              /
-         \____ I-01 ~ I-04 통합 검증 __/   <- 순차
+          \                          /
+           \___ I-01 ~ I-04 통합 ___/     ← 순차
 ```
 
-**두 서비스는 서로를 기다리지 않는다.** B-03(JWT 검증)이 M-05(JWT 발급)를 기다릴 것 같지만 그렇지 않다. 계약이 [../api-contract.md §5](../api-contract.md)에 문서로 확정되어 있으므로, board는 그 스펙대로 **테스트용 키 페어를 만들어 자체 검증**하면 된다. 실제 키 교환은 통합 단계(I-01)에서 한다.
+### 1.1 저장소 간 — 완전 병렬
+
+**member 워커와 board 워커는 서로를 기다리지 않는다.** 저장소가 분리되어 있어 소스가 겹칠 수 없다.
+
+B-03(JWT 검증)이 M-05(JWT 발급)를 기다릴 것 같지만 그렇지 않다. 계약이 [../api-contract.md §5](../api-contract.md)에 문서로 확정되어 있으므로, board는 그 스펙대로 **테스트용 키 페어를 만들어 자체 검증**하면 된다. 실제 키 교환은 통합 단계(I-01)에서 한다.
+
+### 1.2 저장소 내부 — 병렬 3쌍
+
+같은 저장소 안에서 동시에 진행할 수 있는 조합이다. 조건은 **산출물 파일이 겹치지 않는 것**이다.
+
+| 병렬 쌍 | 선행 | 산출물 경로 |
+| --- | --- | --- |
+| M-04 ∥ M-05 | M-03 | `member/*` vs `global/security/*` |
+| M-07 ∥ M-08 | M-06 | `auth/*` vs `member/*` |
+| B-03 ∥ B-04 | B-02 | `global/security/*` vs `post/*` |
+
+이 세 쌍 외에는 순차로 진행한다. 계층이 쌓이는 구조라 대부분의 항목이 앞 항목의 산출물을 전제한다.
+
+### 1.3 동시 편집 금지
+
+**워크트리는 작업 중에만 격리한다. 병합은 별개다.** 서로 다른 워크트리에서 같은 파일을 고치면 merge에서 충돌한다.
+
+항목의 **공유 파일** 필드에 적힌 항목끼리는 동시에 진행하지 않는다.
+
+| 항목 | 공유 파일 | 동시 진행 금지 대상 |
+| --- | --- | --- |
+| M-09 | `MemberService`, `MemberController` | M-08, M-10 |
+| M-10 | `MemberController`, `SecurityConfig` | M-08, M-09 |
+| B-06 | `PostService`, `PostController` | B-07, B-08 |
+| B-07 | `PostService`, `PostController` | B-06, B-08 |
+| B-08 | `PostService` (삭제 연쇄) | B-06, B-07 |
+
+### 1.4 구현과 리뷰의 병렬
+
+병렬 구간이 3쌍뿐이므로, 워크트리의 주된 쓰임은 **구현 워커와 리뷰 워커를 동시에 돌리는 것**이다.
+
+```
+구현 워커:  M-04 ──> M-05 ──> M-06 ──> ...
+리뷰 워커:        M-04 리뷰 ──> M-05 리뷰 ──> ...
+```
+
+리뷰어는 작성자와 달라야 한다([../process/review-policy.md §1](../process/review-policy.md)). 리뷰 워커는 읽기만 하므로 구현 워커와 충돌하지 않는다.
 
 ## 2. member-service 작업 항목
 
@@ -185,7 +238,8 @@ M-11 마무리
 | | |
 | --- | --- |
 | 저장소 | `yuno110/member` |
-| 의존 | M-04 |
+| 의존 | M-03 |
+| 병렬 | **M-04와 동시 진행 가능.** 산출물이 겹치지 않는다 (`global/security/*` vs `member/*`) |
 | 참조 | [../security.md §2 §3 §4](../security.md), [../api-contract.md §5](../api-contract.md), [../tech-stack.md §2.2](../tech-stack.md) |
 
 **산출물**
@@ -221,7 +275,7 @@ M-11 마무리
 | | |
 | --- | --- |
 | 저장소 | `yuno110/member` |
-| 의존 | M-05 |
+| 의존 | M-04, M-05 |
 | 참조 | [../requirements/member.md §1](../requirements/member.md) (M-04), [../api-contract.md §2.1 §8.2](../api-contract.md), [../security.md §1 §4 §5.1](../security.md) |
 
 **산출물**
@@ -259,6 +313,7 @@ M-11 마무리
 | --- | --- |
 | 저장소 | `yuno110/member` |
 | 의존 | M-06 |
+| 병렬 | **M-08과 동시 진행 가능.** 산출물이 겹치지 않는다 (`auth/*` vs `member/*`) |
 | 참조 | [../requirements/member.md §1](../requirements/member.md) (M-05, M-06), [../domain-model.md §2.2](../domain-model.md), [../security.md §4](../security.md) |
 
 **산출물**
@@ -294,7 +349,8 @@ M-11 마무리
 | | |
 | --- | --- |
 | 저장소 | `yuno110/member` |
-| 의존 | M-07 |
+| 의존 | M-06 |
+| 병렬 | **M-07과 동시 진행 가능.** 산출물이 겹치지 않는다 (`member/*` vs `auth/*`) |
 | 참조 | [../requirements/member.md §1 §4](../requirements/member.md) (M-07, M-08), [../api-contract.md §2.2](../api-contract.md), [../architecture.md §4.2](../architecture.md) |
 
 **산출물**
@@ -327,7 +383,8 @@ M-11 마무리
 | | |
 | --- | --- |
 | 저장소 | `yuno110/member` |
-| 의존 | M-08 |
+| 의존 | M-07, M-08 |
+| 공유 파일 | `MemberService`, `MemberController`를 M-08과 함께 수정한다. **M-08 완료 후 시작한다** |
 | 참조 | [../requirements/member.md §1 §3](../requirements/member.md) (M-09, M-10), [../security.md §7](../security.md) |
 
 **산출물**
@@ -364,6 +421,7 @@ M-11 마무리
 | --- | --- |
 | 저장소 | `yuno110/member` |
 | 의존 | M-09 |
+| 공유 파일 | `MemberController`, `SecurityConfig`를 확장한다. 선행 항목 완료 후 시작한다 |
 | 참조 | [../requirements/member.md §1 §5](../requirements/member.md) (M-11, M-12), [../api-contract.md §4](../api-contract.md), [../security.md §6](../security.md) |
 
 **산출물**
@@ -503,7 +561,7 @@ M-11 마무리
 | --- | --- |
 | 저장소 | `yuno110/board` |
 | 의존 | B-02 |
-| 병렬 | **M-05를 기다리지 않는다.** 계약이 문서에 확정되어 있다 |
+| 병렬 | **B-04와 동시 진행 가능.** 또한 M-05를 기다리지 않는다 — 계약이 문서에 확정되어 있다 |
 | 참조 | [../api-contract.md §5](../api-contract.md), [../tech-stack.md §2.1](../tech-stack.md), [../security.md §2 §5](../security.md) |
 
 **산출물**
@@ -546,6 +604,7 @@ M-11 마무리
 | --- | --- |
 | 저장소 | `yuno110/board` |
 | 의존 | B-02 |
+| 병렬 | **B-03과 동시 진행 가능.** 산출물이 겹치지 않는다 (`post/*` vs `global/security/*`) |
 | 참조 | [../domain-model.md §3.1 §3.3](../domain-model.md), [../requirements/board.md §3](../requirements/board.md) |
 
 **산출물**
@@ -622,6 +681,7 @@ M-11 마무리
 | --- | --- |
 | 저장소 | `yuno110/board` |
 | 의존 | B-05 |
+| 공유 파일 | `PostService`, `PostController`를 확장한다. **B-07·B-08과 동시에 진행하지 않는다** |
 | 참조 | [../requirements/board.md §1 §6](../requirements/board.md) (P-02, P-03), [../api-contract.md §3.1 §6.1](../api-contract.md), [../nfr.md §1](../nfr.md) |
 
 **산출물**
@@ -665,6 +725,7 @@ M-11 마무리
 | --- | --- |
 | 저장소 | `yuno110/board` |
 | 의존 | B-06 |
+| 공유 파일 | `PostService`, `PostController`를 확장한다. **B-06·B-08과 동시에 진행하지 않는다** |
 | 참조 | [../requirements/board.md §1 §5 §7](../requirements/board.md) (P-06, P-07), [../security.md §5](../security.md) |
 
 **산출물**
@@ -703,6 +764,7 @@ M-11 마무리
 | --- | --- |
 | 저장소 | `yuno110/board` |
 | 의존 | B-07 |
+| 공유 파일 | 게시글 삭제 시 댓글 연쇄 삭제를 위해 `PostService`를 수정한다. **B-06·B-07과 동시에 진행하지 않는다** |
 | 참조 | [../requirements/board.md §2 §5](../requirements/board.md) (C-01~C-04), [../domain-model.md §3.2 §3.3 §4](../domain-model.md) |
 
 **산출물**
