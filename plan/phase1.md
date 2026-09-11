@@ -67,15 +67,7 @@ B-03(JWT 검증)이 M-05(JWT 발급)를 기다릴 것 같지만 그렇지 않다
 
 **워크트리는 작업 중에만 격리한다. 병합은 별개다.** 서로 다른 워크트리에서 같은 파일을 고치면 merge에서 충돌한다.
 
-항목의 **공유 파일** 필드에 적힌 항목끼리는 동시에 진행하지 않는다.
-
-| 항목 | 공유 파일 | 동시 진행 금지 대상 |
-| --- | --- | --- |
-| M-09 | `MemberService`, `MemberController` | M-08, M-10 |
-| M-10 | `MemberController`, `SecurityConfig` | M-08, M-09 |
-| B-06 | `PostService`, `PostController` | B-07, B-08 |
-| B-07 | `PostService`, `PostController` | B-06, B-08 |
-| B-08 | `PostService` (삭제 연쇄) | B-06, B-07 |
+그래서 병렬 가능 여부는 **쓰는 경로가 갈리는지**로 판단한다. 경로 소유와 공유 지점은 [§2](#2-경로-소유)에 있다.
 
 ### 1.4 구현과 리뷰의 병렬
 
@@ -88,7 +80,81 @@ B-03(JWT 검증)이 M-05(JWT 발급)를 기다릴 것 같지만 그렇지 않다
 
 리뷰어는 작성자와 달라야 한다([../process/review-policy.md §1](../process/review-policy.md)). 리뷰 워커는 읽기만 하므로 구현 워커와 충돌하지 않는다.
 
-## 2. member-service 작업 항목
+## 2. 경로 소유
+
+**충돌을 규칙이 아니라 구조로 막는다.** 각 경로에는 소유 항목이 하나이고, 워커는 자기 항목이 소유한 경로에만 쓴다.
+
+이 표가 [../process/orchestration.md](../process/orchestration.md)의 격리와 짝을 이룬다. 워크트리는 작업 중에만 격리하므로, 병합까지 안전하려면 애초에 쓰는 경로가 갈려 있어야 한다.
+
+### 2.1 member-service
+
+| 경로 | 소유 항목 |
+| --- | --- |
+| `build.gradle`, `settings.gradle`, `.gitignore` | M-01 |
+| `global/common/`, `global/error/` | M-02 |
+| `global/config/JpaConfig`, `SwaggerConfig` | M-02 |
+| `global/config/JwtConfig` | M-05 |
+| `global/security/JwtTokenProvider` | M-05 |
+| `global/security/LoginMember`, ArgumentResolver | M-06 |
+| `global/security/InternalApiKeyFilter` | M-10 |
+| `member/entity/`, `member/repository/` | M-03 |
+| `auth/dto/TokenResponse` | M-05 |
+| `auth/` (그 외 전부) | M-06, M-07 |
+| `internal/` | M-10 |
+
+### 2.2 board-service
+
+| 경로 | 소유 항목 |
+| --- | --- |
+| `build.gradle`, `settings.gradle`, `.gitignore` | B-01 |
+| `global/config/QuerydslConfig` | B-01 |
+| `global/common/`, `global/error/` | B-02 |
+| `global/config/JpaConfig`, `SwaggerConfig` | B-02 |
+| `global/config/SecurityConfig`, `global/security/` | B-03 |
+| `resources/jwt-public.pem` | B-03 (I-01이 실제 키로 교체) |
+| `post/entity/`, `post/repository/PostRepository` | B-04 |
+| `post/repository/PostQueryRepository` | B-06 |
+| `comment/` | B-08 |
+
+### 2.3 공유 지점
+
+**아래 파일만 여러 항목이 함께 쓴다.** 목록 밖의 파일에서 충돌이 나면 누군가 소유 경계를 넘은 것이다.
+
+| 파일 | 생성 | 확장 | 규칙 |
+| --- | --- | --- | --- |
+| `global/config/SecurityConfig` (member) | M-04 | M-06, M-10 | 순차만 |
+| `member/service/MemberService` | M-04 | M-08, M-09, M-10 | 순차만 |
+| `member/controller/MemberController` | M-04 | M-08, M-09, M-10 | 순차만 |
+| `post/service/PostService` | B-05 | B-06, B-07, B-08 | 순차만 |
+| `post/controller/PostController` | B-05 | B-06, B-07 | 순차만 |
+| `build.gradle` | M-01 / B-01 | 의존성 추가 시 | 단독 진행 중에만 |
+| `db/migration/` | - | - | §2.4 |
+| `docs/checklist.md` | - | 모든 항목 | 자기 줄만 ([../process/orchestration.md §6](../process/orchestration.md)) |
+
+`순차만`은 **확장 항목끼리** 동시에 진행하지 말라는 뜻이다. 그 파일을 건드리지 않는 항목과는 병렬로 진행해도 된다. 예를 들어 M-08은 `MemberService`를 확장하지만 M-07은 `auth/`에서만 일하므로 §1.2의 M-07 ∥ M-08은 성립한다.
+
+`member/dto/`와 `post/dto/`는 여러 항목이 쓰지만 **각자 새 파일만 추가**하므로 공유 지점이 아니다. 기존 DTO 파일을 수정해야 하면 그것은 계획에 없던 일이므로 BLOCKED로 보고한다.
+
+### 2.4 마이그레이션 번호
+
+Flyway 버전은 서비스마다 하나의 순번이다. **워커가 번호를 스스로 정하면 병렬 작업에서 같은 번호를 쓴다.** 번호는 계획이 배정한다.
+
+| 서비스 | 배정 |
+| --- | --- |
+| member | `V1` = M-03, `V2` = M-04, `V3` = M-07 |
+| board | `V1` = B-04, `V2` = B-08 |
+
+배정되지 않은 마이그레이션이 필요하면 임의로 번호를 붙이지 말고 BLOCKED로 보고한다.
+
+### 2.5 소유 경계를 넘어야 할 때
+
+작업 항목이 다른 항목 소유 경로에 파일을 만들어야 한다면 **항목을 분할한다.** 소유자 쪽 항목이 자기 경로의 파일을 만들고, 사용하는 쪽은 자기 경로에서 그것을 쓴다.
+
+예를 들어 M-10(내부 API)이 `SecurityConfig`에 `/internal/**` 경로 설정을 넣어야 하는데 그 파일은 M-04가 만들고 M-06이 확장한 것이다. 이 경우 M-10은 **M-06 이후에 순차로** 진행한다(§2.3). 동시에 진행하면서 경계를 넘지 않는다.
+
+판단이 서지 않으면 진행하지 말고 BLOCKED로 보고한다.
+
+## 3. member-service 작업 항목
 
 ### M-01 프로젝트 스캐폴딩
 
@@ -484,7 +550,7 @@ B-03(JWT 검증)이 M-05(JWT 발급)를 기다릴 것 같지만 그렇지 않다
 | `prod` 프로파일로 `/swagger-ui.html` | 404 |
 | `git log -p` 에서 키·비밀번호 검색 | 없음 |
 
-## 3. board-service 작업 항목
+## 4. board-service 작업 항목
 
 ### B-01 프로젝트 스캐폴딩
 
@@ -835,6 +901,6 @@ B-03(JWT 검증)이 M-05(JWT 발급)를 기다릴 것 같지만 그렇지 않다
 | 목록 조회 쿼리 수 | 게시글 수와 무관하게 일정 (N+1 없음) |
 | `/actuator/env` | 404 또는 403 |
 
-## 4. 다음 단계
+## 5. 다음 단계
 
 M-11과 B-09가 모두 `done`이 되면 [integration.md](integration.md)로 넘어간다.
