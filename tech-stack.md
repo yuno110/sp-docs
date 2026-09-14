@@ -253,19 +253,20 @@ JVM 플래그와 코드 초기화를 **함께** 쓴다. 각자 상대가 못 막
 **1) `build.gradle` — 개발·CI 실행**
 
 ```groovy
-tasks.named('test') {
-	useJUnitPlatform()
-	systemProperty 'user.timezone', 'Asia/Seoul'
-}
-
-tasks.named('bootRun') {
-	jvmArgs '-Duser.timezone=Asia/Seoul'
-}
+tasks.withType(JavaExec).configureEach { jvmArgs '-Duser.timezone=Asia/Seoul' }
+tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
 ```
 
-`Test` 태스크는 `systemProperty`로, `bootRun`은 `jvmArgs`로 건다. Gradle 9.7.1에서 두 경로 모두 포크된 JVM의 `TimeZone.getDefault()`를 실제로 바꾸는 것을 확인했다.
+**왜 이 형태인가**
 
-`tasks.withType(Test)`·`tasks.withType(JavaExec)`에 `jvmArgs`로 거는 형태도 동일하게 동작한다. 테스트 태스크가 여러 개로 늘면 그쪽이 낫다.
+- `bootRun`은 `JavaExec` 하위 타입이라 첫 줄에 걸리고, `bootTestRun` 같은 태스크가 생겨도 따라온다
+- 두 타입을 한 가지 문장으로 덮어 두 저장소에서 같은 형태가 된다
+
+**`systemProperty`와의 관계** — `Test` 태스크에서는 두 형태가 **등가다.** Gradle의 `DefaultJavaForkOptions`가 `jvmArgs`의 `-D` 인자를 `systemProperties`로 정규화하므로, 결국 같은 `-Duser.timezone`이 워커 커맨드라인에 실린다. `systemProperty 'user.timezone', 'Asia/Seoul'`로 써도 동작한다.
+
+`jvmArgs`로 통일하는 것은 **의도를 명시하고 `JavaExec`까지 한 문장으로 덮기 위해서이지, `systemProperty`가 동작하지 않아서가 아니다.**
+
+> 측정할 때 주의할 점이 있다. `jvmArgs`로 건 `-D` 인자는 `jvmArgs` getter에서 사라지고 `systemProperties`에 들어간다. `Test` 태스크의 실제 워커 인자는 `allJvmArgs`에서 봐야 한다. 이 정규화를 모르고 측정하면 어느 쪽으로든 틀린 결론이 나온다.
 
 **`gradle.properties`의 `systemProp.user.timezone`은 오답이다.** Gradle **데몬** JVM에만 적용되고 포크된 test·bootRun 워커에 상속되지 않는다.
 
