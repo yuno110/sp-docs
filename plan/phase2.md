@@ -38,7 +38,7 @@ related: [phase1.md, integration.md, ../adr/0010-kafka-for-nickname-sync.md, ../
 
 부수 효과로 서비스 디스커버리가 DNS 기반이 된다([../architecture.md §6](../architecture.md)). `http://localhost:8081`을 `http://member-service:8081`로 바꾸면 된다.
 
-**주의**: 컨테이너의 기본 시간대는 UTC다. `ENV TZ=Asia/Seoul`을 반드시 넣고 I-03과 같은 검증을 다시 수행한다.
+**주의**: 컨테이너의 기본 시간대는 UTC다. **`ENV TZ=Asia/Seoul`을 반드시 넣는다.** JVM 시간대를 코드·빌드가 아니라 실행 환경이 정하기로 했으므로([../adr/0011](../adr/0011-timezone-from-environment.md)), 이 한 줄이 빠지면 로그와 `LocalDateTime.now()`가 UTC가 된다. 컨테이너에서 `TimeZone.getDefault()`가 `Asia/Seoul`인지 확인하는 것이 이 단계의 검증 항목이다.
 
 ## 3. Kafka와 닉네임 동기화
 

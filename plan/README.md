@@ -57,10 +57,10 @@ M-xx의 상태 원본은 member 저장소 하나뿐이고 B-xx는 board 저장�
 ## 체크리스트 줄 형식
 
 ```
-- [ ] <ID> <이름> · 상태 <todo|doing|review|blocked|done> · 커밋 <해시 또는 ->
+- [ ] <ID> <이름> · 상태 <todo|doing|review|blocked|done>
 ```
 
-`blocked`는 줄 끝에 `· 사유: ...`를 붙인다. 사유는 다음 작업자가 이어받을 수 있을 만큼 구체적으로 적는다([../process/dev-workflow.md §4](../process/dev-workflow.md)).
+`blocked`는 줄 끝에 `· 사유: ...`를 붙인다. 커밋 해시는 적지 않는다 — 작업 항목 하나가 커밋 하나이므로 `git log`가 기록이다. 사유는 다음 작업자가 이어받을 수 있을 만큼 구체적으로 적는다([../process/dev-workflow.md §4](../process/dev-workflow.md)).
 
 ## 작업 시작 규칙
 

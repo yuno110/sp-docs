@@ -181,14 +181,12 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] [../tech-stack.md §3.1 §3.2](../tech-stack.md)의 의존성이 전부 선언되어 있다
 - [ ] DB 접속 정보가 환경변수로 외부화되어 있다 ([../tech-stack.md §4.3](../tech-stack.md))
 - [ ] `.gitignore`에 `private.pem`, `*.env`가 있다
-- [ ] 시간대가 `Asia/Seoul`로 명시 설정되어 있다
 
 **검증** — `MemberApplicationTest`
 
 | 케이스 | 기대 결과 |
 | --- | --- |
 | 컨텍스트 로딩 | 예외 없이 기동 |
-| `TimeZone.getDefault()` | `Asia/Seoul` |
 
 ---
 
@@ -577,7 +575,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-07, M-10 |
-| 참조 | [../nfr.md](../nfr.md), [../tech-stack.md §5](../tech-stack.md) |
+| 참조 | [../nfr.md](../nfr.md), [../tech-stack.md §6](../tech-stack.md) |
 
 **산출물**
 - `README.md` 갱신 (실행 절차, 환경변수 목록)
@@ -629,7 +627,6 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] QueryDSL Q타입이 생성되고 `.gitignore`에 생성 경로가 있다
 - [ ] [../tech-stack.md §3.1 §3.2](../tech-stack.md)의 의존성이 전부 선언되어 있다
 - [ ] DB 접속 정보가 환경변수로 외부화되어 있다
-- [ ] 시간대가 `Asia/Seoul`로 명시 설정되어 있다
 
 **검증** — `BoardApplicationTest`
 
@@ -637,7 +634,6 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 컨텍스트 로딩 | 예외 없이 기동 |
 | `JPAQueryFactory` 빈 | 주입됨 |
-| `TimeZone.getDefault()` | `Asia/Seoul` |
 
 ---
 

@@ -25,6 +25,7 @@ related: [../README.md, ../overview.md]
 | [0008](0008-api-versioning.md) | API 경로 버저닝 | accepted |
 | [0009](0009-gateway-deferred.md) | API Gateway 2차 이연 | accepted |
 | [0010](0010-kafka-for-nickname-sync.md) | 2차 Kafka로 닉네임 동기화 | accepted |
+| [0011](0011-timezone-from-environment.md) | JVM 시간대는 실행 환경이 정한다 | accepted |
 
 ## 형식
 

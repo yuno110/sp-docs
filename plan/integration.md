@@ -103,15 +103,16 @@ B-03에서 board-service는 **테스트용 키 페어**로 자체 검증만 했�
 | | |
 | --- | --- |
 | 의존 | I-01 |
-| 참조 | [../tech-stack.md §5](../tech-stack.md) |
+| 참조 | [../tech-stack.md §6](../tech-stack.md) |
 
-**한 서비스만 UTC면 9시간이 어긋난다.** 두 서비스와 DB가 모두 KST인지 확인한다.
+JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-from-environment.md)). 여기서 확인하는 것은 **두 서비스와 DB가 같은 기준으로 시각을 다루는가**다.
 
 **완료 기준**
-- [ ] member-service의 `createdAt`과 board-service의 `createdAt`이 같은 기준 시각이다
+- [ ] member와 board의 `createdAt`이 같은 기준 시각이다
 - [ ] DB에 저장된 값이 KST다
 - [ ] API 응답의 시각 형식이 `yyyy-MM-dd'T'HH:mm:ss`이고 오프셋이 없다
-- [ ] 두 서비스 JVM의 기본 시간대가 `Asia/Seoul`이다
+- [ ] 두 서비스의 JDBC URL에 `serverTimezone=Asia/Seoul`이 있다
+- [ ] 두 서비스에 `hibernate.jdbc.time_zone: Asia/Seoul`이 있다
 
 **검증**
 
@@ -120,9 +121,8 @@ B-03에서 board-service는 **테스트용 키 페어**로 자체 검증만 했�
 | 회원가입·게시글 작성을 1분 내 수행 | 두 `createdAt` 차이가 1분 이내 |
 | DB에서 직접 조회한 `created_at` | 현재 KST 시각과 일치 |
 | API 응답의 시각 문자열 | `Z`·`+09:00` 등 오프셋 없음 |
-| 두 서비스의 `TimeZone.getDefault()` | 모두 `Asia/Seoul` |
 
-> 로컬 Windows는 OS가 KST라 이 테스트가 쉽게 통과한다. **그래서 설정을 명시했는지 함께 확인한다.** 명시하지 않으면 UTC 서버에 배포할 때 드러난다.
+> **JVM 기본 시간대는 검증 대상이 아니다.** 개발 머신이 KST라 항상 통과하므로 아무것도 증명하지 못한다. 배포 시 `TZ=Asia/Seoul`을 거는 것은 2차 컨테이너화의 확인 항목이다([../plan/phase2.md](../plan/phase2.md)).
 
 ---
 

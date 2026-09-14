@@ -223,16 +223,21 @@ CLAUDE.md 읽음
 
 `APPROVED`를 받은 뒤에만 수행한다.
 
+**작업 항목 하나 = 커밋 하나다.** 체크리스트 갱신을 별도 커밋으로 내지 않는다.
+
 ```bash
 cd <워크트리>
+# 1) 체크리스트를 done 으로 바꾼다 (커밋 전에)
+#    - [x] M-01 프로젝트 스캐폴딩 · 상태 done
+# 2) 함께 스테이징하고 한 번에 커밋한다
+git add -A
 git status --short          # 스테이징 내용 확인
 git commit -m "<type>(<scope>): <요약>"
 git push origin HEAD
 ```
 
 - 커밋 메시지 형식은 [../conventions.md §10](../conventions.md)
-- 작업 항목 하나 = 커밋 하나
-- 푸시 후 `docs/checklist.md`의 해당 줄을 `[x]`·`done`·커밋 해시로 갱신하고 함께 커밋한다
+- 체크리스트에 커밋 해시를 적지 않는다. 자기 자신을 가리킬 수 없고, `git log`가 이미 기록이다
 
 ## 6. 체크리스트 충돌 회피
 

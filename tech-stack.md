@@ -292,80 +292,34 @@ class MemberRepositoryTest { ... }
 
 ## 6. 시간대 — KST 통일
 
-전 구성요소를 `Asia/Seoul`로 맞춘다. 한쪽만 UTC면 작성 시각이 9시간 어긋난다.
-
-| 계층 | 설정 |
-| --- | --- |
-| JVM | `-Duser.timezone=Asia/Seoul` |
-| MySQL 서버 | `default-time-zone = '+09:00'` |
-| JDBC URL | `serverTimezone=Asia/Seoul&characterEncoding=UTF-8` |
-| 컬럼 타입 | `DATETIME` (`TIMESTAMP` 아님 — 자동 UTC 변환 회피) |
-| Java 타입 | `LocalDateTime` |
-| API 응답 | `yyyy-MM-dd'T'HH:mm:ss` (오프셋 미표기) |
-
-로컬 Windows는 OS 시간대가 이미 KST지만 **명시적으로 지정한다.** 배포 서버·CI 러너는 대개 UTC이므로 명시하지 않으면 그 시점에 문제가 드러난다. 시각 검증 테스트를 통합 테스트에 포함한다.
-
-#### 6.1 구현 방식 — 두 지점 모두 건다
-
-JVM 플래그와 코드 초기화를 **함께** 쓴다. 각자 상대가 못 막는 경우를 막는다.
-
-**1) `build.gradle` — 개발·CI 실행**
-
-```groovy
-tasks.withType(JavaExec).configureEach { jvmArgs '-Duser.timezone=Asia/Seoul' }
-tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
-```
-
-**왜 이 형태인가**
-
-- `bootRun`은 `JavaExec` 하위 타입이라 첫 줄에 걸리고, `bootTestRun` 같은 태스크가 생겨도 따라온다
-- 두 타입을 한 가지 문장으로 덮어 두 저장소에서 같은 형태가 된다
-
-**`systemProperty`와의 관계** — `Test` 태스크에서는 두 형태가 **등가다.** Gradle의 `DefaultJavaForkOptions`가 `jvmArgs`의 `-D` 인자를 `systemProperties`로 정규화하므로, 결국 같은 `-Duser.timezone`이 워커 커맨드라인에 실린다. `systemProperty 'user.timezone', 'Asia/Seoul'`로 써도 동작한다.
-
-`jvmArgs`로 통일하는 것은 **의도를 명시하고 `JavaExec`까지 한 문장으로 덮기 위해서이지, `systemProperty`가 동작하지 않아서가 아니다.**
-
-#### 6.2 이 설정을 검증하는 방법
-
-**로그 타임스탬프를 지표로 쓰지 않는다.** 워커 JVM에서 `TimeZone.getDefault()`를 직접 찍는다.
-
-로그 타임스탬프가 기대와 다르게 나올 때 원인이 둘이고 구분되지 않기 때문이다.
-
-| 관측 | 가능한 원인 |
-| --- | --- |
-| 로그가 UTC | 시간대 설정이 늦게 걸렸다 (Logback이 이미 캐싱) |
-| 로그가 KST | 설정이 동작했다 **또는** 설정이 워커에 도달조차 못 했다 (OS 기본이 KST라서) |
-
-두 번째 행이 함정이다. 설정이 아예 적용되지 않아도 KST 머신에서는 KST가 나온다.
-
-**KST 머신에서 측정할 때**는 값을 일시적으로 `America/New_York` 같은 다른 시간대로 바꿔서 그 값이 실제로 관측되는지 본다. `Asia/Seoul`로는 설정의 효과와 OS 기본값이 구분되지 않는다.
-
-**Gradle 옵션을 들여다볼 때**는 `jvmArgs`로 건 `-D` 인자가 `jvmArgs` getter에서 사라지고 `systemProperties`로 들어간다는 점에 주의한다. `Test` 태스크의 실제 워커 인자는 `allJvmArgs`에서 봐야 한다.
-
-**`gradle.properties`의 `systemProp.user.timezone`은 오답이다.** Gradle **데몬** JVM에만 적용되고 포크된 test·bootRun 워커에 상속되지 않는다.
-
-**2) 애플리케이션 클래스 — 패키징된 jar 실행**
-
-`main()`의 `SpringApplication.run(...)` **이전** 또는 static 초기화 블록에서 건다.
-
-```java
-static {
-	TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
-}
-```
-
-**`@PostConstruct`로 걸지 않는다. 이미 그렇게 되어 있다면 삭제한다** — 남겨두면 같은 일을 두 번 하면서 늦은 쪽이 의도를 흐린다. 그 훅은 `dataSource`·`flywayInitializer`·`entityManagerFactory`가 모두 초기화된 **뒤에** 실행되며, Logback은 그 전에 기본 시간대를 캐싱해 교정되지 않는다. 더 중요하게는 **Spring 컨텍스트를 띄우지 않는 단위 테스트에 적용되지 않는다** — Mockito 기반 Service 테스트가 CI 러너의 UTC를 그대로 쓰게 된다.
-
-**두 지점의 역할이 다르다.** JVM 플래그는 *테스트 JVM과 로컬 실행*의 하한선을 보장하고, static 블록은 *배포된 애플리케이션*이 실행 방식과 무관하게 KST임을 보장한다. 겹치는 게 아니라 서로의 사각지대를 덮는다.
-
-| 경로 | JVM 플래그 | static 블록 |
+| 계층 | 설정 | 누가 |
 | --- | --- | --- |
-| `gradlew test` (Spring 컨텍스트 있음) | O | O |
-| `gradlew test` (Mockito 단위 테스트) | O | **X** — `*Application`을 로딩하지 않아 static 블록이 실행되지 않는다 |
-| `gradlew bootRun` | O | O |
-| IDE의 Spring Boot 실행 구성 | **X** — Gradle을 거치지 않는다 | O |
-| `java -jar` (2차 컨테이너) | **X** | O |
+| **JVM** | OS·컨테이너의 시간대를 따른다 | **배포 환경** |
+| MySQL 서버 | `SET PERSIST time_zone='+09:00'` (§4.1) | 로컬 1회 / 운영 DBA |
+| JDBC URL | `serverTimezone=Asia/Seoul` | `application.yml` |
+| Hibernate | `spring.jpa.properties.hibernate.jdbc.time_zone: Asia/Seoul` | `application.yml` |
+| 컬럼 타입 | `DATETIME` (`TIMESTAMP` 아님 — 자동 UTC 변환 회피) | 마이그레이션 |
+| Java 타입 | `LocalDateTime` | 엔티티 |
+| API 응답 | `yyyy-MM-dd'T'HH:mm:ss` (오프셋 미표기) | `spring.jackson.time-zone` |
 
-static 블록만 두면 **실행 순서에 따라 결과가 달라진다.** Gradle은 기본적으로 한 저장소의 테스트 전부를 워커 JVM 하나에서 돌리므로, `@SpringBootTest`가 먼저 돌면 이미 KST로 바뀐 상태를 뒤따르는 Mockito 테스트가 보고, 반대 순서면 UTC를 본다. 클래스 이름·필터·병렬 설정이 바뀌면 간헐적으로 깨지며 원인 추적이 어렵다. JVM 플래그가 이 순서 의존을 구조적으로 없앤다.
+### 6.1 JVM 시간대는 코드에서 건드리지 않는다
 
-> 검증 표의 `TimeZone.getDefault()` 케이스는 **KST 개발 머신에서는 설정이 없어도 통과한다.** 그래서 이 절을 지켰는지는 테스트 통과가 아니라 위 두 지점의 존재로 확인한다.
+**`TimeZone.setDefault()`를 애플리케이션 코드에 넣지 않는다.** `build.gradle`에 `-Duser.timezone`을 박지도 않는다. JVM 시간대는 **실행 환경이 정하는 것**이고, 코드가 환경 설정을 침범하면 실행 방식마다 동작이 갈린다.
+
+환경별로 이렇게 맞춘다.
+
+| 환경 | 방법 |
+| --- | --- |
+| 로컬 개발 | OS 시간대가 KST면 그대로 (Windows 한국 설정은 이미 KST) |
+| Docker (2차) | `ENV TZ=Asia/Seoul` |
+| 리눅스 서버 | `timedatectl set-timezone Asia/Seoul` |
+| CI | 러너 설정 또는 `TZ` 환경변수 |
+| 필요 시 직접 지정 | `java -Duser.timezone=Asia/Seoul -jar app.jar` |
+
+### 6.2 JVM이 KST가 아니어도 데이터는 안전하다
+
+위 표의 **JDBC·Hibernate 설정이 DB 경계를 고정**하기 때문이다. JVM이 UTC인 환경에 배포되어도 DB에 저장되는 값은 KST 기준으로 유지된다.
+
+JVM 시간대가 어긋날 때 영향받는 것은 **로그 타임스탬프와 `LocalDateTime.now()`** 다. 전자는 운영 편의의 문제이고, 후자는 배포 환경을 KST로 맞추면 해결된다.
+
+> 이전 버전은 `static` 초기화 블록과 Gradle `jvmArgs`로 JVM 시간대를 강제했다. 표준에서 벗어난 방식이라 제거했다. 판단 근거는 [adr/0011-timezone-from-environment.md](adr/0011-timezone-from-environment.md)에 있다.
