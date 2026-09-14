@@ -194,12 +194,32 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/sp_member?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    password: ${DB_PASSWORD}
 member-service:
   url: ${MEMBER_SERVICE_URL:http://localhost:8081}
 ```
 
-비밀 값(JWT 개인키, DB 비밀번호)은 기본값을 두지 않는다. 없으면 기동이 실패해야 한다.
+**비밀 값(JWT 개인키, DB 비밀번호)은 기본값을 두지 않는다.** `${DB_PASSWORD}`처럼 기본값 없이 쓴다. 없으면 기동이 실패해야 한다.
+
+> Spring은 해석되지 않은 placeholder를 리터럴 문자열로 남긴다. 그래서 `DB_PASSWORD` 미설정 시 오류 메시지가 `Access denied for user 'root'@'localhost' (using password: YES)`로 나온다. **비밀번호가 틀린 게 아니라 환경변수가 없는 것**이니 먼저 §4.3.1을 확인한다.
+
+#### 4.3.1 로컬 환경변수 설정 (1회)
+
+애플리케이션은 `DB_PASSWORD` 없이 기동하지 않는다. 개발 머신에 **사용자 수준 환경변수**로 한 번 등록한다.
+
+```powershell
+[Environment]::SetEnvironmentVariable('DB_PASSWORD', '<MySQL root 비밀번호>', 'User')
+```
+
+등록 후 **새로 여는 터미널·IDE부터** 적용된다. 이미 열려 있는 프로세스는 갱신되지 않으므로 다시 열어야 한다.
+
+확인:
+
+```powershell
+[Environment]::GetEnvironmentVariable('DB_PASSWORD','User')
+```
+
+`JWT_PRIVATE_KEY`도 같은 방식으로 등록한다(M-04부터 필요). 값 생성은 §4.2를 본다.
 
 ### 4.4 실행
 
