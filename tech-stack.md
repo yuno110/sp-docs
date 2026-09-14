@@ -125,13 +125,30 @@ QueryDSL Q타입 생성 경로(`build/generated/sources/annotationProcessor`)를
 ```sql
 CREATE DATABASE sp_member DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE DATABASE sp_board  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
+SET PERSIST time_zone = '+09:00';
 ```
 
-```ini
-; my.ini
-[mysqld]
-default-time-zone = '+09:00'
+**시간대는 `SET PERSIST`로 설정한다.** `my.ini`에 `default-time-zone`을 적는 것과 효과가 같으면서 제약이 없다.
+
+| | `my.ini` 수정 | `SET PERSIST` |
+| --- | --- | --- |
+| 관리자 권한 | 필요 | 불필요 |
+| 서비스 재시작 | 필요 | 불필요 (즉시 적용) |
+| 재시작 후 유지 | 유지 | 유지 |
+
+MySQL 8.0이 데이터 디렉터리의 `mysqld-auto.cnf`에 기록하고, 이 파일은 `my.ini`보다 나중에 읽혀 우선한다.
+
+**확인**
+
+```sql
+SELECT @@global.time_zone, NOW();
+SELECT variable_name, variable_value FROM performance_schema.persisted_variables;
 ```
+
+`@@global.time_zone`이 `+09:00`이고 `persisted_variables`에 `time_zone` 행이 있어야 한다. 후자가 비어 있으면 현재 세션에만 적용된 것이라 서버 재시작 시 풀린다.
+
+> 데이터 디렉터리(`Data/`)는 ACL로 보호되어 관리자가 아니면 읽을 수 없다. 설정 확인은 파일이 아니라 위 쿼리로 한다.
 
 ### 4.2 RSA 키 페어 생성 (1회)
 
