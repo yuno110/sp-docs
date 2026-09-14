@@ -9,7 +9,7 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0003-wr
 ---
 # 게시판 기능 요구사항
 
-담당 서비스: board-service (`yuno110/board`)
+담당 서비스: board-service (`yuno110/sp-board`)
 
 ## 1. 게시글
 

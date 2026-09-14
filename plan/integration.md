@@ -11,7 +11,7 @@ related: [phase1.md, ../nfr.md, ../architecture.md]
 
 M-11과 B-09가 모두 `done`이 된 뒤에 진행한다.
 
-**이 단계는 순차로 진행한다.** 두 서비스가 모두 기동된 상태를 전제하므로 병렬 작업이 불가능하다. 상태는 `yuno110/board`의 `docs/checklist.md`에 기록한다([README.md](README.md) §상태의 위치).
+**이 단계는 순차로 진행한다.** 두 서비스가 모두 기동된 상태를 전제하므로 병렬 작업이 불가능하다. 상태는 `yuno110/sp-board`의 `docs/checklist.md`에 기록한다([README.md](README.md) §상태의 위치).
 
 여기서 확인하는 것은 **개별 서비스 테스트로는 잡을 수 없는 것들**이다. 두 서비스 사이의 계약, 실제 키 교환, 장애 격리, 시간대 정합.
 

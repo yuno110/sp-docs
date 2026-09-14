@@ -158,7 +158,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | 없음 |
 | 참조 | [../tech-stack.md §1 §3](../tech-stack.md), [../conventions.md §1.1](../conventions.md) |
 
@@ -191,7 +191,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-01 |
 | 참조 | [../api-contract.md §6 §7.1 §7.2](../api-contract.md), [../domain-model.md §1.1](../domain-model.md), [../conventions.md §6 §7](../conventions.md) |
 
@@ -227,7 +227,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-02 |
 | 참조 | [../domain-model.md §1 §2](../domain-model.md), [../conventions.md §2](../conventions.md), [../requirements/member.md §3](../requirements/member.md) |
 
@@ -280,7 +280,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-03 |
 | 참조 | [../security.md](../security.md) 전체, [../api-contract.md §2 §5](../api-contract.md), [../tech-stack.md §2.2 §4.2](../tech-stack.md) |
 
@@ -334,7 +334,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-04 |
 | 참조 | [../requirements/member.md §1 §2 §3 §6](../requirements/member.md) (M-01~M-03), [../api-contract.md §2.2 §8.1](../api-contract.md) |
 
@@ -376,7 +376,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-04 |
 | 병렬 | M-05와 동시 진행 가능 (`auth/*` vs `member/*`) |
 | 참조 | [../requirements/member.md §1](../requirements/member.md) (M-04), [../api-contract.md §2.1 §8.2](../api-contract.md), [../security.md §4](../security.md) |
@@ -411,7 +411,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-06 |
 | 참조 | [../requirements/member.md §1](../requirements/member.md) (M-05, M-06), [../domain-model.md §2.2](../domain-model.md), [../security.md §4](../security.md) |
 
@@ -447,7 +447,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-05 |
 | 공유 파일 | `MemberService`, `MemberController` (M-05 생성) |
 | 참조 | [../requirements/member.md §1 §4](../requirements/member.md) (M-07, M-08), [../architecture.md §4.2](../architecture.md) |
@@ -482,7 +482,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-08 |
 | 공유 파일 | `MemberService`, `MemberController` — **M-08 완료 후 시작** |
 | 참조 | [../requirements/member.md §1 §3](../requirements/member.md) (M-09, M-10), [../adr/0006 §예외](../adr/0006-auth-inside-member-service.md) |
@@ -520,7 +520,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-09 |
 | 공유 파일 | `MemberController` — **M-09 완료 후 시작** |
 | 참조 | [../requirements/member.md §1 §5](../requirements/member.md) (M-11, M-12), [../api-contract.md §4](../api-contract.md), [../security.md §6](../security.md) |
@@ -561,7 +561,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/member` |
+| 저장소 | `yuno110/sp-member` |
 | 의존 | M-07, M-10 |
 | 참조 | [../nfr.md](../nfr.md), [../tech-stack.md §5](../tech-stack.md) |
 
@@ -593,7 +593,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | 없음 |
 | 병렬 | M-01과 동시 진행 (다른 저장소) |
 | 참조 | [../tech-stack.md §1 §3](../tech-stack.md), [../conventions.md §1.2](../conventions.md) |
@@ -629,7 +629,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | B-01 |
 | 참조 | [../api-contract.md §6 §7.1 §7.3](../api-contract.md), [../domain-model.md §1.1](../domain-model.md), [../conventions.md §6 §7](../conventions.md) |
 
@@ -665,7 +665,7 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | B-02 |
 | 참조 | [../domain-model.md §3 §4](../domain-model.md), [../conventions.md §2](../conventions.md), [../requirements/board.md §3 §5](../requirements/board.md) |
 
@@ -723,7 +723,7 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | B-02 |
 | 병렬 | B-03과 동시 진행 가능 (`global/*` vs `post/*`·`comment/*`) |
 | 참조 | [../api-contract.md §3 §5](../api-contract.md), [../tech-stack.md §2.1](../tech-stack.md), [../security.md §2 §5](../security.md) |
@@ -768,7 +768,7 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | B-03, B-04 |
 | 참조 | [../requirements/board.md §1 §3 §4](../requirements/board.md) (P-01, P-04, P-05), [../api-contract.md §3](../api-contract.md) |
 
@@ -805,7 +805,7 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | B-05 |
 | 공유 파일 | `PostService`, `PostController` (B-05 생성) |
 | 참조 | [../requirements/board.md §1 §6](../requirements/board.md) (P-02, P-03), [../api-contract.md §3.1 §6.1](../api-contract.md), [../nfr.md §1](../nfr.md) |
@@ -847,7 +847,7 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | B-06 |
 | 공유 파일 | `PostService`, `PostController` — B-06 완료 후 시작 |
 | 참조 | [../requirements/board.md §1 §5 §7](../requirements/board.md) (P-06, P-07), [../security.md §5](../security.md) |
@@ -889,7 +889,7 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | B-05 |
 | 참조 | [../requirements/board.md §2 §5](../requirements/board.md) (C-01~C-04), [../domain-model.md §3.2 §4](../domain-model.md) |
 
@@ -931,7 +931,7 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 
 | | |
 | --- | --- |
-| 저장소 | `yuno110/board` |
+| 저장소 | `yuno110/sp-board` |
 | 의존 | B-07, B-08 |
 | 공유 파일 | `PostService`, `PostController` |
 | 참조 | [../requirements/board.md §1](../requirements/board.md) (P-08), [../nfr.md](../nfr.md) |

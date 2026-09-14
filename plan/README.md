@@ -23,9 +23,9 @@ related: [phase1.md, phase2.md, integration.md, ../process/dev-workflow.md]
 
 | 항목 ID | 상태 원본 |
 | --- | --- |
-| `M-xx` | `yuno110/member` 의 `docs/checklist.md` |
-| `B-xx` | `yuno110/board` 의 `docs/checklist.md` |
-| `I-xx` | `yuno110/board` 의 `docs/checklist.md` (통합 단계는 순차 진행) |
+| `M-xx` | `yuno110/sp-member` 의 `docs/checklist.md` |
+| `B-xx` | `yuno110/sp-board` 의 `docs/checklist.md` |
+| `I-xx` | `yuno110/sp-board` 의 `docs/checklist.md` (통합 단계는 순차 진행) |
 
 M-xx의 상태 원본은 member 저장소 하나뿐이고 B-xx는 board 저장소 하나뿐이므로 "상태의 단일 원본" 원칙은 유지된다. 두 워커가 서로 다른 파일에 쓰므로 충돌하지 않는다.
 

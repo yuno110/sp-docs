@@ -11,15 +11,15 @@ related: [plan/README.md, process/dev-workflow.md]
 
 게시판·회원 백엔드 시스템(MSA)의 정본 문서다. 사람과 AI 워커가 같은 문서를 읽는다는 전제로 쓴다.
 
-이 저장소는 **문서만** 둔다. 코드는 `yuno110/member`, `yuno110/board` 두 저장소에 있다.
+이 저장소는 **문서만** 둔다. 코드는 `yuno110/sp-member`, `yuno110/sp-board` 두 저장소에 있다.
 
 ## 저장소 구성
 
 | 저장소 | 내용 | 쓰기 주체 |
 | --- | --- | --- |
-| `yuno110/simple-docs` | 이 저장소. 정본 문서, 작업 계획 | 정본 개정 시에만 |
-| `yuno110/member` | member-service 코드 + `docs/checklist.md` | member 담당 워커 |
-| `yuno110/board` | board-service 코드 + `docs/checklist.md` | board 담당 워커 |
+| `yuno110/sp-docs` | 이 저장소. 정본 문서, 작업 계획 | 정본 개정 시에만 |
+| `yuno110/sp-member` | member-service 코드 + `docs/checklist.md` | member 담당 워커 |
+| `yuno110/sp-board` | board-service 코드 + `docs/checklist.md` | board 담당 워커 |
 
 **작업 항목의 상태는 각 서비스 저장소의 `docs/checklist.md`에 있다.** 이 저장소에는 상태를 적지 않는다. 이유는 [plan/README.md](plan/README.md) §상태의 위치를 본다.
 

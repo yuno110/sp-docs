@@ -9,7 +9,7 @@ related: [../api-contract.md, ../domain-model.md, ../security.md]
 ---
 # 회원 기능 요구사항
 
-담당 서비스: member-service (`yuno110/member`)
+담당 서비스: member-service (`yuno110/sp-member`)
 
 패키지 구분은 [../adr/0006-auth-inside-member-service.md](../adr/0006-auth-inside-member-service.md)를 따른다. `auth` = M-04~M-06, `member` = 나머지.
 

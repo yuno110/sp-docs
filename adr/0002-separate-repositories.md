@@ -22,9 +22,9 @@ accepted
 
 | 저장소 | 내용 |
 | --- | --- |
-| `yuno110/member` | member-service 코드 + `docs/checklist.md` |
-| `yuno110/board` | board-service 코드 + `docs/checklist.md` |
-| `yuno110/simple-docs` | 정본 문서, 작업 계획 |
+| `yuno110/sp-member` | member-service 코드 + `docs/checklist.md` |
+| `yuno110/sp-board` | board-service 코드 + `docs/checklist.md` |
+| `yuno110/sp-docs` | 정본 문서, 작업 계획 |
 
 ## 근거
 

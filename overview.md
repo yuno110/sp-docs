@@ -17,8 +17,8 @@ related: [architecture.md, plan/phase1.md, plan/phase2.md]
 
 | 서비스 | 저장소 | 책임 | 포트 |
 | --- | --- | --- | --- |
-| member-service | `yuno110/member` | 회원 관리, 인증(JWT 발급) | 8081 |
-| board-service | `yuno110/board` | 게시글, 댓글 | 8082 |
+| member-service | `yuno110/sp-member` | 회원 관리, 인증(JWT 발급) | 8081 |
+| board-service | `yuno110/sp-board` | 게시글, 댓글 | 8082 |
 
 서비스 경계와 통신 방식은 [architecture.md](architecture.md)를 본다.
 

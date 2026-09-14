@@ -49,8 +49,8 @@ git worktree remove ../wt/agent-m1   # 작업 종료 후 정리
 
 | 역할 | 저장소 | 담당 항목 |
 | --- | --- | --- |
-| member 워커 | `yuno110/member` | M-01 ~ M-11 |
-| board 워커 | `yuno110/board` | B-01 ~ B-09 |
+| member 워커 | `yuno110/sp-member` | M-01 ~ M-11 |
+| board 워커 | `yuno110/sp-board` | B-01 ~ B-09 |
 | 리뷰 워커 | 대상 저장소 (읽기 전용) | 항목마다 생성. **매 라운드 새로** |
 | 수정 워커 | 대상 저장소 | `CHANGES_REQUESTED` 시 생성 |
 | 통합 워커 | 두 저장소 + 실행 환경 | I-01 ~ I-04 (1차 완료 후) |
@@ -178,9 +178,9 @@ git merge worktree-agent-auth
 CLAUDE.md 읽음
   → AGENTS.md (행동 원칙)
   → docs/checklist.md 에서 항목 확인, 상태를 doing으로
-  → simple-docs/plan/phase1.md 에서 그 항목의 상세 확인
+  → sp-docs/plan/phase1.md 에서 그 항목의 상세 확인
   → 항목의 "참조" 문서만 읽음
-  → simple-docs/process/dev-workflow.md 절차대로 구현·테스트
+  → sp-docs/process/dev-workflow.md 절차대로 구현·테스트
   → git add -A (커밋하지 않음), 상태를 review로, 턴 종료
 ```
 
@@ -194,8 +194,8 @@ CLAUDE.md 읽음
 작업 항목: <ID>
 
 리뷰 대상: git diff --cached (스테이징된 미커밋 변경)
-판정 기준: simple-docs/plan/phase1.md 의 <ID> — 산출물·완료 기준·검증 표
-절차: simple-docs/process/review-policy.md 를 따라 APPROVED 또는
+판정 기준: sp-docs/plan/phase1.md 의 <ID> — 산출물·완료 기준·검증 표
+절차: sp-docs/process/review-policy.md 를 따라 APPROVED 또는
       CHANGES_REQUESTED 로 판정하라. 테스트는 직접 실행해서 확인하라.
 ```
 
@@ -216,7 +216,7 @@ CLAUDE.md 읽음
 지시: 위 finding을 해소하라. 산출물 목록 밖의 파일을 고치지 않는다.
       수정 후 ./gradlew test 를 통과시키고 git add -A 로 스테이징만 한다.
       커밋하지 않는다.
-절차: simple-docs/process/dev-workflow.md
+절차: sp-docs/process/dev-workflow.md
 ```
 
 ### 5.4 완료 처리 (오케스트레이터가 직접)

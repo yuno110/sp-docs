@@ -111,7 +111,7 @@ public class PostService {
 복제본 파일 상단에 정본 위치를 주석으로 남긴다.
 
 ```java
-// 정본: simple-docs/api-contract.md §6
+// 정본: sp-docs/api-contract.md §6
 // 변경 시 두 서비스를 함께 고친다.
 public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 ```

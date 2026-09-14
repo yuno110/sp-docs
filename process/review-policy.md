@@ -30,8 +30,8 @@ related: [dev-workflow.md, orchestration.md]
 작업 항목: <ID>
 
 리뷰 대상: git diff --cached (스테이징된 미커밋 변경)
-판정 기준: simple-docs/plan/phase1.md 의 <ID> 항목 — 산출물·완료 기준·검증 표
-절차: simple-docs/process/review-policy.md
+판정 기준: sp-docs/plan/phase1.md 의 <ID> 항목 — 산출물·완료 기준·검증 표
+절차: sp-docs/process/review-policy.md
 ```
 
 **구현 워커의 설명이나 자기평가를 전달하지 않는다.** 리뷰어가 그 서술에 끌려가면 독립 판정이 되지 않는다. 코드와 정본 문서만 보고 판단하게 한다.
