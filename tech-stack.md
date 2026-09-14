@@ -253,15 +253,21 @@ JVM 플래그와 코드 초기화를 **함께** 쓴다. 각자 상대가 못 막
 **1) `build.gradle` — 개발·CI 실행**
 
 ```groovy
-tasks.withType(JavaExec).configureEach { jvmArgs '-Duser.timezone=Asia/Seoul' }
-tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
+tasks.named('test') {
+	useJUnitPlatform()
+	systemProperty 'user.timezone', 'Asia/Seoul'
+}
+
+tasks.named('bootRun') {
+	jvmArgs '-Duser.timezone=Asia/Seoul'
+}
 ```
 
-`Test`와 `JavaExec`(`bootRun`이 이 타입이다)에 한 문장씩 건다. 태스크 이름 대신 타입으로 거는 이유는 두 저장소에서 같은 문장이 되고 테스트 태스크가 늘어도 따라가기 때문이다.
+`Test` 태스크는 `systemProperty`로, `bootRun`은 `jvmArgs`로 건다. Gradle 9.7.1에서 두 경로 모두 포크된 JVM의 `TimeZone.getDefault()`를 실제로 바꾸는 것을 확인했다.
 
-`Test` 태스크에 한해서는 `systemProperty 'user.timezone', 'Asia/Seoul'`도 동일하게 동작한다(Gradle 9.7.1에서 포크된 워커 JVM의 `TimeZone.getDefault()`가 바뀌는 것을 확인했다). 다만 `bootRun`에는 `jvmArgs`가 필요하므로, **양쪽을 한 가지 형태로 통일하기 위해** 위 형태를 쓴다.
+`tasks.withType(Test)`·`tasks.withType(JavaExec)`에 `jvmArgs`로 거는 형태도 동일하게 동작한다. 테스트 태스크가 여러 개로 늘면 그쪽이 낫다.
 
-`gradle.properties`의 `systemProp.user.timezone`은 오답이다. Gradle **데몬** JVM에만 적용되고 포크된 test·bootRun 워커에 상속되지 않는다.
+**`gradle.properties`의 `systemProp.user.timezone`은 오답이다.** Gradle **데몬** JVM에만 적용되고 포크된 test·bootRun 워커에 상속되지 않는다.
 
 **2) 애플리케이션 클래스 — 패키징된 jar 실행**
 
