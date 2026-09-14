@@ -253,15 +253,20 @@ JVM 플래그와 코드 초기화를 **함께** 쓴다. 각자 상대가 못 막
 **1) `build.gradle` — 개발·CI 실행**
 
 ```groovy
-tasks.named('test') {
-	useJUnitPlatform()
-	systemProperty 'user.timezone', 'Asia/Seoul'
-}
-
-tasks.named('bootRun') {
-	jvmArgs '-Duser.timezone=Asia/Seoul'
-}
+tasks.withType(JavaExec).configureEach { jvmArgs '-Duser.timezone=Asia/Seoul' }
+tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
 ```
+
+**반드시 `jvmArgs`를 쓴다. `systemProperty`로는 동작하지 않는다.** `user.timezone`은 JVM 기동 시점에 해석되고 `TimeZone.getDefault()`가 최초 호출에서 캐싱하므로, 기동 이후에 프로퍼티만 심어서는 이미 늦다. 같은 Gradle 9.7.1에서 A/B로 실측했다.
+
+| 방식 | 테스트 워커 JVM의 로그 타임스탬프 |
+| --- | --- |
+| `jvmArgs '-Duser.timezone=UTC'` | `...T01:46:48.468Z` — 바뀜 |
+| `systemProperty 'user.timezone', 'UTC'` | `...T10:55:47.818+09:00` — **바뀌지 않음** |
+
+태스크 이름 대신 타입으로 거는 이유는 두 저장소에서 같은 문장이 되고 테스트 태스크가 늘어도 따라가기 때문이다. `bootRun`은 `JavaExec` 하위 타입이라 첫 줄에 걸린다.
+
+`gradle.properties`의 `systemProp.user.timezone`도 오답이다. Gradle **데몬** JVM에만 적용되고 포크된 test·bootRun 워커에 상속되지 않는다.
 
 **2) 애플리케이션 클래스 — 패키징된 jar 실행**
 
@@ -273,6 +278,18 @@ static {
 }
 ```
 
-**`@PostConstruct`로 걸지 않는다.** 그 훅은 `dataSource`·`flywayInitializer`·`entityManagerFactory`가 모두 초기화된 **뒤에** 실행되며, Logback은 그 전에 기본 시간대를 캐싱해 교정되지 않는다. 더 중요하게는 **Spring 컨텍스트를 띄우지 않는 단위 테스트에 적용되지 않는다** — Mockito 기반 Service 테스트가 CI 러너의 UTC를 그대로 쓰게 된다.
+**`@PostConstruct`로 걸지 않는다. 이미 그렇게 되어 있다면 삭제한다** — 남겨두면 같은 일을 두 번 하면서 늦은 쪽이 의도를 흐린다. 그 훅은 `dataSource`·`flywayInitializer`·`entityManagerFactory`가 모두 초기화된 **뒤에** 실행되며, Logback은 그 전에 기본 시간대를 캐싱해 교정되지 않는다. 더 중요하게는 **Spring 컨텍스트를 띄우지 않는 단위 테스트에 적용되지 않는다** — Mockito 기반 Service 테스트가 CI 러너의 UTC를 그대로 쓰게 된다.
+
+**두 지점의 역할이 다르다.** JVM 플래그는 *테스트 JVM과 로컬 실행*의 하한선을 보장하고, static 블록은 *배포된 애플리케이션*이 실행 방식과 무관하게 KST임을 보장한다. 겹치는 게 아니라 서로의 사각지대를 덮는다.
+
+| 경로 | JVM 플래그 | static 블록 |
+| --- | --- | --- |
+| `gradlew test` (Spring 컨텍스트 있음) | O | O |
+| `gradlew test` (Mockito 단위 테스트) | O | **X** — `*Application`을 로딩하지 않아 static 블록이 실행되지 않는다 |
+| `gradlew bootRun` | O | O |
+| IDE의 Spring Boot 실행 구성 | **X** — Gradle을 거치지 않는다 | O |
+| `java -jar` (2차 컨테이너) | **X** | O |
+
+static 블록만 두면 **실행 순서에 따라 결과가 달라진다.** Gradle은 기본적으로 한 저장소의 테스트 전부를 워커 JVM 하나에서 돌리므로, `@SpringBootTest`가 먼저 돌면 이미 KST로 바뀐 상태를 뒤따르는 Mockito 테스트가 보고, 반대 순서면 UTC를 본다. 클래스 이름·필터·병렬 설정이 바뀌면 간헐적으로 깨지며 원인 추적이 어렵다. JVM 플래그가 이 순서 의존을 구조적으로 없앤다.
 
 > 검증 표의 `TimeZone.getDefault()` 케이스는 **KST 개발 머신에서는 설정이 없어도 통과한다.** 그래서 이 절을 지켰는지는 테스트 통과가 아니라 위 두 지점의 존재로 확인한다.
