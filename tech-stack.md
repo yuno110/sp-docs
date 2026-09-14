@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-09-14
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -130,8 +130,13 @@ dependencies {
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 ```
+
+**이 목록은 정본이다.** 여기 있는 것은 전부 선언해야 하고, 여기 없는 의존성을 임의로 추가하지 않는다. 필요하면 이 문서를 먼저 개정한다([process/review-policy.md §8](process/review-policy.md)).
+
+예외는 **Initializr가 생성한 골격의 일부**다. `junit-platform-launcher`(Gradle 9의 테스트 런타임에 필요)와 `.gitattributes`가 여기 해당하며, 전자는 위 목록에 포함시켰다.
 
 ### 3.2 서비스별 추가
 
@@ -231,7 +236,47 @@ member-service:
 - Swagger UI: `/swagger-ui.html` (운영 프로파일에서는 비활성화)
 - 헬스체크: `/actuator/health`
 
-## 5. 시간대 — KST 통일
+## 5. 테스트 환경
+
+테스트는 H2(MySQL 호환 모드)를 쓴다(§1). 그런데 **두 가지가 조용히 어긋난다.** 둘 다 실측으로 확인했다.
+
+### 5.1 테스트 프로파일을 기본으로 만든다
+
+테스트 설정은 `src/test/resources/application-test.yml`에 둔다. 파일명을 `application.yml`로 두면 테스트 클래스패스에서 main 설정을 **병합이 아니라 교체**해버려 `spring.application.name`·`server.port`·`public-key-location` 같은 main 값이 전부 사라진다.
+
+그런데 프로파일 설정은 `@ActiveProfiles("test")`를 붙인 테스트에만 적용된다. 붙이지 않은 테스트는 그 파일을 아예 읽지 않는다.
+
+```groovy
+tasks.named('test') {
+	useJUnitPlatform()
+	systemProperty 'spring.profiles.active', 'test'
+}
+```
+
+**이 한 줄로 opt-in을 없앤다.** 없으면 `@ActiveProfiles`를 빠뜨린 테스트가 조용히 다른 설정으로 돈다.
+
+| `@DataJpaTest` | `spring.jpa.hibernate.ddl-auto` | 결과 |
+| --- | --- | --- |
+| 프로파일 없음 | `null` → 임베디드 기본값 `create-drop` | **엔티티로부터 스키마 생성. 마이그레이션이 깨져도 초록** |
+| 프로파일 있음 | `validate` | 마이그레이션과 엔티티가 어긋나면 실패 |
+
+`application-test.yml`에 `spring.jpa.hibernate.ddl-auto: validate`를 명시한다. 스키마 출처를 Flyway 하나로 고정하기 위해서다.
+
+### 5.2 `@DataJpaTest`는 DataSource URL을 덮는다
+
+`@DataJpaTest`의 기본 `@AutoConfigureTestDatabase(replace = ANY)`가 `application-test.yml`의 URL을 무시하고 `jdbc:h2:mem:<uuid>`로 바꾼다. **`MODE=MySQL`이 사라진다.**
+
+그러면 마이그레이션 SQL이 MySQL 문법(`TEXT`, `AUTO_INCREMENT`, 인덱스 선언)을 쓸 때 호환 모드가 아닌 H2에서 실행된다.
+
+```java
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+class MemberRepositoryTest { ... }
+```
+
+**모든 `@DataJpaTest` 클래스에 이 애노테이션을 붙인다.** `ddl-auto`는 프로파일에서 오고 URL은 덮이는, 절반만 적용되는 상태를 막는다.
+
+## 6. 시간대 — KST 통일
 
 전 구성요소를 `Asia/Seoul`로 맞춘다. 한쪽만 UTC면 작성 시각이 9시간 어긋난다.
 
@@ -246,7 +291,7 @@ member-service:
 
 로컬 Windows는 OS 시간대가 이미 KST지만 **명시적으로 지정한다.** 배포 서버·CI 러너는 대개 UTC이므로 명시하지 않으면 그 시점에 문제가 드러난다. 시각 검증 테스트를 통합 테스트에 포함한다.
 
-### 5.1 구현 방식 — 두 지점 모두 건다
+#### 6.1 구현 방식 — 두 지점 모두 건다
 
 JVM 플래그와 코드 초기화를 **함께** 쓴다. 각자 상대가 못 막는 경우를 막는다.
 
@@ -266,7 +311,7 @@ tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
 
 `jvmArgs`로 통일하는 것은 **의도를 명시하고 `JavaExec`까지 한 문장으로 덮기 위해서이지, `systemProperty`가 동작하지 않아서가 아니다.**
 
-#### 5.2 이 설정을 검증하는 방법
+#### 6.2 이 설정을 검증하는 방법
 
 **로그 타임스탬프를 지표로 쓰지 않는다.** 워커 JVM에서 `TimeZone.getDefault()`를 직접 찍는다.
 

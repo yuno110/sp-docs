@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v2
-updated: 2026-09-11
+version: v3
+updated: 2026-09-14
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -151,6 +151,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | M-09가 `RefreshTokenRepository`(auth 소유)를 참조해야 함 | [../adr/0006 §예외](../adr/0006-auth-inside-member-service.md)가 허용한다. 삭제 연산에 한정 |
 | B-07(게시글 삭제)이 댓글을 연쇄 삭제해야 함 | B-03이 `CommentRepository.softDeleteByPostId()`를 미리 만든다. B-08을 기다리지 않는다 |
+| **M-03 / B-03이 `build.gradle`과 `application-test.yml`을 고쳐야 함** | **허용한다.** 테스트 프로파일 활성화([../tech-stack.md §5.1](../tech-stack.md))는 마이그레이션이 들어오는 시점에야 필요해지므로 M-01/B-01에 미리 넣지 않았다. 해당 두 줄에 한정하며 다른 부분은 건드리지 않는다 |
 
 ## 3. member-service 작업 항목
 
@@ -244,6 +245,10 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `auth/entity/RefreshToken.java`
 - `auth/repository/RefreshTokenRepository.java`
 - `db/migration/V1__create_member.sql`, `V2__create_refresh_token.sql`
+- `build.gradle` 수정 — test 태스크에 `systemProperty 'spring.profiles.active', 'test'` ([../tech-stack.md §5.1](../tech-stack.md))
+- `src/test/resources/application-test.yml` 수정 — `spring.jpa.hibernate.ddl-auto: validate` 명시
+
+뒤의 두 파일은 M-01 산출물이지만 **이 항목에서 고치는 것이 허용된다**(§2.5). 해당 줄에 한정한다.
 
 **`Member`의 도메인 메서드** — 전부 이 항목에서 구현한다.
 
@@ -262,6 +267,9 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] 위 표의 도메인 메서드 3개가 모두 구현되어 있다
 - [ ] `MemberReader`가 없는 id 조회 시 `BusinessException(M001)`을 던진다
 - [ ] Entity에 `@Setter`·`@Data`가 없다
+- [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
+- [ ] **테스트가 `application-test.yml`의 URL(`MODE=MySQL`)로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
+- [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있고 마이그레이션에 없는 컬럼을 넣으면 테스트가 실패해야 한다
 
 **검증** — `MemberRepositoryTest`, `RefreshTokenRepositoryTest` (`@DataJpaTest`)
 
@@ -277,6 +285,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `withdraw()` 호출 | `deleted = true`, 행 존재 |
 | 같은 `member_id`로 refresh token 2개 저장 | `DataIntegrityViolationException` |
 | `MemberReader`로 없는 id 조회 | `BusinessException(M001)` |
+| 테스트 실행 중 DataSource URL | `MODE=MySQL` 포함 (`jdbc:h2:mem:<uuid>` 아님) |
+| 엔티티에만 있는 컬럼 추가 후 실행 | **실패** — `SchemaManagementException`. 초록이면 `validate`가 안 걸린 것 |
 
 ---
 
@@ -682,6 +692,9 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 - `post/support/PostReader.java` (find or throw — `P001`)
 - `comment/entity/Comment.java`, `comment/repository/CommentRepository.java`
 - `db/migration/V1__create_post.sql`, `V2__create_comment.sql`
+- `build.gradle` 수정 — test 태스크에 `systemProperty 'spring.profiles.active', 'test'` ([../tech-stack.md §5.1](../tech-stack.md))
+
+`build.gradle`은 B-01 산출물이지만 **이 항목에서 고치는 것이 허용된다**(§2.5). 해당 한 줄에 한정한다. `application-test.yml`의 `ddl-auto: validate`는 B-01이 이미 넣었다.
 
 **도메인 메서드** — 전부 이 항목에서 구현한다.
 
@@ -707,6 +720,9 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 - [ ] `decreaseCommentCount()`가 0에서 호출돼도 음수가 되지 않는다
 - [ ] `CommentRepository.softDeleteByPostId()`가 동작한다
 - [ ] Entity에 `@Setter`·`@Data`가 없다
+- [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
+- [ ] **테스트가 `application-test.yml`의 URL(`MODE=MySQL`)로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
+- [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있고 마이그레이션에 없는 컬럼을 넣으면 테스트가 실패해야 한다
 
 **검증** — `PostRepositoryTest`, `CommentRepositoryTest` (`@DataJpaTest`)
 
@@ -722,6 +738,8 @@ M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다.
 | **`decreaseCommentCount()` (count=0)** | **0 유지, 음수 아님** |
 | `softDeleteByPostId()` | 해당 게시글의 댓글 전부 `deleted = true` |
 | `PostReader`로 없는 id 조회 | `BusinessException(P001)` |
+| 테스트 실행 중 DataSource URL | `MODE=MySQL` 포함 (`jdbc:h2:mem:<uuid>` 아님) |
+| 엔티티에만 있는 컬럼 추가 후 실행 | **실패** — `SchemaManagementException`. 초록이면 `validate`가 안 걸린 것 |
 
 ---
 
