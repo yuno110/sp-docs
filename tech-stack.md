@@ -208,23 +208,37 @@ member-service:
 
 > Spring은 해석되지 않은 placeholder를 리터럴 문자열로 남긴다. 그래서 `DB_PASSWORD` 미설정 시 오류 메시지가 `Access denied for user 'root'@'localhost' (using password: YES)`로 나온다. **비밀번호가 틀린 게 아니라 환경변수가 없는 것**이니 먼저 §4.3.1을 확인한다.
 
-#### 4.3.1 로컬 환경변수 설정 (1회)
+#### 4.3.1 로컬 비밀번호 — `application-local.yml`
 
-애플리케이션은 `DB_PASSWORD` 없이 기동하지 않는다. 개발 머신에 **사용자 수준 환경변수**로 한 번 등록한다.
+애플리케이션은 `DB_PASSWORD` 없이 기동하지 않는다. **로컬에서는 환경변수 대신 파일로 준다.**
 
-```powershell
-[Environment]::SetEnvironmentVariable('DB_PASSWORD', '<MySQL root 비밀번호>', 'User')
+```
+application.yml          커밋됨.  password: ${DB_PASSWORD}      ← 배포용
+application-local.yml    .gitignore.  password: 실제값          ← 내 PC에만
 ```
 
-등록 후 **새로 여는 터미널·IDE부터** 적용된다. 이미 열려 있는 프로세스는 갱신되지 않으므로 다시 열어야 한다.
+프로파일 설정(`application-local.yml`)이 기본 설정(`application.yml`)을 **덮어쓴다.** 따라서 로컬에서는 환경변수가 없어도 파일의 값이 쓰이고, 배포 환경에서는 파일이 없으므로 환경변수가 쓰인다. 실측으로 확인했다.
 
-확인:
+**최초 1회**
 
-```powershell
-[Environment]::GetEnvironmentVariable('DB_PASSWORD','User')
+```bash
+cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
+# 파일을 열어 password 에 MySQL root 비밀번호를 적는다
 ```
 
-`JWT_PRIVATE_KEY`도 같은 방식으로 등록한다(M-04부터 필요). 값 생성은 §4.2를 본다.
+`application-local.yml`은 `.gitignore`에 있어 **평문으로 적어도 커밋되지 않는다.** 템플릿(`.example`)만 저장소에 남는다.
+
+**실행할 때는 local 프로파일을 켠다.**
+
+```bash
+./gradlew bootRun --args='--spring.profiles.active=local'
+```
+
+**왜 환경변수가 아니라 파일인가** — 둘 다 비밀 값을 저장소 밖에 두므로 안전 측면은 같다. 파일 쪽이 설정·확인·수정이 눈에 보이고 IDE 재시작이 필요 없다. 배포 시에는 파일을 두지 않고 환경변수로 주입한다(§4.3).
+
+> `DB_PASSWORD`가 어디에도 없으면 `Access denied for user 'root'@'localhost' (using password: YES)`로 기동이 실패한다. **비밀번호가 틀린 게 아니라 값이 없는 것이다.** Spring이 해석되지 않은 placeholder를 리터럴로 남기기 때문이다.
+
+`JWT_PRIVATE_KEY`도 M-04부터 같은 방식으로 `application-local.yml`에 넣는다.
 
 ### 4.4 실행
 
