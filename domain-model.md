@@ -30,7 +30,7 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 - 마이그레이션 파일은 `V<번호>__<설명>.sql` (예: `V1__create_member.sql`)
 - Enum은 `@Enumerated(EnumType.STRING)`으로 저장한다. ORDINAL 금지
 
-## 2. member_db (member-service 소유)
+## 2. sp_member (member-service 소유)
 
 ```
   member                              refresh_token
@@ -78,7 +78,7 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | `uk_member_nickname` | `member(nickname)` UNIQUE |
 | `uk_refresh_member_id` | `refresh_token(member_id)` UNIQUE |
 
-## 3. board_db (board-service 소유)
+## 3. sp_board (board-service 소유)
 
 ```
   post                                   comment

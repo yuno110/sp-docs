@@ -21,7 +21,7 @@ related: [domain-model.md, api-contract.md, adr/0001-msa-adoption.md, adr/0003-w
      - JWT 발급 (개인키 서명)  - 댓글 CRUD
      - 내부 API 제공           - JWT 검증 (공개키)
               |                         |
-         member_db                  board_db
+         sp_member                  sp_board
      member, refresh_token        post, comment
 ```
 
@@ -70,7 +70,7 @@ JWT payload는 암호화되지 않으므로 이메일 등 불필요한 개인정
 
 ### 4.2 작성자 정보 — 스냅샷
 
-게시글 목록에는 작성자 닉네임이 필요하지만 닉네임은 member-service 소유 데이터이고 `board_db`에서 조인할 수 없다. **작성 시점의 닉네임을 `post.writer_nickname`에 복제 저장**한다.
+게시글 목록에는 작성자 닉네임이 필요하지만 닉네임은 member-service 소유 데이터이고 `sp_board`에서 조인할 수 없다. **작성 시점의 닉네임을 `post.writer_nickname`에 복제 저장**한다.
 
 ```
 [작성]  POST /api/v1/posts
@@ -82,7 +82,7 @@ JWT payload는 암호화되지 않으므로 이메일 등 불필요한 개인정
         => member-service 호출 0회
 
 [조회]  SELECT id, title, writer_id, writer_nickname, ... FROM post
-        => board_db 단일 쿼리. member-service가 죽어도 동작
+        => sp_board 단일 쿼리. member-service가 죽어도 동작
 ```
 
 `writer_id`는 `member.id`를 논리 참조하지만 **FK 제약을 걸지 않는다**.
@@ -116,7 +116,7 @@ member-service가 서비스 간 호출 전용으로 제공한다. 엔드포인�
 
 | 금지 | 사유 |
 | --- | --- |
-| `board_db`에서 `member` 테이블 조인 | Database per Service 위반. 같은 인스턴스여도 금지 |
+| `sp_board`에서 `member` 테이블 조인 | Database per Service 위반. 같은 인스턴스여도 금지 |
 | `post.writer_id`에 FK 제약 설정 | 서비스 간 배포·삭제 순서를 강결합시킴 |
 | `@Transactional` 안에서 원격 호출 | DB 커넥션이 네트워크 지연만큼 점유됨 |
 | board → member 동기 호출을 쓰기 경로에 배치 | member 장애가 게시글 작성 실패로 전파 |

@@ -54,14 +54,14 @@ POST /api/v1/posts
 | --- | --- |
 | 1 | `writer_id`, `writer_nickname`은 **JWT Claim에서만** 가져온다. 요청 본문에서 받지 않는다 |
 | 2 | `writer_id`에 FK 제약을 걸지 않는다 |
-| 3 | `member_db`를 조회하지 않는다. 같은 MySQL 인스턴스에 있어도 크로스 스키마 조인 금지 |
+| 3 | `sp_member`를 조회하지 않는다. 같은 MySQL 인스턴스에 있어도 크로스 스키마 조인 금지 |
 | 4 | 닉네임 변경이 과거 글에 반영되지 않는 것은 **의도된 동작**이다. 1차에서 해결하지 않는다 |
 
 배경과 대안 비교는 [../adr/0003-writer-snapshot.md](../adr/0003-writer-snapshot.md)에 있다. 2차 해소 방안은 [../adr/0010-kafka-for-nickname-sync.md](../adr/0010-kafka-for-nickname-sync.md)를 본다.
 
 ### 3.1 부수 효과 — 작성자 검색이 가능하다
 
-`writer_nickname`이 `board_db`에 있으므로 작성자 닉네임 검색(P-03의 `searchType=WRITER`)을 로컬 `LIKE`로 처리한다. member-service 호출이 필요 없다.
+`writer_nickname`이 `sp_board`에 있으므로 작성자 닉네임 검색(P-03의 `searchType=WRITER`)을 로컬 `LIKE`로 처리한다. member-service 호출이 필요 없다.
 
 ## 4. 입력 검증
 

@@ -123,8 +123,8 @@ QueryDSL Q타입 생성 경로(`build/generated/sources/annotationProcessor`)를
 ### 4.1 MySQL 설치 후 1회
 
 ```sql
-CREATE DATABASE member_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-CREATE DATABASE board_db  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE DATABASE sp_member DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE DATABASE sp_board  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
 ```ini
@@ -149,7 +149,7 @@ openssl rsa -in private.pem -pubout -out public.pem
 ```yaml
 spring:
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/member_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/sp_member?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
 member-service:

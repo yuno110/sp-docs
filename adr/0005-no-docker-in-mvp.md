@@ -43,7 +43,7 @@ Docker를 넣으려던 이유를 1차 기준으로 평가하면 다음과 같다
 ```yaml
 spring:
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/member_db}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/sp_member}
 ```
 
 - 전환 시 바뀌는 것은 DB 접속 주소가 `localhost:3306`에서 `mysql:3306`이 되는 것뿐이다. 추가되는 파일은 서비스별 `Dockerfile`(10줄 내외)과 `docker-compose.yml` 하나다

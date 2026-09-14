@@ -16,7 +16,7 @@ related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 | 비밀번호 저장 | BCrypt (`strength = 10`). member-service만 취급 |
 | 인증 방식 | JWT Bearer Token, Stateless (`SessionCreationPolicy.STATELESS`) |
 | Access Token | 만료 30분. `Authorization: Bearer {token}` |
-| Refresh Token | 만료 14일. `member_db` 저장, 재발급 시 회전(Rotation) |
+| Refresh Token | 만료 14일. `sp_member` 저장, 재발급 시 회전(Rotation) |
 | CSRF | Stateless REST API이므로 비활성화 |
 | CORS | 서비스별 화이트리스트로 관리. `*` 금지 |
 | SQL Injection | JPA·QueryDSL 파라미터 바인딩. 네이티브 쿼리 문자열 결합 금지 |
@@ -56,7 +56,7 @@ HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있
     -> 회원 조회 + BCrypt.matches()
     -> 개인키(RS256)로 Access/Refresh 서명
        Claim: { sub, nickname, role, iss, iat, exp }   <- api-contract.md §5
-    -> RefreshToken member_db upsert
+    -> RefreshToken sp_member upsert
     <- TokenResponse
 
 [게시글 작성]  board-service   (member-service 호출 없음)
@@ -68,7 +68,7 @@ HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있
 
 [재발급]  member-service
   POST /api/v1/auth/reissue (refreshToken)
-    -> 서명·만료 검증 + member_db 저장값 일치 확인
+    -> 서명·만료 검증 + sp_member 저장값 일치 확인
     -> 새 Access/Refresh 발급, 저장된 Refresh 교체(Rotation)
 ```
 

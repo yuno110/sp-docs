@@ -30,7 +30,7 @@ accepted
 
 ## 결과
 
-- `board_db`에서 `member` 테이블을 조인할 수 없다. 작성자 닉네임 처리 방법이 필요해졌다 → [0003](0003-writer-snapshot.md)
+- `sp_board`에서 `member` 테이블을 조인할 수 없다. 작성자 닉네임 처리 방법이 필요해졌다 → [0003](0003-writer-snapshot.md)
 - 인증 정보를 서비스 간에 전달할 방법이 필요해졌다 → JWT Claim 전파([../api-contract.md §5](../api-contract.md))
 - 회원 탈퇴가 두 서비스에 걸친 작업이 되었다. 2PC 대신 최종 일관성을 택했다([../architecture.md §4.4](../architecture.md))
 - 배포·모니터링 대상이 2배가 되었다

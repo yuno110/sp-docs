@@ -21,7 +21,7 @@ SELECT p.id, p.title, m.nickname
 FROM post p JOIN member m ON p.member_id = m.id
 ```
 
-그러나 `post`는 `board_db`에, `member`는 `member_db`에 있다([0001](0001-msa-adoption.md)). 로컬에서 두 스키마가 같은 MySQL 인스턴스에 있어 기술적으로는 조인이 가능하지만, 운영에서 DB를 물리 분리하는 순간 깨지고 게시판이 회원 테이블 스키마에 묶인다.
+그러나 `post`는 `sp_board`에, `member`는 `sp_member`에 있다([0001](0001-msa-adoption.md)). 로컬에서 두 스키마가 같은 MySQL 인스턴스에 있어 기술적으로는 조인이 가능하지만, 운영에서 DB를 물리 분리하는 순간 깨지고 게시판이 회원 테이블 스키마에 묶인다.
 
 ## 결정
 
@@ -33,7 +33,7 @@ FROM post p JOIN member m ON p.member_id = m.id
 
 | | 스냅샷 (채택) | 동기 조회 |
 | --- | --- | --- |
-| 목록 조회 | `board_db` 단일 쿼리 | 목록 1건당 네트워크 왕복 |
+| 목록 조회 | `sp_board` 단일 쿼리 | 목록 1건당 네트워크 왕복 |
 | member 장애 시 | 게시글 조회 정상 | 게시판 조회 불가 |
 | 닉네임 변경 | 과거 글 미반영 | 항상 최신 |
 | 결합도 | 낮음 | 높음 |
