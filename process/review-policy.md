@@ -57,8 +57,8 @@ related: [dev-workflow.md, orchestration.md]
 - [ ] `@Disabled`·주석 처리된 테스트가 없는가
 - [ ] 단언이 약화되지 않았는가 (예: 값 비교를 `notNull`로 바꾸기)
 - [ ] 값이 정본 문서와 일치하는가 (에러 코드, 컬럼명, 엔드포인트, 만료 시간)
-- [ ] 산출물 목록 밖의 파일을 건드리지 않았는가
-- [ ] 기반 단계 소유 경로를 수정하지 않았는가 ([../plan/phase1.md §2.1](../plan/phase1.md))
+- [ ] 산출물 목록 밖의 파일을 건드렸다면 그 이유가 타당한가 (범위 이탈인지, 항목을 끝내는 데 필요했는지)
+- [ ] 완료된 항목의 완료 기준을 깨뜨리지 않았는가 ([../plan/phase1.md §2.6](../plan/phase1.md))
 - [ ] [../conventions.md](../conventions.md) 위반이 없는가 (Entity `@Setter`, 필드 주입, Entity 노출)
 - [ ] [../architecture.md §5](../architecture.md) 금지 사항 위반이 없는가
 - [ ] [dev-workflow.md §4](dev-workflow.md)의 금지 사항 위반이 없는가
