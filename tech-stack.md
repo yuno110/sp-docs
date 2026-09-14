@@ -18,8 +18,8 @@ related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-pol
 | 구분 | 기술 | 버전 |
 | --- | --- | --- |
 | Language | Java | 21 (LTS) |
-| Framework | Spring Boot | 3.5.x 최신 패치 |
-| Build | Gradle (Groovy DSL) + Wrapper | 8.x |
+| Framework | Spring Boot | **3.5.16** (고정) |
+| Build | Gradle (Groovy DSL) + Wrapper | 9.7.1 |
 | ORM | Spring Data JPA (Hibernate 6.x) | Boot BOM |
 | 보일러플레이트 | Lombok | Boot BOM |
 | 동적 쿼리 | QueryDSL (jakarta) | 5.1.0 |
@@ -33,7 +33,31 @@ related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-pol
 | 테스트 | JUnit 5, Spring Boot Test, AssertJ | Boot BOM |
 | 모니터링 | Spring Boot Actuator | Boot BOM |
 
-**버전 확정**: 프로젝트 생성 시 [start.spring.io](https://start.spring.io)에서 3.5.x 최신 패치를 선택한다. Boot BOM이 관리하지 않는 서드파티(QueryDSL, springdoc)는 `build.gradle`에 버전을 명시 고정한다.
+**버전 확정**: Boot 버전은 **3.5.16으로 고정**한다. Boot BOM이 관리하지 않는 서드파티(QueryDSL, springdoc)도 `build.gradle`에 버전을 명시 고정한다.
+
+### 1.1 프로젝트 생성 — Initializr는 3.x를 주지 않는다
+
+**start.spring.io는 Boot 4.0.0 이상만 제공한다.** `bootVersion=3.5.16`으로 요청하면 거부된다.
+
+```
+400 Bad Request — Invalid Spring Boot version '3.5.16',
+                  Spring Boot compatibility range is >=4.0.0
+```
+
+3.5.16 자체는 Maven Central에 있으므로 사용에는 문제가 없다. **4.x로 골격을 받은 뒤 버전을 내린다.**
+
+1. Initializr에서 `bootVersion=4.0.8`, `type=gradle-project`, `javaVersion=21`로 생성한다
+2. `build.gradle`의 `id 'org.springframework.boot' version` 을 `3.5.16`으로 바꾼다
+3. **의존성을 3.x 이름으로 다시 쓴다.** Boot 4는 스타터 이름이 다르다
+
+| Boot 4 (생성 결과) | Boot 3.5 (써야 할 것) |
+| --- | --- |
+| `spring-boot-starter-webmvc` | `spring-boot-starter-web` |
+| `spring-boot-starter-webmvc-test` | `spring-boot-starter-test` |
+
+**Gradle Wrapper는 그대로 둔다.** Initializr가 생성하는 9.7.1이 Boot 3.5.16과 정상 동작한다 (§3.1 전체 의존성으로 `./gradlew build` 성공 확인).
+
+> Boot 4 전환은 1차 완료 후 2차에서 다룬다. 지금 올리면 Spring Security 7, Jakarta EE 11, springdoc 3.x까지 연쇄 변경이 필요하고 QueryDSL 5.1.0 호환성도 미검증이다.
 
 **Spring Cloud를 도입하지 않는다.** 서비스 간 호출은 Boot 내장 `RestClient`로 충분하며, Cloud 릴리스 트레인은 Boot 버전과 강하게 결합되어 업그레이드 부담을 만든다.
 
@@ -71,6 +95,8 @@ implementation 'org.springframework.security:spring-security-oauth2-jose'
 ## 3. Gradle 의존성
 
 ### 3.1 두 서비스 공통
+
+아래 전체 조합으로 Boot 3.5.16 + Gradle 9.7.1에서 `./gradlew build` 성공을 확인했다.
 
 ```groovy
 dependencies {

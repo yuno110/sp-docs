@@ -168,10 +168,14 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `src/main/resources/application.yml`, `application-local.yml`
 - `.gitignore` (`private.pem`, `*.env`, `build/`, `.gradle/`, QueryDSL 생성 경로)
 
+**프로젝트 생성은 [../tech-stack.md §1.1](../tech-stack.md) 절차를 따른다.** start.spring.io는 Boot 3.x를 주지 않으므로 4.0.8로 생성한 뒤 3.5.16으로 내리고 의존성 이름을 3.x용으로 다시 쓴다. Gradle Wrapper(9.7.1)는 그대로 둔다.
+
 **의존성을 여기서 전부 확정한다.** [../tech-stack.md §3](../tech-stack.md)의 목록을 빠짐없이 넣어 기능 단계에서 `build.gradle`을 고칠 일이 없게 한다.
 
 **완료 기준**
 - [ ] `./gradlew build`가 성공한다
+- [ ] Boot 플러그인 버전이 `3.5.16`이다
+- [ ] `spring-boot-starter-webmvc` 등 Boot 4 스타터 이름이 남아 있지 않다
 - [ ] `./gradlew bootRun`으로 8081 포트에 기동된다
 - [ ] [../tech-stack.md §3.1 §3.2](../tech-stack.md)의 의존성이 전부 선언되어 있다
 - [ ] DB 접속 정보가 환경변수로 외부화되어 있다 ([../tech-stack.md §4.3](../tech-stack.md))
@@ -605,10 +609,12 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `global/config/QuerydslConfig.java` (`JPAQueryFactory` 빈)
 - `.gitignore`
 
-의존성을 여기서 전부 확정한다.
+**프로젝트 생성은 [../tech-stack.md §1.1](../tech-stack.md) 절차를 따른다** (M-01과 동일). 의존성도 여기서 전부 확정한다.
 
 **완료 기준**
 - [ ] `./gradlew build`가 성공한다
+- [ ] Boot 플러그인 버전이 `3.5.16`이다
+- [ ] Boot 4 스타터 이름이 남아 있지 않다
 - [ ] 8082 포트에 기동된다
 - [ ] QueryDSL Q타입이 생성되고 `.gitignore`에 생성 경로가 있다
 - [ ] [../tech-stack.md §3.1 §3.2](../tech-stack.md)의 의존성이 전부 선언되어 있다
