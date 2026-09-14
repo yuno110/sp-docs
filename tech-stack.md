@@ -257,16 +257,11 @@ tasks.withType(JavaExec).configureEach { jvmArgs '-Duser.timezone=Asia/Seoul' }
 tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
 ```
 
-**반드시 `jvmArgs`를 쓴다. `systemProperty`로는 동작하지 않는다.** `user.timezone`은 JVM 기동 시점에 해석되고 `TimeZone.getDefault()`가 최초 호출에서 캐싱하므로, 기동 이후에 프로퍼티만 심어서는 이미 늦다. 같은 Gradle 9.7.1에서 A/B로 실측했다.
+`Test`와 `JavaExec`(`bootRun`이 이 타입이다)에 한 문장씩 건다. 태스크 이름 대신 타입으로 거는 이유는 두 저장소에서 같은 문장이 되고 테스트 태스크가 늘어도 따라가기 때문이다.
 
-| 방식 | 테스트 워커 JVM의 로그 타임스탬프 |
-| --- | --- |
-| `jvmArgs '-Duser.timezone=UTC'` | `...T01:46:48.468Z` — 바뀜 |
-| `systemProperty 'user.timezone', 'UTC'` | `...T10:55:47.818+09:00` — **바뀌지 않음** |
+`Test` 태스크에 한해서는 `systemProperty 'user.timezone', 'Asia/Seoul'`도 동일하게 동작한다(Gradle 9.7.1에서 포크된 워커 JVM의 `TimeZone.getDefault()`가 바뀌는 것을 확인했다). 다만 `bootRun`에는 `jvmArgs`가 필요하므로, **양쪽을 한 가지 형태로 통일하기 위해** 위 형태를 쓴다.
 
-태스크 이름 대신 타입으로 거는 이유는 두 저장소에서 같은 문장이 되고 테스트 태스크가 늘어도 따라가기 때문이다. `bootRun`은 `JavaExec` 하위 타입이라 첫 줄에 걸린다.
-
-`gradle.properties`의 `systemProp.user.timezone`도 오답이다. Gradle **데몬** JVM에만 적용되고 포크된 test·bootRun 워커에 상속되지 않는다.
+`gradle.properties`의 `systemProp.user.timezone`은 오답이다. Gradle **데몬** JVM에만 적용되고 포크된 test·bootRun 워커에 상속되지 않는다.
 
 **2) 애플리케이션 클래스 — 패키징된 jar 실행**
 
