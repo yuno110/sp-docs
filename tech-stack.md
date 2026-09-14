@@ -266,7 +266,22 @@ tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
 
 `jvmArgs`로 통일하는 것은 **의도를 명시하고 `JavaExec`까지 한 문장으로 덮기 위해서이지, `systemProperty`가 동작하지 않아서가 아니다.**
 
-> 측정할 때 주의할 점이 있다. `jvmArgs`로 건 `-D` 인자는 `jvmArgs` getter에서 사라지고 `systemProperties`에 들어간다. `Test` 태스크의 실제 워커 인자는 `allJvmArgs`에서 봐야 한다. 이 정규화를 모르고 측정하면 어느 쪽으로든 틀린 결론이 나온다.
+#### 5.2 이 설정을 검증하는 방법
+
+**로그 타임스탬프를 지표로 쓰지 않는다.** 워커 JVM에서 `TimeZone.getDefault()`를 직접 찍는다.
+
+로그 타임스탬프가 기대와 다르게 나올 때 원인이 둘이고 구분되지 않기 때문이다.
+
+| 관측 | 가능한 원인 |
+| --- | --- |
+| 로그가 UTC | 시간대 설정이 늦게 걸렸다 (Logback이 이미 캐싱) |
+| 로그가 KST | 설정이 동작했다 **또는** 설정이 워커에 도달조차 못 했다 (OS 기본이 KST라서) |
+
+두 번째 행이 함정이다. 설정이 아예 적용되지 않아도 KST 머신에서는 KST가 나온다.
+
+**KST 머신에서 측정할 때**는 값을 일시적으로 `America/New_York` 같은 다른 시간대로 바꿔서 그 값이 실제로 관측되는지 본다. `Asia/Seoul`로는 설정의 효과와 OS 기본값이 구분되지 않는다.
+
+**Gradle 옵션을 들여다볼 때**는 `jvmArgs`로 건 `-D` 인자가 `jvmArgs` getter에서 사라지고 `systemProperties`로 들어간다는 점에 주의한다. `Test` 태스크의 실제 워커 인자는 `allJvmArgs`에서 봐야 한다.
 
 **`gradle.properties`의 `systemProp.user.timezone`은 오답이다.** Gradle **데몬** JVM에만 적용되고 포크된 test·bootRun 워커에 상속되지 않는다.
 
