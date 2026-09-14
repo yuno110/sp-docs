@@ -46,11 +46,14 @@ related: [review-policy.md, orchestration.md, ../plan/README.md, ../conventions.
  [11] 커밋 & 푸시
       |
  [12] checklist.md 상태를 done 으로                    review -> done
+      |           (구현·테스트·체크리스트가 한 커밋)
       |
- [13] 다음 작업 항목
+ [13] 이 사이클에 만든 워커를 전부 종료
+      |
+ [14] 다음 작업 항목
 ```
 
-**[8]~[12]는 구현 워커가 아니라 오케스트레이터가 수행한다.** 구현 워커는 [7]에서 턴을 끝내고 보고한다.
+**[8]~[13]은 구현 워커가 아니라 오케스트레이터가 수행한다.** 구현 워커는 [7]에서 턴을 끝내고 보고한다.
 
 | 단계 | 주체 |
 | --- | --- |
@@ -58,6 +61,7 @@ related: [review-policy.md, orchestration.md, ../plan/README.md, ../conventions.
 | [8][9] 리뷰 워커 생성과 판정 수신 | 오케스트레이터 |
 | [10] 수정 워커 생성 | 오케스트레이터 (수정은 수정 워커가) |
 | [11][12] 커밋·푸시·상태 갱신 | 오케스트레이터 |
+| [13] 워커 정리 | 오케스트레이터 ([orchestration.md §5.5](orchestration.md)) |
 
 전체 절차는 [orchestration.md §4.4](orchestration.md)에 있다.
 
