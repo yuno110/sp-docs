@@ -350,7 +350,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-04 |
-| 참조 | [../requirements/member.md §1 §2 §3 §6](../requirements/member.md) (M-01~M-03), [../api-contract.md §2.2 §8.1](../api-contract.md) |
+| 참조 | [../requirements/member.md §1 §2 §3 §6](../requirements/member.md) (MR-01~MR-03), [../api-contract.md §2.2 §8.1](../api-contract.md) |
 
 **산출물**
 - `member/dto/SignUpRequest.java`, `MemberResponse.java`, `CheckResponse.java`
@@ -393,7 +393,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-04 |
 | 병렬 | M-05와 동시 진행 가능 (`auth/*` vs `member/*`) |
-| 참조 | [../requirements/member.md §1](../requirements/member.md) (M-04), [../api-contract.md §2.1 §8.2](../api-contract.md), [../security.md §4](../security.md) |
+| 참조 | [../requirements/member.md §1](../requirements/member.md) (MR-04), [../api-contract.md §2.1 §8.2](../api-contract.md), [../security.md §4](../security.md) |
 
 **산출물**
 - `auth/dto/LoginRequest.java`
@@ -427,7 +427,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-06 |
-| 참조 | [../requirements/member.md §1](../requirements/member.md) (M-05, M-06), [../domain-model.md §2.2](../domain-model.md), [../security.md §4](../security.md) |
+| 참조 | [../requirements/member.md §1](../requirements/member.md) (MR-05, MR-06), [../domain-model.md §2.2](../domain-model.md), [../security.md §4](../security.md) |
 
 **산출물**
 - `auth/dto/ReissueRequest.java`
@@ -464,7 +464,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-05 |
 | 공유 파일 | `MemberService`, `MemberController` (M-05 생성) |
-| 참조 | [../requirements/member.md §1 §4](../requirements/member.md) (M-07, M-08), [../architecture.md §4.2](../architecture.md) |
+| 참조 | [../requirements/member.md §1 §4](../requirements/member.md) (MR-07, MR-08), [../architecture.md §4.2](../architecture.md) |
 
 **산출물**
 - `member/dto/MemberUpdateRequest.java`, `MemberUpdateResponse.java`
@@ -499,7 +499,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-08 |
 | 공유 파일 | `MemberService`, `MemberController` — **M-08 완료 후 시작** |
-| 참조 | [../requirements/member.md §1 §3](../requirements/member.md) (M-09, M-10), [../adr/0006 §예외](../adr/0006-auth-inside-member-service.md) |
+| 참조 | [../requirements/member.md §1 §3](../requirements/member.md) (MR-09, MR-10), [../adr/0006 §예외](../adr/0006-auth-inside-member-service.md) |
 
 **산출물**
 - `member/dto/PasswordChangeRequest.java`, `WithdrawRequest.java`
@@ -537,7 +537,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-09 |
 | 공유 파일 | `MemberController` — **M-09 완료 후 시작** |
-| 참조 | [../requirements/member.md §1 §5](../requirements/member.md) (M-11, M-12), [../api-contract.md §4](../api-contract.md), [../security.md §6](../security.md) |
+| 참조 | [../requirements/member.md §1 §5](../requirements/member.md) (MR-11, MR-12), [../api-contract.md §4](../api-contract.md), [../security.md §6](../security.md) |
 
 **산출물**
 - `member/dto/MemberProfileResponse.java`

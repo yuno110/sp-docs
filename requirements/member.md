@@ -2,8 +2,8 @@
 title: 회원 기능 요구사항
 type: requirements
 status: frozen
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-09-14
 read_when: "member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md]
 ---
@@ -11,25 +11,25 @@ related: [../api-contract.md, ../domain-model.md, ../security.md]
 
 담당 서비스: member-service (`yuno110/sp-member`)
 
-패키지 구분은 [../adr/0006-auth-inside-member-service.md](../adr/0006-auth-inside-member-service.md)를 따른다. `auth` = M-04~M-06, `member` = 나머지.
+패키지 구분은 [../adr/0006-auth-inside-member-service.md](../adr/0006-auth-inside-member-service.md)를 따른다. `auth` = MR-04~MR-06, `member` = 나머지.
 
 ## 1. 기능 목록
 
 | ID | 기능 | 상세 | 차수 |
 | --- | --- | --- | --- |
-| M-01 | 회원가입 | 이메일·비밀번호·닉네임 입력. 중복 검사, BCrypt 해싱 후 저장 | 1차 |
-| M-02 | 이메일 중복 확인 | 가입 전 사용 가능 여부 조회 | 1차 |
-| M-03 | 닉네임 중복 확인 | 가입 전 사용 가능 여부 조회 | 1차 |
-| M-04 | 로그인 | 이메일+비밀번호 검증 후 Access/Refresh 발급 | 1차 |
-| M-05 | 토큰 재발급 | Refresh 검증 후 재발급, Rotation 적용 | 1차 |
-| M-06 | 로그아웃 | 저장된 Refresh Token 삭제 | 1차 |
-| M-07 | 내 정보 조회 | 인증된 본인 정보 반환 | 1차 |
-| M-08 | 내 정보 수정 | 닉네임 변경. **새 Access Token 함께 반환** | 1차 |
-| M-09 | 비밀번호 변경 | 현재 비밀번호 검증 후 변경. Refresh Token 무효화 | 1차 |
-| M-10 | 회원 탈퇴 | 비밀번호 재확인 → Soft Delete, Refresh Token 삭제 | 1차 |
-| M-11 | 특정 회원 프로필 조회 | 공개 정보(닉네임, 가입일)만 반환 | 1차 |
-| M-12 | 내부 API — 회원 벌크 조회 | board-service 전용 | 1차 |
-| M-13 | 회원 목록 조회 | ADMIN 전용, 페이징(QueryDSL) | 2차 |
+| MR-01 | 회원가입 | 이메일·비밀번호·닉네임 입력. 중복 검사, BCrypt 해싱 후 저장 | 1차 |
+| MR-02 | 이메일 중복 확인 | 가입 전 사용 가능 여부 조회 | 1차 |
+| MR-03 | 닉네임 중복 확인 | 가입 전 사용 가능 여부 조회 | 1차 |
+| MR-04 | 로그인 | 이메일+비밀번호 검증 후 Access/Refresh 발급 | 1차 |
+| MR-05 | 토큰 재발급 | Refresh 검증 후 재발급, Rotation 적용 | 1차 |
+| MR-06 | 로그아웃 | 저장된 Refresh Token 삭제 | 1차 |
+| MR-07 | 내 정보 조회 | 인증된 본인 정보 반환 | 1차 |
+| MR-08 | 내 정보 수정 | 닉네임 변경. **새 Access Token 함께 반환** | 1차 |
+| MR-09 | 비밀번호 변경 | 현재 비밀번호 검증 후 변경. Refresh Token 무효화 | 1차 |
+| MR-10 | 회원 탈퇴 | 비밀번호 재확인 → Soft Delete, Refresh Token 삭제 | 1차 |
+| MR-11 | 특정 회원 프로필 조회 | 공개 정보(닉네임, 가입일)만 반환 | 1차 |
+| MR-12 | 내부 API — 회원 벌크 조회 | board-service 전용 | 1차 |
+| MR-13 | 회원 목록 조회 | ADMIN 전용, 페이징(QueryDSL) | 2차 |
 
 엔드포인트는 [../api-contract.md §2](../api-contract.md)가 정본이다.
 
@@ -54,7 +54,7 @@ related: [../api-contract.md, ../domain-model.md, ../security.md]
 | 5 | 로그인 실패 5회 잠금은 2차 범위다. 1차에서 구현하지 않는다 |
 | 6 | 탈퇴 회원의 게시글은 board-service가 스냅샷 닉네임을 그대로 노출한다. 1차에서 member-service가 board에 알리지 않는다 |
 
-## 4. M-08 상세 — 닉네임 변경
+## 4. MR-08 상세 — 닉네임 변경
 
 일반적인 수정 API와 다르게 **토큰을 함께 반환**한다.
 
@@ -69,7 +69,7 @@ PATCH /api/v1/members/me   { "nickname": "새닉네임" }
 
 클라이언트는 받은 토큰으로 교체해야 한다. 배경은 [../architecture.md §4.2](../architecture.md)를 본다.
 
-## 5. M-12 상세 — 내부 API
+## 5. MR-12 상세 — 내부 API
 
 board-service가 호출하는 서비스 간 전용 API다. 요청·응답 형식은 [../api-contract.md §4](../api-contract.md)가 정본이다.
 

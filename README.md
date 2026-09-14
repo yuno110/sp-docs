@@ -31,6 +31,23 @@ related: [plan/README.md, process/dev-workflow.md]
 4. 문서와 코드가 충돌하면 코드를 고치거나 문서를 개정한다. 코드에 맞춰 문서를 암묵적으로 재해석하지 않는다.
 5. 문서를 인용할 때는 경로와 절 번호를 함께 적는다. 예: `domain-model.md §2.2`.
 6. 결정의 **이유**가 필요하면 `adr/`를 본다. 본문 문서는 "무엇을·어떻게"만 적고 "왜"는 ADR에 있다.
+7. **ID 접두어는 문서 갈래마다 다르다.** 아래 표를 보고 어느 네임스페이스인지 먼저 확인한다. 본문 문서는 "무엇을·어떻게"만 적고 "왜"는 ADR에 있다.
+
+## ID 네임스페이스
+
+같은 숫자라도 접두어가 다르면 **다른 것**이다. 섞어 읽지 않는다.
+
+| 접두어 | 무엇 | 어디에 |
+| --- | --- | --- |
+| `MR-xx` | 회원 **기능 요구사항** | [requirements/member.md](requirements/member.md) |
+| `P-xx` / `C-xx` | 게시글 / 댓글 **기능 요구사항** | [requirements/board.md](requirements/board.md) |
+| `M-xx` / `B-xx` | member / board **작업 항목** | [plan/phase1.md](plan/phase1.md) |
+| `I-xx` | **통합 검증** 항목 | [plan/integration.md](plan/integration.md) |
+| `C001`·`M002`·`P001` 등 | **에러 코드** | [api-contract.md §7](api-contract.md) |
+
+`M-05`(작업 항목: 회원가입)와 `MR-05`(요구사항: 토큰 재발급)처럼 숫자가 겹칠 수 있다. 계획서의 "참조" 필드에 적힌 괄호 안 ID는 **요구사항 쪽**이다.
+
+새 접두어를 만들 때는 기존 것과 겹치지 않는지 이 표에서 확인한다.
 
 ## 작업별 읽을 문서
 
