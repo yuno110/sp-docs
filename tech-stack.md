@@ -245,3 +245,34 @@ member-service:
 | API 응답 | `yyyy-MM-dd'T'HH:mm:ss` (오프셋 미표기) |
 
 로컬 Windows는 OS 시간대가 이미 KST지만 **명시적으로 지정한다.** 배포 서버·CI 러너는 대개 UTC이므로 명시하지 않으면 그 시점에 문제가 드러난다. 시각 검증 테스트를 통합 테스트에 포함한다.
+
+### 5.1 구현 방식 — 두 지점 모두 건다
+
+JVM 플래그와 코드 초기화를 **함께** 쓴다. 각자 상대가 못 막는 경우를 막는다.
+
+**1) `build.gradle` — 개발·CI 실행**
+
+```groovy
+tasks.named('test') {
+	useJUnitPlatform()
+	systemProperty 'user.timezone', 'Asia/Seoul'
+}
+
+tasks.named('bootRun') {
+	jvmArgs '-Duser.timezone=Asia/Seoul'
+}
+```
+
+**2) 애플리케이션 클래스 — 패키징된 jar 실행**
+
+`main()`의 `SpringApplication.run(...)` **이전** 또는 static 초기화 블록에서 건다.
+
+```java
+static {
+	TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
+}
+```
+
+**`@PostConstruct`로 걸지 않는다.** 그 훅은 `dataSource`·`flywayInitializer`·`entityManagerFactory`가 모두 초기화된 **뒤에** 실행되며, Logback은 그 전에 기본 시간대를 캐싱해 교정되지 않는다. 더 중요하게는 **Spring 컨텍스트를 띄우지 않는 단위 테스트에 적용되지 않는다** — Mockito 기반 Service 테스트가 CI 러너의 UTC를 그대로 쓰게 된다.
+
+> 검증 표의 `TimeZone.getDefault()` 케이스는 **KST 개발 머신에서는 설정이 없어도 통과한다.** 그래서 이 절을 지켰는지는 테스트 통과가 아니라 위 두 지점의 존재로 확인한다.
