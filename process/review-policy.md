@@ -119,6 +119,7 @@ related: [dev-workflow.md, orchestration.md]
 
 - front matter의 `version`과 `updated`를 올린다
 - **구현 워커는 정본 문서를 고치지 않는다**([orchestration.md §7](orchestration.md)). 문서가 틀렸다고 판단되면 BLOCKED로 보고한다
-- **`api-contract.md §5`(JWT Claim)는 두 서비스가 공유하는 계약이다.** 개정 시 양쪽 담당이 모두 확인한다
+- **`api-contract.md §6`(JWT Claim)는 세 서비스가 공유하는 계약이다.** 발급은 auth 하나, 검증은 member·board 둘이다. 개정 시 세 담당이 모두 확인한다
+- **`api-contract.md §5`(내부 API)는 board와 member가 공유하는 계약이다.** 1차부터 쓰기 경로에서 호출된다
 - 구현이 정본과 어긋나면 **코드를 고치거나 정본을 개정한다.** 코드에 맞춰 문서를 암묵적으로 재해석하지 않는다
 - 설계 변경 수준의 개정은 **독립 리뷰 워커**를 붙인다. 제안자가 자기 제안을 검증하지 않는다

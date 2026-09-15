@@ -2,18 +2,18 @@
 title: 통합 검증
 type: plan
 status: living
-version: v1
-updated: 2026-09-11
-read_when: "1차 개별 작업이 끝나고 두 서비스를 함께 검증할 때"
+version: v2
+updated: 2026-09-15
+read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
 ---
 # 통합 검증
 
-M-11과 B-09가 모두 `done`이 된 뒤에 진행한다.
+**AU-11·M-11·B-09가 모두 `done`이 된 뒤에** 진행한다.
 
-**이 단계는 순차로 진행한다.** 두 서비스가 모두 기동된 상태를 전제하므로 병렬 작업이 불가능하다. 상태는 `yuno110/sp-board`의 `docs/checklist.md`에 기록한다([README.md](README.md) §상태의 위치).
+**이 단계는 순차로 진행한다.** 세 서비스가 모두 기동된 상태를 전제하므로 병렬 작업이 불가능하다. 상태는 `yuno110/sp-board`의 `docs/checklist.md`에 기록한다([README.md](README.md) §상태의 위치).
 
-여기서 확인하는 것은 **개별 서비스 테스트로는 잡을 수 없는 것들**이다. 두 서비스 사이의 계약, 실제 키 교환, 장애 격리, 시간대 정합.
+여기서 확인하는 것은 **개별 서비스 테스트로는 잡을 수 없는 것들**이다. 서비스 사이의 계약, 실제 키 교환, 장애 격리, 시간대 정합, 그리고 **두 DB에 걸친 seed와 탈퇴의 부분 실패**.
 
 ---
 
@@ -21,43 +21,58 @@ M-11과 B-09가 모두 `done`이 된 뒤에 진행한다.
 
 | | |
 | --- | --- |
-| 의존 | M-11, B-09 |
-| 참조 | [../security.md §2 §3](../security.md), [../api-contract.md §5](../api-contract.md) |
+| 의존 | AU-11, M-11, B-09 |
+| 참조 | [../security.md §2 §3](../security.md), [../api-contract.md §5 §6](../api-contract.md), [../requirements/member.md §10](../requirements/member.md) |
 
-B-03에서 board-service는 **테스트용 키 페어**로 자체 검증만 했다. 여기서 member-service가 실제로 발급한 토큰을 받아 검증한다.
+M-04·B-04에서 member·board는 **테스트용 키 페어**로 자체 검증만 했다. 여기서 auth-service가 실제로 발급한 토큰을 받아 검증한다.
+
+**공개키 배포 지점이 두 곳이다.** member와 board가 각각 사본을 갖는다.
 
 **작업**
-1. member-service의 `public.pem`을 board-service의 `src/main/resources/jwt-public.pem`으로 교체
-2. 두 서비스를 함께 기동 (`:8081`, `:8082`)
-3. 아래 시나리오를 수행
+1. auth-service의 `public.pem`을 **member와 board 두 곳**의 `src/main/resources/jwt-public.pem`으로 교체
+2. board에 `INTERNAL_API_KEY`를 member와 같은 값으로 설정
+3. 세 서비스를 함께 기동 (`:8083`, `:8081`, `:8082`)
+4. 아래 시나리오를 수행
 
-**E2E 시나리오**
+**E2E 시나리오** — 가입이 2단계다
+
 ```
-1. POST :8081/api/v1/members           회원가입
-2. POST :8081/api/v1/auth/login        로그인 -> accessToken 획득
-3. POST :8082/api/v1/posts             그 토큰으로 게시글 작성
-4. GET  :8082/api/v1/posts             목록에서 작성자 닉네임 확인
-5. POST :8082/api/v1/posts/{id}/comments   댓글 작성
-6. GET  :8082/api/v1/posts/{id}        commentCount 확인
+1. POST :8083/api/v1/accounts              계정 생성 -> accountId
+2. POST :8083/api/v1/auth/login            로그인 -> accessToken
+3. POST :8081/api/v1/members               그 토큰으로 프로필 등록 (닉네임)
+4. POST :8082/api/v1/posts                 게시글 작성
+                                           (board -> member 내부 API 호출이 실제로 일어난다)
+5. GET  :8082/api/v1/posts                 목록에서 작성자 닉네임 확인
+6. POST :8082/api/v1/posts/{id}/comments   댓글 작성
+7. GET  :8082/api/v1/posts/{id}            commentCount 확인
 ```
+
+**3단계를 건너뛴 경로도 확인한다.** 계정만 만들고 프로필 없이 글을 쓰면 403 `S002`여야 한다.
 
 **완료 기준**
-- [ ] member-service가 발급한 토큰을 board-service가 검증한다
-- [ ] 게시글의 `writer_id`가 회원 id와 일치한다
-- [ ] 게시글의 `writer_nickname`이 가입 시 닉네임과 일치한다
-- [ ] 위 6단계가 오류 없이 완료된다
-- [ ] board-service의 `jwt-public.pem`이 테스트용이 아닌 실제 공개키다
-- [ ] **member-service의 개인키가 board 저장소에 없다**
+- [ ] auth-service가 발급한 토큰을 member와 board가 **모두** 검증한다
+- [ ] **두 `jwt-public.pem`이 같은 키다**
+- [ ] 게시글의 `writer_id`가 `accountId`와 일치한다
+- [ ] 게시글의 `writer_nickname`이 프로필 등록 시 닉네임과 일치한다
+- [ ] **board → member 내부 API 호출이 실제로 성공한다** (스텁이 아니다)
+- [ ] 위 7단계가 오류 없이 완료된다
+- [ ] 두 `jwt-public.pem`이 테스트용이 아닌 실제 공개키다
+- [ ] **auth의 개인키가 member·board 저장소에 없다**
+- [ ] **ADMIN seed의 `accountId`가 두 DB에서 일치한다**
 
 **검증**
 
 | 케이스 | 기대 결과 |
 | --- | --- |
-| E2E 6단계 수행 | 전 단계 성공 |
-| 게시글의 `writerId` | 회원 id와 일치 |
-| 게시글의 `writerNickname` | 가입 닉네임과 일치 |
-| board 저장소에서 `private` 검색 | 개인키 없음 |
-| 다른 키로 서명한 토큰 | board가 401 거부 |
+| E2E 7단계 수행 | 전 단계 성공 |
+| 게시글의 `writerId` | `accountId`와 일치 |
+| 게시글의 `writerNickname` | 프로필 닉네임과 일치 |
+| **프로필 없이 글 작성** | **403 `S002`** |
+| **`sp_auth.account`와 `sp_member.member`의 ADMIN** | **`id`와 `account_id`가 같은 값** |
+| member·board의 `jwt-public.pem` | 바이트 단위로 동일 |
+| member·board 저장소에서 `PRIVATE KEY` 검색 | 없음 |
+| 다른 키로 서명한 토큰 | member·board **둘 다** 401 거부 |
+| board에 잘못된 `INTERNAL_API_KEY` 설정 후 작성 | **503 `S001`.** `S002` 아님 |
 
 ---
 
@@ -66,35 +81,54 @@ B-03에서 board-service는 **테스트용 키 페어**로 자체 검증만 했�
 | | |
 | --- | --- |
 | 의존 | I-01 |
-| 참조 | [../nfr.md §2](../nfr.md), [../adr/0003-writer-snapshot.md](../adr/0003-writer-snapshot.md) |
+| 참조 | [../nfr.md §2](../nfr.md), [../adr/0003-writer-snapshot.md](../adr/0003-writer-snapshot.md), [../adr/0012](../adr/0012-auth-as-separate-service.md) |
 
-**스냅샷 설계를 채택한 핵심 근거를 실제로 확인한다.**
+**스냅샷 설계의 이득과 auth 분리의 비용을 함께 확인한다.**
+
+> **v1에서 바뀐 항목이다.** 이전에는 "member 중지 중에도 게시글 작성 → 201"이 완료 기준이었다. **이제는 503이다.** 닉네임이 JWT Claim에서 빠져 쓰기 경로가 member에 의존하기 때문이다([../adr/0012](../adr/0012-auth-as-separate-service.md)). 이것은 계획된 변경이지 결함이 아니다.
 
 **작업**
 1. I-01에서 게시글·댓글을 몇 건 만들어 둔다
-2. **member-service를 중지한다**
-3. board-service의 조회 기능을 호출한다
+2. **member-service를 중지한다** → 조회·수정·삭제를 호출한다
+3. member를 되살리고 **auth-service를 중지한다** → 조회·작성을 호출한다
 
-**완료 기준**
-- [ ] member-service 중지 상태에서 `GET /api/v1/posts`(목록)가 정상 동작한다
-- [ ] 작성자 닉네임이 정상 표시된다
-- [ ] `GET /api/v1/posts/{id}`(상세)가 정상 동작한다
-- [ ] 댓글 목록이 정상 동작한다
-- [ ] 기존 토큰이 유효한 동안에는 **게시글 작성도 가능하다** (검증은 공개키로 하므로)
-- [ ] member-service 재기동 후 로그인이 정상 동작한다
+**완료 기준 — member 중지**
+- [ ] `GET /api/v1/posts`(목록)가 정상 동작하고 작성자 닉네임이 표시된다
+- [ ] `GET /api/v1/posts/{id}`(상세)와 댓글 목록이 정상 동작한다
+- [ ] **기존 글의 수정·삭제가 정상 동작한다** (스냅샷을 갱신하지 않으므로)
+- [ ] **새 게시글·댓글 작성은 503 `S001`이고 저장되지 않는다**
+- [ ] **로그인은 정상 동작한다** (auth가 살아 있으므로)
+- [ ] member 재기동 후 작성이 정상 동작한다
+
+**완료 기준 — auth 중지**
+- [ ] 로그인·재발급이 실패한다
+- [ ] **기존 토큰으로 조회·작성·수정·삭제가 모두 정상 동작한다** (오프라인 검증)
+- [ ] auth 재기동 후 로그인이 정상 동작한다
 
 **검증**
 
-| 케이스 (member 중지 상태) | 기대 결과 |
+| 케이스 (member 중지) | 기대 결과 |
 | --- | --- |
 | 게시글 목록 조회 | 200, 작성자 닉네임 표시됨 |
 | 게시글 상세 조회 | 200 |
 | 댓글 목록 조회 | 200 |
-| 유효 토큰으로 게시글 작성 | 201 |
-| 로그인 시도 | 실패 (member 필요 — 정상) |
-| member 재기동 후 로그인 | 200 |
+| **유효 토큰으로 게시글 작성** | **503 `S001`. `post` 행 증가 없음** |
+| **유효 토큰으로 댓글 작성** | **503 `S001`. `comment_count` 불변** |
+| **기존 게시글 수정** | **200** |
+| **기존 게시글 삭제** | **204** |
+| 로그인 시도 | **200** (auth가 담당) |
+| member 재기동 후 작성 | 201 |
 
-이 결과가 [../adr/0003](../adr/0003-writer-snapshot.md)에서 스냅샷을 택한 이유를 증명한다.
+| 케이스 (auth 중지) | 기대 결과 |
+| --- | --- |
+| 로그인 시도 | 실패 (auth 필요 — 정상) |
+| 재발급 시도 | 실패 |
+| **기존 토큰으로 게시글 작성** | **201** |
+| 게시글 조회·수정·삭제 | 정상 |
+| 프로필 조회 | 정상 |
+| auth 재기동 후 로그인 | 200 |
+
+조회 결과가 [../adr/0003](../adr/0003-writer-snapshot.md)에서 스냅샷을 택한 이유를 증명하고, 작성 결과가 [../adr/0012](../adr/0012-auth-as-separate-service.md)가 수용한 비용을 드러낸다.
 
 ---
 
@@ -105,20 +139,20 @@ B-03에서 board-service는 **테스트용 키 페어**로 자체 검증만 했�
 | 의존 | I-01 |
 | 참조 | [../tech-stack.md §6](../tech-stack.md) |
 
-JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-from-environment.md)). 여기서 확인하는 것은 **두 서비스와 DB가 같은 기준으로 시각을 다루는가**다.
+JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-from-environment.md)). 여기서 확인하는 것은 **세 서비스와 세 스키마가 같은 기준으로 시각을 다루는가**다.
 
 **완료 기준**
-- [ ] member와 board의 `createdAt`이 같은 기준 시각이다
-- [ ] DB에 저장된 값이 KST다
+- [ ] auth·member·board의 `createdAt`이 같은 기준 시각이다
+- [ ] 세 DB에 저장된 값이 KST다
 - [ ] API 응답의 시각 형식이 `yyyy-MM-dd'T'HH:mm:ss`이고 오프셋이 없다
-- [ ] 두 서비스의 JDBC URL에 `serverTimezone=Asia/Seoul`이 있다
-- [ ] 두 서비스에 `hibernate.jdbc.time_zone: Asia/Seoul`이 있다
+- [ ] **세 서비스**의 JDBC URL에 `serverTimezone=Asia/Seoul`이 있다
+- [ ] **세 서비스**에 `hibernate.jdbc.time_zone: Asia/Seoul`이 있다
 
 **검증**
 
 | 케이스 | 기대 결과 |
 | --- | --- |
-| 회원가입·게시글 작성을 1분 내 수행 | 두 `createdAt` 차이가 1분 이내 |
+| 계정 생성·프로필 등록·게시글 작성을 1분 내 수행 | 세 `createdAt` 차이가 1분 이내 |
 | DB에서 직접 조회한 `created_at` | 현재 KST 시각과 일치 |
 | API 응답의 시각 문자열 | `Z`·`+09:00` 등 오프셋 없음 |
 
@@ -131,23 +165,28 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | | |
 | --- | --- |
 | 의존 | I-01 |
-| 참조 | [../api-contract.md §6 §7.1](../api-contract.md), [../adr/0007-shared-code-policy.md](../adr/0007-shared-code-policy.md) |
+| 참조 | [../api-contract.md §7 §8.1](../api-contract.md), [../adr/0007-shared-code-policy.md](../adr/0007-shared-code-policy.md) |
 
-`ApiResponse` 등을 두 서비스에 복제했으므로([../adr/0007](../adr/0007-shared-code-policy.md)) **실제로 같은 형식인지 확인**한다. 이것이 복제 방식의 위험을 막는 장치다.
+`ApiResponse` 등을 **세 서비스에** 복제했으므로([../adr/0007](../adr/0007-shared-code-policy.md)) **실제로 같은 형식인지 확인**한다. 이것이 복제 방식의 위험을 막는 장치다.
+
+**복제본이 2벌에서 3벌로 늘었다.** 0007의 재검토 조건("서비스가 3개째")이 발동했고 재검토 결과 복제를 유지하기로 했으므로, **이 검증의 중요도가 올라간다.** 비교는 2자가 아니라 3자다.
 
 **완료 기준**
-- [ ] 두 서비스의 성공 응답 구조가 동일하다 (`success`, `data`, `error` 키)
-- [ ] 두 서비스의 에러 응답 구조가 동일하다 (`error.code`, `error.message`, `error.fieldErrors`)
-- [ ] 공통 에러 코드(`C001`, `A001`~`A004`)의 HTTP 상태와 메시지가 두 서비스에서 같다
-- [ ] 두 서비스의 페이징 응답 구조가 동일하다
-- [ ] 어느 쪽 응답에도 스택트레이스·SQL·내부 호스트명이 없다
+- [ ] **세 서비스**의 성공 응답 구조가 동일하다 (`success`, `data`, `error` 키)
+- [ ] **세 서비스**의 에러 응답 구조가 동일하다 (`error.code`, `error.message`, `error.fieldErrors`)
+- [ ] 공통 에러 코드(`C001`, `A001`~`A004`)의 HTTP 상태와 메시지가 **세 서비스에서** 같다
+- [ ] **세 서비스**의 페이징 응답 구조가 동일하다
+- [ ] 어느 응답에도 스택트레이스·SQL·내부 호스트명이 없다
+- [ ] **서비스별 에러 코드가 서로 섞이지 않았다** — auth에 `M0xx`, member에 `AU0xx`, board에 둘 다 없다
 
 **검증**
 
 | 케이스 | 기대 결과 |
 | --- | --- |
-| 양쪽 성공 응답의 최상위 키 | 동일 집합 |
-| 양쪽 `C001` 응답 | HTTP 400, 같은 메시지, `fieldErrors` 존재 |
+| 세 서비스 성공 응답의 최상위 키 | 동일 집합 |
+| 세 서비스 `C001` 응답 | HTTP 400, 같은 메시지, `fieldErrors` 존재 |
+| 세 서비스 `A001` 응답 | HTTP 401, 같은 메시지 |
+| 각 서비스의 `ErrorCode` 열거 | 타 서비스 전용 접두어 없음 |
 | 양쪽 `A001` 응답 | HTTP 401, 같은 메시지 |
 | 양쪽 `A002`·`A003`·`A004` | 상태·메시지 일치 |
 | 양쪽 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last` |
@@ -157,6 +196,55 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 
 ---
 
+## I-05 탈퇴 부분 실패
+
+| | |
+| --- | --- |
+| 의존 | I-01 |
+| 참조 | [../architecture.md §4.4](../architecture.md), [../requirements/member.md §8](../requirements/member.md), [../adr/0012](../adr/0012-auth-as-separate-service.md) §5 |
+
+**탈퇴가 2단계이고 서버가 완주를 강제하지 못하므로, 중간 상태가 실제로 안전한지 확인한다.** 이것은 단위 테스트로 잡을 수 없다 — 두 서비스와 두 DB에 걸쳐 있다.
+
+**작업**
+1. 계정과 프로필을 만들고 게시글을 몇 건 쓴다
+2. **1단계만 수행한다** (`DELETE :8083/api/v1/accounts/me`)
+3. 2단계를 수행하지 않은 채로 아래를 확인한다
+4. 그 다음 2단계를 수행하고 최종 상태를 확인한다
+
+**완료 기준 — 1단계만 수행한 상태**
+- [ ] **로그인이 즉시 막힌다** (401)
+- [ ] **재발급이 즉시 막힌다**
+- [ ] 기존 Access Token으로는 토큰 만료까지 접근이 가능하다 (알려진 잔여 노출)
+- [ ] 프로필 행이 아직 `deleted = false`다
+- [ ] **기존 토큰으로 2단계를 재시도할 수 있다** (복구 경로가 살아 있다)
+- [ ] 과거 게시글의 `writer_nickname`이 그대로 남아 있다
+
+**완료 기준 — 2단계까지 수행**
+- [ ] 프로필이 `deleted = true`, `nickname = null`이다
+- [ ] 같은 계정으로 프로필을 재생성할 수 없다 (409 `M007`)
+- [ ] 같은 이메일로 계정을 재생성할 수 없다 (409 `AU002`)
+- [ ] 과거 게시글이 남아 있고 닉네임도 그대로다
+- [ ] **해방된 닉네임을 다른 사람이 쓸 수 있다**
+
+**검증**
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| 1단계 후 로그인 | 401 |
+| 1단계 후 재발급 | 실패 |
+| 1단계 후 기존 토큰으로 프로필 조회 | 200 (아직 살아 있음) |
+| **1단계 후 기존 토큰으로 2단계 재시도** | **204. 복구된다** |
+| 1단계를 **비밀번호 없이** 시도 | 400. 아무것도 삭제되지 않음 |
+| 2단계 후 프로필 재생성 | 409 `M007` |
+| 2단계 후 같은 이메일로 계정 생성 | 409 `AU002` |
+| 2단계 후 해방된 닉네임으로 타인 등록 | 201 |
+| 2단계 후 과거 게시글 조회 | 200, 닉네임 그대로 |
+| 1·2단계 중 서비스 간 호출 | **0회.** 클라이언트가 순서대로 호출한다 |
+
+> **2단계를 수행하지 않으면 프로필이 남고 닉네임이 선점된다.** 1차에는 이를 관측·정리할 수단이 없다. 알려진 제약이며 2차 이벤트 범위다([../adr/0010](../adr/0010-kafka-for-nickname-sync.md)).
+
+---
+
 ## 완료 후
 
-I-01~I-04가 모두 `done`이면 1차가 완료된다. [phase2.md](phase2.md)의 상세화를 시작한다.
+I-01~I-05가 모두 `done`이면 1차가 완료된다. [phase2.md](phase2.md)의 상세화를 시작한다.

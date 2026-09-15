@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v2
-updated: 2026-09-14
+version: v3
+updated: 2026-09-15
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -13,7 +13,7 @@ related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-pol
 
 ## 1. 공통 스택
 
-두 서비스가 동일하다.
+세 서비스가 동일하다.
 
 | 구분 | 기술 | 버전 |
 | --- | --- | --- |
@@ -94,7 +94,7 @@ implementation 'org.springframework.security:spring-security-oauth2-jose'
 
 ## 3. Gradle 의존성
 
-### 3.1 두 서비스 공통
+### 3.1 세 서비스 공통
 
 아래 전체 조합으로 Boot 3.5.16 + Gradle 9.7.1에서 `./gradlew build` 성공을 확인했다.
 
@@ -140,10 +140,13 @@ dependencies {
 
 ### 3.2 서비스별 추가
 
-| 서비스 | 추가 |
-| --- | --- |
-| member | `org.springframework.security:spring-security-oauth2-jose` (서명) |
-| board | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` (검증) |
+| 서비스 | 추가 | 왜 |
+| --- | --- | --- |
+| auth | `org.springframework.security:spring-security-oauth2-jose`<br>`org.springframework.boot:spring-boot-starter-oauth2-resource-server` | **서명**(`NimbusJwtEncoder`) + 자기 발급 토큰 검증 |
+| member | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` | 검증만 |
+| board | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` | 검증만 |
+
+**서명 의존성을 갖는 것은 auth 하나뿐이다.** member·board에 `oauth2-jose`를 넣지 않는다 — 넣으면 개인키만 있으면 토큰을 만들 수 있게 되어 [security.md §2](security.md)의 경계가 흐려진다.
 
 QueryDSL Q타입 생성 경로(`build/generated/sources/annotationProcessor`)를 `.gitignore`에 넣는다.
 
@@ -154,6 +157,7 @@ QueryDSL Q타입 생성 경로(`build/generated/sources/annotationProcessor`)를
 ### 4.1 MySQL 설치 후 1회
 
 ```sql
+CREATE DATABASE sp_auth   DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE DATABASE sp_member DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE DATABASE sp_board  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
@@ -188,7 +192,7 @@ openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out private.pem
 openssl rsa -in private.pem -pubout -out public.pem
 ```
 
-배포 방식과 보관 규칙은 [security.md §3](security.md)를 본다.
+**개인키는 auth-service 하나만 갖는다.** 공개키는 member와 board **두 곳**에 배포한다. 배포 방식과 보관 규칙은 [security.md §3](security.md)를 본다.
 
 ### 4.3 설정 외부화 (필수)
 
@@ -202,7 +206,10 @@ spring:
     password: ${DB_PASSWORD}
 member-service:
   url: ${MEMBER_SERVICE_URL:http://localhost:8081}
+  internal-api-key: ${INTERNAL_API_KEY}
 ```
+
+`MEMBER_SERVICE_URL`은 board만 쓴다. **auth는 다른 서비스의 주소를 알지 않는다.**
 
 **비밀 값(JWT 개인키, DB 비밀번호)은 기본값을 두지 않는다.** `${DB_PASSWORD}`처럼 기본값 없이 쓴다. 없으면 기동이 실패해야 한다.
 
@@ -238,13 +245,14 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 
 > `DB_PASSWORD`가 어디에도 없으면 `Access denied for user 'root'@'localhost' (using password: YES)`로 기동이 실패한다. **비밀번호가 틀린 게 아니라 값이 없는 것이다.** Spring이 해석되지 않은 placeholder를 리터럴로 남기기 때문이다.
 
-`JWT_PRIVATE_KEY`도 M-04부터 같은 방식으로 `application-local.yml`에 넣는다.
+`JWT_PRIVATE_KEY`(auth만)와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다.
 
 ### 4.4 실행
 
 | 서비스 | 명령 | 주소 |
 | --- | --- | --- |
-| member | `./gradlew bootRun --args='--spring.profiles.active=local'` | `:8081` |
+| auth | `./gradlew bootRun --args='--spring.profiles.active=local'` | `:8083` |
+| member | 동일 | `:8081` |
 | board | 동일 | `:8082` |
 
 - Swagger UI: `/swagger-ui.html` (운영 프로파일에서는 비활성화)

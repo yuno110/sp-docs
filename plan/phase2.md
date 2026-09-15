@@ -3,7 +3,7 @@ title: 2차 작업 계획 (개요)
 type: plan
 status: draft
 version: v1
-updated: 2026-09-11
+updated: 2026-09-15
 read_when: "2차 범위를 확인할 때. 1차 진행 중에는 참고용이며 작업 지시로 쓰지 않는다"
 related: [phase1.md, integration.md, ../adr/0010-kafka-for-nickname-sync.md, ../adr/0005-no-docker-in-mvp.md]
 ---
@@ -36,7 +36,7 @@ related: [phase1.md, integration.md, ../adr/0010-kafka-for-nickname-sync.md, ../
 
 **바뀌는 것은 DB 접속 주소뿐이다.** `localhost:3306` → `mysql:3306`. 애플리케이션 코드는 그대로다.
 
-부수 효과로 서비스 디스커버리가 DNS 기반이 된다([../architecture.md §6](../architecture.md)). `http://localhost:8081`을 `http://member-service:8081`로 바꾸면 된다.
+부수 효과로 서비스 디스커버리가 DNS 기반이 된다([../architecture.md §6](../architecture.md)). `http://localhost:8081`을 `http://member-service:8081`로 바꾸면 된다. **이 설정을 갖는 것은 board 하나뿐이다.**
 
 **주의**: 컨테이너의 기본 시간대는 UTC다. **`ENV TZ=Asia/Seoul`을 반드시 넣는다.** JVM 시간대를 코드·빌드가 아니라 실행 환경이 정하기로 했으므로([../adr/0011](../adr/0011-timezone-from-environment.md)), 이 한 줄이 빠지면 로그와 `LocalDateTime.now()`가 UTC가 된다. 컨테이너에서 `TimeZone.getDefault()`가 `Asia/Seoul`인지 확인하는 것이 이 단계의 검증 항목이다.
 
@@ -48,9 +48,11 @@ related: [phase1.md, integration.md, ../adr/0010-kafka-for-nickname-sync.md, ../
 member-service                              board-service
   [닉네임 변경 커밋]
   MemberNicknameChangedEvent --> Kafka --> 구독
-                              UPDATE post SET writer_nickname=?
-                              WHERE writer_id=?
+       { accountId, nickname }              UPDATE post SET writer_nickname=?
+                                            WHERE writer_id=?
 ```
+
+**이벤트 키는 `accountId`다.** 전역 식별자가 `account.id`이기 때문이다([../adr/0012](../adr/0012-auth-as-separate-service.md) §1).
 
 **필수 설계 요건** — 이것을 빼면 안 된다.
 
@@ -64,10 +66,30 @@ member-service                              board-service
 
 | 이벤트 | 발행 시점 | 소비 동작 |
 | --- | --- | --- |
-| `MemberNicknameChangedEvent` | 닉네임 변경 | `post`·`comment`의 `writer_nickname` 갱신 |
-| `MemberWithdrawnEvent` | 회원 탈퇴 | `writer_nickname`을 "탈퇴한 회원"으로 갱신 |
+| `MemberNicknameChangedEvent` | member의 닉네임 변경 | `post`·`comment`의 `writer_nickname` 갱신 |
+| `MemberWithdrawnEvent` | member의 프로필 탈퇴 | `writer_nickname`을 "탈퇴한 회원"으로 갱신 |
+| `AccountWithdrawnEvent` | **auth의 계정 탈퇴** | member가 구독해 프로필을 soft delete. 탈퇴 2단계를 서버가 책임진다 |
+
+세 이벤트 모두 페이로드의 식별자는 `accountId`다.
 
 **1차 코드에 발행 훅을 미리 넣지 않는다.** YAGNI. Outbox 테이블과 함께 추가한다.
+
+### 3.1 탈퇴 2단계를 서버로 옮긴다
+
+1차의 탈퇴는 클라이언트가 2단계를 호출하고, 서버는 완주를 강제하지도 관측하지도 못한다([../architecture.md §4.4](../architecture.md)). `AccountWithdrawnEvent`가 이것을 해소한다.
+
+```
+auth: [계정 삭제 + RefreshToken 삭제 + outbox INSERT]  <- 한 로컬 트랜잭션
+        --> Kafka --> member 구독 --> 프로필 soft delete (멱등)
+```
+
+**추가 요건**
+
+| 요건 | 이유 |
+| --- | --- |
+| 삭제 이벤트가 프로필 생성보다 먼저 도착하는 경우 | member에 삭제 표식을 남겨야 한다. "삭제할 프로필 없음"으로 끝내면 뒤늦은 생성 요청이 통과한다 |
+| 탈퇴 완료의 의미 | auth에서 계정이 막힌 시점인지, member 삭제까지 반영된 시점인지 API가 구분해야 한다. 비동기 정리 중인데 "완료"라고 응답하면 계약이 거짓이 된다 |
+| 장기 실패 탐지 | outbox에 쌓인 채 전달되지 않는 이벤트를 관측할 수 있어야 한다 |
 
 ## 4. API Gateway
 
@@ -99,9 +121,10 @@ Spring Cloud Gateway를 도입한다. Boot 버전과 호환되는 릴리스 트�
 
 | 항목 | 내용 |
 | --- | --- |
-| Resilience4j | 서비스 간 호출에 서킷 브레이커. 1차의 타임아웃·폴백 위에 얹는다 |
+| Resilience4j | `board -> member` 호출에 서킷 브레이커. 1차의 타임아웃 위에 얹는다. **쓰기 경로가 member에 의존하므로 1차보다 값어치가 크다** |
+| 토큰 블랙리스트 / introspection | 탈퇴·권한 박탈의 즉시 차단. 1차는 최대 30분 노출을 감수한다([../security.md §5.3](../security.md)) |
 | 분산 추적 | Micrometer Tracing + Zipkin. `X-Request-Id` 전파를 대체 |
-| JWKS | member-service가 `/.well-known/jwks.json` 제공, board가 공개키 자동 획득 |
+| JWKS | **auth-service**가 `/.well-known/jwks.json` 제공, member·board가 공개키 자동 획득. **배포 지점 2곳이 사라진다** |
 
 ## 7. 상세화 시점
 

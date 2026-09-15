@@ -28,7 +28,7 @@ member-service                              board-service
   [닉네임 변경 커밋]                              |
      |                                           |
   MemberNicknameChangedEvent --> Kafka -->    구독
-  { memberId: 3, nickname: "고길동" }             |
+  { accountId: 3, nickname: "고길동" }            |
                               UPDATE post SET writer_nickname='고길동'
                               WHERE writer_id = 3
 ```
@@ -41,7 +41,7 @@ member-service                              board-service
 | --- | --- |
 | 발행 신뢰성 | **Transactional Outbox 패턴.** DB 커밋과 이벤트 발행의 원자성을 확보한다 |
 | 소비자 멱등성 | 같은 이벤트를 다시 받아도 결과가 같아야 한다 |
-| 인덱스 | `idx_post_writer_id`가 일괄 갱신 쿼리를 뒷받침한다([../domain-model.md §3.3](../domain-model.md)) |
+| 인덱스 | `idx_post_writer_id`가 일괄 갱신 쿼리를 뒷받침한다([../domain-model.md §4.3](../domain-model.md)) |
 | 컨테이너 | Kafka는 로컬 설치가 번거롭다. 이 시점에 Docker를 함께 도입한다([0005](0005-no-docker-in-mvp.md)) |
 
 ## 결과

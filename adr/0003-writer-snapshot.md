@@ -2,15 +2,17 @@
 title: 작성자 정보 스냅샷 복제
 type: adr
 status: accepted
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-09-15
 read_when: "게시글에 작성자 닉네임을 복제 저장하는 이유가 궁금할 때"
 related: [README.md, ../architecture.md, 0010-kafka-for-nickname-sync.md]
 ---
 # 0003. 작성자 정보 스냅샷 복제
 
 ## 상태
-accepted
+accepted — **취득 경로는 [0012](0012-auth-as-separate-service.md)가 개정했다**
+
+> **2026-09-15**: auth 분리로 JWT Claim에서 `nickname`이 빠졌다. **스냅샷을 저장한다는 결정과 그 목적(조회 경로 원격 호출 0회)은 그대로다.** 바뀐 것은 닉네임을 **어디서 얻는가**뿐이다 — Claim이 아니라 member의 내부 API다. 아래 "결정"과 "파생 규칙"을 그에 맞게 고쳤다.
 
 ## 맥락
 
@@ -18,7 +20,7 @@ accepted
 
 ```sql
 SELECT p.id, p.title, m.nickname
-FROM post p JOIN member m ON p.member_id = m.id
+FROM post p JOIN member m ON p.writer_id = m.id
 ```
 
 그러나 `post`는 `sp_board`에, `member`는 `sp_member`에 있다([0001](0001-msa-adoption.md)). 로컬에서 두 스키마가 같은 MySQL 인스턴스에 있어 기술적으로는 조인이 가능하지만, 운영에서 DB를 물리 분리하는 순간 깨지고 게시판이 회원 테이블 스키마에 묶인다.
@@ -27,16 +29,27 @@ FROM post p JOIN member m ON p.member_id = m.id
 
 **작성 시점의 닉네임을 `post.writer_nickname`에 복제 저장한다(스냅샷).**
 
-착안점은 게시글을 작성하는 순간 작성자가 누구인지 이미 알고 있다는 것이다. 작성자 본인이 로그인 상태로 요청을 보냈고 JWT Claim에 닉네임이 들어 있다.
+착안점은 게시글을 작성하는 순간 작성자가 누구인지 이미 알고 있다는 것이다. 작성자 본인이 로그인 상태로 요청을 보냈으므로, 그 순간 한 번만 확인하면 조회 때마다 물어볼 필요가 없다.
+
+**취득 경로는 두 번 바뀌었다.**
+
+| 시기 | `writer_nickname`을 어디서 | 쓰기 경로의 원격 호출 |
+| --- | --- | --- |
+| 서비스 2개 (v1) | JWT Claim의 `nickname` | 0회 |
+| **서비스 3개 (현재)** | **member의 내부 API** ([0012](0012-auth-as-separate-service.md) §6) | **1회** |
+
+auth가 닉네임을 소유하지 않으므로 Claim에 넣을 수 없다. **조회 경로 0회라는 이 ADR의 목적은 유지되지만, 쓰기 경로의 독립성은 잃었다.**
 
 ## 대안 비교
 
-| | 스냅샷 (채택) | 동기 조회 |
+| | 스냅샷 (채택) | 조회 시 동기 조회 |
 | --- | --- | --- |
 | 목록 조회 | `sp_board` 단일 쿼리 | 목록 1건당 네트워크 왕복 |
-| member 장애 시 | 게시글 조회 정상 | 게시판 조회 불가 |
+| member 장애 시 | **게시글 조회·수정·삭제 정상** | 게시판 조회 불가 |
 | 닉네임 변경 | 과거 글 미반영 | 항상 최신 |
 | 결합도 | 낮음 | 높음 |
+
+**여기서 기각한 "동기 조회"는 조회 경로의 것이다.** 쓰기 경로의 동기 조회는 서비스가 셋이 되면서 불가피해졌고, [0012](0012-auth-as-separate-service.md)가 그 비용을 명시적으로 수용했다. 두 가지를 혼동하지 않는다.
 
 게시판의 지배적 부하는 목록 조회다. 그 경로가 네트워크에 의존하지 않는 쪽을 택했다. 장애 격리 원칙([../architecture.md §2](../architecture.md))에도 부합한다.
 
@@ -49,11 +62,17 @@ FROM post p JOIN member m ON p.member_id = m.id
 
 **잃은 것**
 - 닉네임을 바꿔도 과거 글에는 반영되지 않는다. `writer_id`는 변하지 않으므로 "누가 썼는가"는 정확하고, 어긋나는 것은 표시용 이름뿐이다
+- **새 글·댓글 작성이 member의 가용성에 의존한다.** member가 죽으면 작성이 503으로 막힌다(0012 이후 추가된 비용)
 - 2차에 Kafka 이벤트로 해소한다 → [0010](0010-kafka-for-nickname-sync.md)
 
 **파생 규칙**
-- JWT Claim에도 닉네임이 있으므로, 닉네임 변경 시 새 토큰을 발급해야 한다. 그러지 않으면 옛 토큰으로 쓴 **새 글**에도 옛 닉네임이 박제된다([../requirements/member.md](../requirements/member.md) M-08)
+- `writer_id`는 **검증된 JWT의 `sub`**에서, `writer_nickname`은 **member의 내부 API 응답**에서 가져온다. 요청 본문의 값을 신뢰하지 않는다
+- **조회 키도 JWT의 `sub`다.** 본문의 `writerId`로 조회하지 않는다
+- 원격 호출은 **DB 트랜잭션 밖에서 먼저** 한다([../architecture.md §5](../architecture.md))
+- **수정 시 스냅샷을 갱신하지 않는다.** 작성 당시 표시를 보존한다. 그 결과 수정·삭제 경로는 member를 호출하지 않는다
 - `writer_id`에 FK 제약을 걸지 않는다
+
+**폐기된 파생 규칙** — v1의 "닉네임 변경 시 새 토큰을 발급해야 한다"는 폐기됐다. Claim에 `nickname`이 없으므로 토큰이 낡을 이유가 사라졌고, member는 개인키가 없어 발급할 수도 없다([../requirements/member.md §7](../requirements/member.md)).
 
 ## 정규화 위반이 아닌가
 

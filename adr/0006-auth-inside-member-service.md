@@ -1,16 +1,22 @@
 ---
 title: auth를 member-service 내 패키지로
 type: adr
-status: accepted
-version: v1
-updated: 2026-09-11
-read_when: "인증을 별도 서비스로 분리하지 않은 이유가 궁금할 때"
+status: superseded
+version: v2
+updated: 2026-09-15
+read_when: "auth를 한때 member 내부에 두기로 했던 이유와 그 결정이 뒤집힌 경위가 궁금할 때"
 related: [README.md, ../conventions.md, ../api-contract.md]
 ---
 # 0006. auth를 member-service 내 패키지로
 
 ## 상태
-accepted
+**superseded — [0012](0012-auth-as-separate-service.md)가 대체한다 (2026-09-15)**
+
+> 이 문서는 기록으로 남긴다. **현행 결정은 [0012](0012-auth-as-separate-service.md)다.**
+>
+> 아래 내용은 서비스가 둘이던 시점의 판단이다. 0012가 이 문서의 근거 넷을 하나씩 정산했다 — 첫째(로그인마다 동기 호출)는 해소됐고, 둘째(가입 분산 트랜잭션)는 원자적 가입 요구를 포기해 회피했으며, 셋째(탈퇴 원자성)는 **여전히 미해결**이고, 넷째(운영 부담)는 그대로 남는다.
+>
+> 아래 **§예외 — 토큰 무효화**는 사문화됐다. 비밀번호 변경·탈퇴 시의 토큰 무효화가 전부 auth-service 내부 연산이 되어, `member`가 `RefreshTokenRepository`를 참조할 이유가 사라졌다.
 
 ## 맥락
 

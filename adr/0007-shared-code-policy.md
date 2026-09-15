@@ -2,8 +2,8 @@
 title: 공통 코드 — 라이브러리 대신 표준 활용 + 최소 복제
 type: adr
 status: accepted
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-09-15
 read_when: "공통 코드를 왜 라이브러리로 묶지 않는지 확인할 때"
 related: [README.md, ../conventions.md, ../tech-stack.md]
 ---
@@ -14,7 +14,7 @@ accepted
 
 ## 맥락
 
-두 서비스가 같은 코드를 갖게 된다. `ApiResponse`, `ErrorCode`, `GlobalExceptionHandler`, `BaseTimeEntity`, JWT 검증 등이다. 이것을 `common` 또는 `core` 라이브러리로 분리해 제공하자는 제안이 있었다. 특히 **JWT 검증 코드 중복은 실질적 위험**이다. 보안 코드라 한쪽만 고치면 구멍이 난다.
+서비스들이 같은 코드를 갖게 된다. `ApiResponse`, `ErrorCode`, `GlobalExceptionHandler`, `BaseTimeEntity`, JWT 검증 등이다. 이것을 `common` 또는 `core` 라이브러리로 분리해 제공하자는 제안이 있었다. 특히 **JWT 검증 코드 중복은 실질적 위험**이다. 보안 코드라 한쪽만 고치면 구멍이 난다.
 
 ## 결정
 
@@ -61,7 +61,7 @@ spring:
 | --- | --- |
 | 3번째 저장소 + GitHub Packages 퍼블리싱 + 인증 설정 | 초기 반나절~하루 |
 | 버전 불일치 | common 1.0.2인데 board만 1.0.1 쓰는 상황 |
-| **독립 배포 원칙과 충돌** | common 고치면 두 서비스 재빌드·재배포 |
+| **독립 배포 원칙과 충돌** | common 고치면 모든 서비스 재빌드·재배포 |
 | 공유 범위 확대 경향 | ApiResponse → 유틸 → DTO → "분산 모놀리스" |
 | **워커 병렬 작업에 직렬 지점 생성** | 워커A가 common 수정→퍼블리시→워커B 대기 |
 
@@ -77,11 +77,29 @@ DRY는 "**지식**의 중복을 피하라"는 원칙이지 "코드의 유사성�
 
 - 정본을 문서에 둔다. `ApiResponse`는 [../api-contract.md §6](../api-contract.md), `BaseTimeEntity`는 [../domain-model.md §1.1](../domain-model.md)
 - 복제본 파일 상단에 정본 위치를 주석으로 남긴다
-- 두 서비스의 응답 형식 일치를 확인하는 계약 테스트를 통합 검증 단계에 둔다
+- 서비스들의 응답 형식 일치를 확인하는 계약 테스트를 통합 검증 단계에 둔다([../plan/integration.md](../plan/integration.md) I-04)
 
 **문서 저장소는 왜 만들었는가**([0002](0002-separate-repositories.md))
 
 문서 저장소는 빌드·배포 파이프라인이 없다. 라이브러리 저장소를 반대한 이유(퍼블리싱 파이프라인, 버전 결합)가 문서에는 적용되지 않는다.
+
+## 재검토 결과 (2026-09-15) — 서비스 3개째, 복제 유지
+
+auth 분리로 서비스가 셋이 되어 아래 재검토 조건 중 첫 번째가 발동했다([0012](0012-auth-as-separate-service.md)). **재검토 결과 복제를 유지한다.**
+
+| 판단 근거 | |
+| --- | --- |
+| 복제량 | 약 75줄 → 약 75줄 × 3벌. **절대량이 여전히 작다** |
+| 변경 빈도 | `ApiResponse`·`BaseTimeEntity`는 1차 착수 후 한 번도 바뀌지 않았다 |
+| 가역성 | 0007의 원 판단 그대로 — **복제 → 라이브러리는 쉽고 역은 어렵다.** 3벌이 되어도 이 비대칭은 변하지 않는다 |
+| 실질 위험 | JWT **검증** 코드는 Spring Security 표준이라 복제 대상이 아니다. 복제되는 것은 DTO·상수뿐이다 |
+
+**대신 방어 장치를 강화한다.**
+
+- [../plan/integration.md](../plan/integration.md) I-04의 형식 일치 검증이 2자 비교에서 **3자 비교**가 된다
+- 서비스별 에러 코드가 섞이지 않았는지도 함께 확인한다 (auth에 `M0xx`, member에 `AU0xx`가 없어야 한다)
+
+**다음 재검토는 서비스가 4개째가 될 때다.** 또는 복제 대상이 200줄을 넘거나, I-04가 실제로 불일치를 잡아낼 때.
 
 ## 재검토 조건
 

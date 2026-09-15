@@ -2,8 +2,8 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-09-15
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
 ---
@@ -15,24 +15,34 @@ related: [architecture.md, process/dev-workflow.md]
 | --- | --- |
 | 게시글 목록 조회 | p95 < 300ms (1만 건 기준) |
 | 목록 조회의 원격 호출 | **0회** (스냅샷 설계로 보장) |
+| 글·댓글 **생성**의 원격 호출 | 1회 (닉네임 스냅샷 취득). 벌크 API에 1건 |
 | N+1 쿼리 | 발생 시 `fetch join` 또는 `@BatchSize`로 해결 |
 
-`commentCount`를 `post`에 비정규화해 둔 것은 목록 조회에서 댓글 수 집계 쿼리를 없애기 위해서다([domain-model.md §3.1](domain-model.md)).
+`commentCount`를 `post`에 비정규화해 둔 것은 목록 조회에서 댓글 수 집계 쿼리를 없애기 위해서다([domain-model.md §4.1](domain-model.md)).
+
+**"조회 경로 원격 호출 0회"는 유지되지만 "서비스 간 의존성 없음"은 아니다.** 쓰기 경로는 member에 의존한다(§2).
 
 ## 2. 장애 격리
 
 | 시나리오 | 기대 동작 |
 | --- | --- |
-| member-service 다운 | 게시글 **조회**는 정상. 로그인·작성만 불가 |
-| 내부 API 호출 실패 | 스냅샷 값으로 폴백. 게시판 조회를 실패시키지 않음 |
+| **auth 다운** | 로그인·재발급·계정 관리 불가. 게시글 조회·**작성**·수정·삭제는 기존 토큰이 유효한 동안 정상 |
+| **member 다운** | 게시글 조회·**수정·삭제** 정상. 글·댓글 **생성만 503** `S001` |
+| **board 다운** | 로그인·회원 기능 정상. 게시판만 불가 |
+| 내부 API 호출 실패 (쓰기 경로) | **저장하지 않고 503.** 폴백할 스냅샷이 아직 없다 |
+| 내부 API 호출 실패 (조회 경로) | 해당 없음. 조회는 내부 API를 호출하지 않는다 |
 
-이 기준은 통합 검증 단계에서 실제로 member-service를 내리고 확인한다([plan/integration.md](plan/integration.md)).
+**쓰기 경로에는 폴백이 없다.** 저장할 닉네임을 만들어낼 수 없으므로 실패를 드러낸다([architecture.md §4.3.1](architecture.md)). 이전 v1의 "스냅샷 값으로 폴백"은 조회 경로에 대한 서술이었고, 그 경로는 애초에 호출하지 않으므로 사문화됐다.
+
+**auth 다운이 게시글 작성을 막지 않는다.** 검증이 공개키로 오프라인 수행되기 때문이다. 반대로 **member 다운은 막는다** — 닉네임을 얻을 수 없기 때문이다.
+
+이 기준은 통합 검증 단계에서 실제로 서비스를 내리고 확인한다([plan/integration.md](plan/integration.md) I-02).
 
 ## 3. 회복탄력성
 
 | 항목 | 기준 |
 | --- | --- |
-| 서비스 간 호출 타임아웃 | connect 1초 / read 3초 |
+| 서비스 간 호출 타임아웃 | connect 1초 / read 3초 (`board -> member` 하나뿐) |
 | 타임아웃 미지정 | 금지. 기본값(무제한)으로 두지 않는다 |
 | 서킷 브레이커 | 2차 범위 |
 

@@ -39,15 +39,17 @@ related: [plan/README.md, process/dev-workflow.md]
 
 | 접두어 | 무엇 | 어디에 |
 | --- | --- | --- |
-| `MR-xx` | 회원 **기능 요구사항** | [requirements/member.md](requirements/member.md) |
+| `MR-xx` | 계정·회원 **기능 요구사항** (auth + member) | [requirements/member.md](requirements/member.md) |
 | `P-xx` / `C-xx` | 게시글 / 댓글 **기능 요구사항** | [requirements/board.md](requirements/board.md) |
-| `M-xx` / `B-xx` | member / board **작업 항목** | [plan/phase1.md](plan/phase1.md) |
+| `AU-xx` / `M-xx` / `B-xx` | auth / member / board **작업 항목** | [plan/phase1.md](plan/phase1.md) |
 | `I-xx` | **통합 검증** 항목 | [plan/integration.md](plan/integration.md) |
-| `C001`·`M002`·`P001` 등 | **에러 코드** | [api-contract.md §7](api-contract.md) |
+| `C001`·`A001`·`AU002`·`M003`·`P001`·`CM001`·`S001` | **에러 코드** | [api-contract.md §8](api-contract.md) |
 
-`M-05`(작업 항목: 회원가입)와 `MR-05`(요구사항: 토큰 재발급)처럼 숫자가 겹칠 수 있다. 계획서의 "참조" 필드에 적힌 괄호 안 ID는 **요구사항 쪽**이다.
+**하이픈이 있으면 작업 항목, 없으면 에러 코드다.** `M-03`(작업 항목)과 `M003`(에러 코드), `AU-03`(작업 항목)과 `AU003`(에러 코드)은 서로 다른 것이다.
 
-새 접두어를 만들 때는 기존 것과 겹치지 않는지 이 표에서 확인한다.
+`M-05`(작업 항목: 회원가입)와 `MR-05`(요구사항: 토큰 재발급)처럼 숫자가 겹칠 수도 있다. 계획서의 "참조" 필드에 적힌 괄호 안 ID는 **요구사항 쪽**이다.
+
+새 접두어를 만들 때는 기존 것과 겹치지 않는지 이 표에서 확인한다. **`A-xx`는 쓰지 않는다** — 에러 코드 `A001`~`A004`(공통 인증)와 혼동된다. auth 작업 항목은 `AU-xx`다.
 
 ## 작업별 읽을 문서
 
@@ -58,12 +60,13 @@ related: [plan/README.md, process/dev-workflow.md]
 | 구현·테스트·커밋 절차 | [process/dev-workflow.md](process/dev-workflow.md) |
 | 프로젝트 범위·용어 확인 | [overview.md](overview.md) |
 | 서비스 경계·통신·데이터 일관성 | [architecture.md](architecture.md) |
+| **왜 서비스가 셋인가, 가입·탈퇴가 왜 2단계인가** | [adr/0012](adr/0012-auth-as-separate-service.md) |
 | 버전·의존성·로컬 환경 구성 | [tech-stack.md](tech-stack.md) |
 | 엔티티·컬럼·인덱스 | [domain-model.md](domain-model.md) |
 | 엔드포인트·요청/응답·에러 코드·토큰 Claim | [api-contract.md](api-contract.md) |
 | 코드 스타일·패키지 구조·공통 코드 정책 | [conventions.md](conventions.md) |
 | 인증·인가·키 관리 | [security.md](security.md) |
-| 회원 기능 요구사항 | [requirements/member.md](requirements/member.md) |
+| 계정·회원 기능 요구사항 | [requirements/member.md](requirements/member.md) |
 | 게시판 기능 요구사항 | [requirements/board.md](requirements/board.md) |
 | 성능·장애 격리·테스트 기준 | [nfr.md](nfr.md) |
 | 결정의 이유 확인 | [adr/README.md](adr/README.md) |

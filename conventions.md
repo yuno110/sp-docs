@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-09-15
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -13,7 +13,27 @@ related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md
 
 도메인형으로 나눈다. 계층형(controller/service/repository를 최상위로)으로 두지 않는다.
 
-### 1.1 member-service
+### 1.1 auth-service
+
+```
+com.example.auth
+├── AuthApplication.java
+├── global
+│   ├── config          # SecurityConfig, JpaConfig, SwaggerConfig, WebConfig(CORS)
+│   ├── common          # BaseTimeEntity, ApiResponse, PageResponse
+│   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
+│   └── security        # JwtTokenProvider(서명), LoginAccount(record), @CurrentAccount
+├── auth
+│   ├── controller / service / repository / entity / dto   # 로그인·재발급·로그아웃, RefreshToken
+└── account
+    └── controller / service / repository / entity / dto   # 계정 생성·조회·비밀번호·탈퇴
+```
+
+**`auth`와 `account` 사이에 단방향 제약을 두지 않는다.** 비밀번호 변경·계정 탈퇴가 `account` 갱신과 `RefreshToken` 삭제를 **한 로컬 트랜잭션**으로 묶어야 하기 때문이다. 이전 `adr/0006 §예외`가 우회로 다루던 문제가 같은 서비스 안으로 들어오면서 사라졌다([adr/0012](adr/0012-auth-as-separate-service.md)).
+
+**이 서비스만 개인키를 갖는다.** 서명은 Spring Security 표준(`NimbusJwtEncoder`)을 쓴다. 직접 서명 로직을 만들지 않는다.
+
+### 1.2 member-service
 
 ```
 com.example.member
@@ -22,20 +42,18 @@ com.example.member
 │   ├── config          # SecurityConfig, JpaConfig, SwaggerConfig, WebConfig(CORS)
 │   ├── common          # BaseTimeEntity, ApiResponse, PageResponse
 │   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
-│   └── security        # JwtTokenProvider(서명), @LoginMember
-├── auth
-│   ├── controller / service / repository / entity / dto
+│   └── security        # RoleClaimConverter, LoginMember(record), @CurrentMember
 ├── member
 │   ├── controller / service / repository / entity / dto
 └── internal
     └── controller      # InternalMemberController (/internal/v1/**)
 ```
 
-`auth`와 `member`의 책임 구분과 의존 방향은 [adr/0006](adr/0006-auth-inside-member-service.md)을 본다. **의존 방향은 `auth → member` 단방향이다.** `member` 패키지는 `auth`를 참조하지 않는다.
+**`auth` 패키지가 없다.** 계정·인증은 auth-service로 옮겨갔다. member는 **공개키로 검증만** 한다 — 서명 의존성을 넣지 않는다([tech-stack.md §3.2](tech-stack.md)).
 
-**예외 하나**: `member`는 비밀번호 변경·탈퇴 시의 토큰 무효화에 한해 `auth.repository.RefreshTokenRepository`를 참조할 수 있다. 범위와 근거는 [adr/0006 §예외](adr/0006-auth-inside-member-service.md)에 있다. 그 외의 `auth` 참조는 금지한다.
+`LoginMember`는 `(accountId, role)`이다. **`nickname`은 없다** — JWT Claim에 없기 때문이다([api-contract.md §6](api-contract.md)).
 
-### 1.2 board-service
+### 1.3 board-service
 
 ```
 com.example.board
@@ -50,8 +68,16 @@ com.example.board
 ├── comment
 │   ├── controller / service / repository / entity / dto
 └── client
-    └── MemberClient    # 내부 API 호출 (2차)
+    └── MemberClient    # 내부 API 호출 (1차. 글·댓글 생성 경로)
 ```
+
+`LoginMember`는 `(accountId, role)`이다. **`nickname`은 없다.** 작성자 닉네임은 `MemberClient`로 얻는다.
+
+**`MemberClient`는 1차 범위다.** JWT Claim에 닉네임이 없으므로 다른 취득 경로가 없다([adr/0012](adr/0012-auth-as-separate-service.md) §6). 호출·실패 판정 규칙은 [api-contract.md §5.1](api-contract.md)이 정본이다.
+
+- 응답 DTO는 board가 자체 정의한다(§3)
+- 호출은 **`@Transactional` 밖에서 먼저** 한다(§5)
+- 생성 경로에서만 호출한다. 조회·수정·삭제 경로에서는 호출하지 않는다
 
 ## 2. Entity
 
@@ -92,27 +118,29 @@ public class PostService {
 
 - `BusinessException(ErrorCode)`를 던진다
 - `@RestControllerAdvice`의 `GlobalExceptionHandler`에서 일괄 변환한다
-- 에러 코드는 [api-contract.md §7](api-contract.md)이 정본이다. 코드를 추가하려면 그 문서를 먼저 개정한다
+- 에러 코드는 [api-contract.md §8](api-contract.md)이 정본이다. 코드를 추가하려면 그 문서를 먼저 개정한다
 - 응답에 스택트레이스·SQL·내부 호스트명을 넣지 않는다
 
 ## 7. 공통 코드 정책
 
-두 서비스가 같은 코드를 갖는 것은 **복제**로 처리한다. 공용 라이브러리 모듈을 만들지 않는다. 근거와 재검토 조건은 [adr/0007](adr/0007-shared-code-policy.md)에 있다.
+세 서비스가 같은 코드를 갖는 것은 **복제**로 처리한다. 공용 라이브러리 모듈을 만들지 않는다. 근거와 재검토 조건은 [adr/0007](adr/0007-shared-code-policy.md)에 있다.
+
+> 0007의 재검토 조건("서비스가 3개째가 될 때")은 auth 분리로 **이미 발동했고, 재검토 결과 복제를 유지하기로 했다.** 결론은 0007에 기록되어 있다. 복제본이 3벌이 되므로 형식 일치 확인이 2자 비교에서 3자 비교가 된다([plan/integration.md](plan/integration.md) I-04).
 
 ### 7.1 복제 대상 (약 75줄)
 
 | 항목 | 정본 |
 | --- | --- |
-| `ApiResponse`, `ErrorResponse` | [api-contract.md §6](api-contract.md) |
-| `PageResponse` | [api-contract.md §6.1](api-contract.md) |
+| `ApiResponse`, `ErrorResponse` | [api-contract.md §7](api-contract.md) |
+| `PageResponse` | [api-contract.md §7.1](api-contract.md) |
 | `BaseTimeEntity` | [domain-model.md §1.1](domain-model.md) |
 | `BusinessException` | 이 문서 §6 |
 
 복제본 파일 상단에 정본 위치를 주석으로 남긴다.
 
 ```java
-// 정본: sp-docs/api-contract.md §6
-// 변경 시 두 서비스를 함께 고친다.
+// 정본: sp-docs/api-contract.md §7
+// 변경 시 세 서비스를 함께 고친다.
 public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 ```
 

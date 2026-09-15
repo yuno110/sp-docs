@@ -2,8 +2,8 @@
 title: 게시판 기능 요구사항
 type: requirements
 status: frozen
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-09-15
 read_when: "board-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0003-writer-snapshot.md]
 ---
@@ -37,27 +37,46 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0003-wr
 | C-04 | 댓글 삭제 | 작성자 본인 또는 ADMIN. Soft Delete, `commentCount` 감소 | 1차 |
 | C-05 | 대댓글 | 1단계 depth만 | 2차 |
 
-엔드포인트와 파라미터는 [../api-contract.md §3](../api-contract.md)이 정본이다.
+엔드포인트와 파라미터는 [../api-contract.md §4](../api-contract.md)가 정본이다.
 
 ## 3. 작성자 정보 처리 — 핵심 규칙
 
 작성자 닉네임은 member-service 소유 데이터이므로 **DB 조인이 불가능하다.** 작성 시점의 값을 복제 저장한다.
 
+**`writer_id`는 JWT Claim에서, `writer_nickname`은 member의 내부 API에서 얻는다.** JWT Claim에 `nickname`이 없기 때문이다([../adr/0012](../adr/0012-auth-as-separate-service.md) §3).
+
 ```
 POST /api/v1/posts
-  JWT Claim { sub: "3", nickname: "홍길동" }
-    -> INSERT INTO post (writer_id, writer_nickname, ...) VALUES (3, '홍길동', ...)
-    -> member-service 호출 없음
+  JWT Claim { sub: "3", role: "USER" }
+    1) POST /internal/v1/members/bulk  { accountIds: [3] }     <- 트랜잭션 밖
+       -> 200 { members: [{ accountId: 3, nickname: "홍길동", deleted: false }] }
+    2) BEGIN
+       INSERT INTO post (writer_id, writer_nickname, ...) VALUES (3, '홍길동', ...)
+       COMMIT
 ```
 
 | 규칙 | 내용 |
 | --- | --- |
-| 1 | `writer_id`, `writer_nickname`은 **JWT Claim에서만** 가져온다. 요청 본문에서 받지 않는다 |
-| 2 | `writer_id`에 FK 제약을 걸지 않는다 |
-| 3 | `sp_member`를 조회하지 않는다. 같은 MySQL 인스턴스에 있어도 크로스 스키마 조인 금지 |
-| 4 | 닉네임 변경이 과거 글에 반영되지 않는 것은 **의도된 동작**이다. 1차에서 해결하지 않는다 |
+| 1 | `writer_id`는 **검증된 JWT의 `sub`에서만** 가져온다. 요청 본문에서 받지 않는다 |
+| 2 | `writer_nickname`은 **내부 API 응답에서만** 가져온다. 요청 본문의 닉네임을 신뢰하지 않는다 |
+| 3 | **조회 키도 JWT의 `sub`다.** 본문의 `writerId`로 조회하지 않는다 |
+| 4 | `writer_id`에 FK 제약을 걸지 않는다 |
+| 5 | `sp_member`·`sp_auth`를 조회하지 않는다. 같은 MySQL 인스턴스에 있어도 크로스 스키마 조인 금지 |
+| 6 | 닉네임 변경이 과거 글에 반영되지 않는 것은 **의도된 동작**이다. 1차에서 해결하지 않는다 |
+| 7 | **수정 시 스냅샷을 갱신하지 않는다.** 작성 당시 표시를 보존한다. 그래서 수정 경로는 member를 호출하지 않는다 |
+| 8 | 원격 호출은 **DB 트랜잭션 밖에서 먼저** 한다([../architecture.md §5](../architecture.md)) |
 
-배경과 대안 비교는 [../adr/0003-writer-snapshot.md](../adr/0003-writer-snapshot.md)에 있다. 2차 해소 방안은 [../adr/0010-kafka-for-nickname-sync.md](../adr/0010-kafka-for-nickname-sync.md)를 본다.
+배경과 대안 비교는 [../adr/0003-writer-snapshot.md](../adr/0003-writer-snapshot.md)에 있다. 취득 경로가 바뀐 이유는 [../adr/0012](../adr/0012-auth-as-separate-service.md) §6이다. 2차 해소 방안은 [../adr/0010-kafka-for-nickname-sync.md](../adr/0010-kafka-for-nickname-sync.md)를 본다.
+
+### 3.0 프로필이 없으면 쓸 수 없다
+
+**활성 프로필이 있어야 글·댓글을 생성할 수 있다.** 계정만 만들고 프로필을 등록하지 않은 사용자는 `S002`(403)로 거부된다.
+
+실패 판정은 **응답 본문으로만** 한다. HTTP 404를 "프로필 없음"으로 해석하지 않는다 — 경로 오설정이나 내부 API 키 거부가 업무 오류로 위장되어 전 사용자의 쓰기가 조용히 멈춘다. 전체 표는 [../api-contract.md §5.1](../api-contract.md)에 있다.
+
+**member 장애 시 새 글·댓글 작성이 중단된다.** 이것은 [../adr/0012](../adr/0012-auth-as-separate-service.md)가 비용으로 수용한 것이다. 조회·수정·삭제는 영향받지 않는다.
+
+**확인과 커밋 사이에 창이 있다.** 프로필 확인 뒤 커밋 전에 탈퇴가 커밋되면 탈퇴한 프로필의 글이 생성될 수 있다. 원격 호출을 트랜잭션 안에 넣을 수 없으므로(규칙 8) 이 창은 닫을 수 없다. **"탈퇴 후 작성 불가"는 보장이 아니라 통상 동작이다.**
 
 ### 3.1 부수 효과 — 작성자 검색이 가능하다
 
@@ -84,6 +103,7 @@ POST /api/v1/posts
 | 5 | 소유자 검증은 Service 계층에서 한다([../security.md §5.1](../security.md)) |
 | 6 | ADMIN은 삭제만 가능하고 수정은 불가하다 |
 | 7 | 조회수 어뷰징 방지(동일 사용자 24h 1회)는 2차 범위다 |
+| 8 | 게시글·댓글 **생성**에는 활성 프로필이 필요하다(§3.0). 수정·삭제에는 필요하지 않다 |
 
 ## 6. P-03 상세 — 검색
 
@@ -102,4 +122,8 @@ QueryDSL `BooleanExpression`으로 동적 조건을 조합한다.
 
 ## 7. 권한
 
-[../security.md §5.2](../security.md)의 권한 매트릭스를 따른다. board-service는 JWT Claim의 `sub`·`role`만으로 판정하며 member-service에 되묻지 않는다.
+[../security.md §5.2](../security.md)의 권한 매트릭스를 따른다. **권한 판정은 JWT Claim의 `sub`·`role`만으로 한다.** 권한을 다른 서비스에 되묻지 않는다.
+
+**작성자 스냅샷 취득(§3)은 권한 판정이 아니다.** 생성 경로에서 member를 호출하는 것은 닉네임을 얻기 위해서이며, 그 부수 효과로 활성 프로필이 확인된다. 수정·삭제·관리자 기능은 Claim만으로 판정하므로 member를 호출하지 않는다.
+
+**검증은 오프라인이다.** 탈퇴나 권한 박탈이 기존 Access Token에 즉시 반영되지 않는다. 최대 노출은 토큰 만료까지이며, 잔여 권한은 그 `role`이 가진 모든 변경 권한이다 — **ADMIN이면 타인 글·댓글 삭제를 포함한다**([../adr/0012](../adr/0012-auth-as-separate-service.md) 포기 목록 1).
