@@ -884,7 +884,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 **⚠ 경로 선언 순서** — `GET /api/v1/members/{accountId}`는 `permitAll`, `/api/v1/members/me`는 `authenticated`다. `requestMatchers`는 **먼저 선언된 규칙이 이기므로** `/members/me`를 반드시 먼저 선언한다. 뒤에 두면 **내 정보가 인증 없이 열린다.**
 
-**테스트용 키 페어를 쓴다.** AU-04를 기다리지 않는다. 실제 키 교환은 I-01에서 확인한다.
+**실제 공개키가 이미 배치되어 있다.** AU-04를 기다리지 않는다. I-01에서 두 사본의 일치와 실제 발급 토큰 수용을 확인한다.
 
 **완료 기준**
 - [ ] 공개키로 서명 검증이 동작한다
@@ -1297,7 +1297,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - `global/security/RoleClaimConverter.java`
 - `global/security/CurrentMemberArgumentResolver.java`, `@CurrentMember`
 - `global/config/SecurityConfig.java` — **[../api-contract.md §4](../api-contract.md)의 전체 경로 인가**, CORS, STATELESS
-- `src/main/resources/jwt-public.pem` (**테스트용 키 페어의 공개키**)
+- `src/main/resources/jwt-public.pem` (**실제 공개키. 이미 배치되어 있다**)
 - `src/test/java/.../TestTokenFactory.java`
 - **`client/MemberClient.java`** — 내부 API 호출 + 실패 판정
 - **`client/dto/MemberBulkRequest.java`, `MemberSummaryResponse.java`** (board가 자체 정의, [../conventions.md §3](../conventions.md))
@@ -1318,7 +1318,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 타임아웃은 **connect 1초 / read 3초**다([../nfr.md §3](../nfr.md)). 재시도·서킷브레이커는 1차 범위 밖이다.
 
-실제 auth 공개키로 교체하는 것은 I-01에서 한다. **AU-04를 기다리지 않는다.**
+**공개키는 이미 배치되어 있다.** AU-04를 기다리지 않는다. I-01에서 두 사본의 일치와 실제 발급 토큰 수용을 확인한다.
 
 **완료 기준**
 - [ ] [../api-contract.md §6](../api-contract.md) 스펙의 토큰에서 `accountId`, `role`을 추출한다

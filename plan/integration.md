@@ -24,12 +24,12 @@ related: [phase1.md, ../nfr.md, ../architecture.md]
 | 의존 | AU-11, M-11, B-09 |
 | 참조 | [../security.md §2 §3](../security.md), [../api-contract.md §5 §6](../api-contract.md), [../requirements/member.md §10](../requirements/member.md) |
 
-M-04·B-04에서 member·board는 **테스트용 키 페어**로 자체 검증만 했다. 여기서 auth-service가 실제로 발급한 토큰을 받아 검증한다.
+M-04·B-04에서 member·board는 **배치된 공개키**로 자체 검증만 했다. 여기서 auth-service가 실제로 발급한 토큰을 받아 검증한다.
 
 **공개키 배포 지점이 두 곳이다.** member와 board가 각각 사본을 갖는다.
 
 **작업**
-1. auth-service의 `public.pem`을 **member와 board 두 곳**의 `src/main/resources/jwt-public.pem`으로 교체
+1. member와 board 두 곳의 `src/main/resources/jwt-public.pem`이 auth의 개인키와 짝인지 확인한다 (교체가 필요하면 교체)
 2. board에 `INTERNAL_API_KEY`를 member와 같은 값으로 설정
 3. 세 서비스를 함께 기동 (`:8083`, `:8081`, `:8082`)
 4. 아래 시나리오를 수행
@@ -56,7 +56,7 @@ M-04·B-04에서 member·board는 **테스트용 키 페어**로 자체 검증�
 - [ ] 게시글의 `writer_nickname`이 프로필 등록 시 닉네임과 일치한다
 - [ ] **board → member 내부 API 호출이 실제로 성공한다** (스텁이 아니다)
 - [ ] 위 7단계가 오류 없이 완료된다
-- [ ] 두 `jwt-public.pem`이 테스트용이 아닌 실제 공개키다
+- [ ] 두 `jwt-public.pem`이 auth의 개인키와 짝이다
 - [ ] **auth의 개인키가 member·board 저장소에 없다**
 - [ ] **ADMIN seed의 `accountId`가 두 DB에서 일치한다**
 
