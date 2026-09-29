@@ -206,7 +206,12 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 ```java
 public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 public record ErrorResponse(String code, String message, List<FieldError> fieldErrors) { }
+public record FieldError(String field, String message) { }
 ```
+
+**`FieldError`의 필드명은 `field`·`message`다.** 세 서비스가 각자 복제하므로([adr/0007](adr/0007-shared-code-policy.md)) 여기서 고정한다. 일치 여부는 [plan/integration.md](plan/integration.md) I-04의 3자 비교에서 확인한다.
+
+**`rejectedValue`(사용자가 보낸 원문)를 담지 않는다.** 비밀번호 검증 실패 시 응답에 평문이 실린다.
 
 | 상황 | success | data | error |
 | --- | --- | --- | --- |
