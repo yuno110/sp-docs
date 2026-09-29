@@ -379,7 +379,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **회전 연산이 조건부 UPDATE이고 affected rows를 확인한다**
 - [ ] Entity에 `@Setter`·`@Data`가 없다
 - [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
-- [ ] **테스트가 `application-test.yml`의 URL(`MODE=MySQL`)로 돈다**
+- [ ] **테스트 DataSource URL이 [../tech-stack.md §5.3](../tech-stack.md)의 정본과 일치한다** — `DATABASE_TO_LOWER`·`CASE_INSENSITIVE_IDENTIFIERS`·`DB_CLOSE_DELAY=-1` 포함
+- [ ] **테스트가 그 URL로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
 - [ ] **`ddl-auto: validate`가 실제로 적용된다**
 
 **검증** — `AccountRepositoryTest`, `RefreshTokenRepositoryTest` (`@DataJpaTest`)
@@ -395,7 +396,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 같은 `account_id`로 refresh token 2개 저장 | `DataIntegrityViolationException` |
 | **이미 삭제된 행에 회전 시도** | **0행 갱신 → 실패로 처리** |
 | `AccountReader`로 없는 id 조회 | `BusinessException(AU001)` |
-| 테스트 실행 중 DataSource URL | `MODE=MySQL` 포함 |
+| 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
+| 저장된 테이블명 | **소문자** (`account`·`member`·`post`). `DATABASE_TO_LOWER` 효과 |
 | 엔티티에만 있는 컬럼 추가 후 실행 | **실패** — `SchemaManagementException` |
 
 ---
@@ -845,7 +847,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `MemberReader`가 없는 `accountId` 조회 시 `BusinessException(M001)`을 던진다
 - [ ] Entity에 `@Setter`·`@Data`가 없다
 - [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
-- [ ] **테스트가 `application-test.yml`의 URL(`MODE=MySQL`)로 돈다**
+- [ ] **테스트 DataSource URL이 [../tech-stack.md §5.3](../tech-stack.md)의 정본과 일치한다** — `DATABASE_TO_LOWER`·`CASE_INSENSITIVE_IDENTIFIERS`·`DB_CLOSE_DELAY=-1` 포함
+- [ ] **테스트가 그 URL로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
 - [ ] **`ddl-auto: validate`가 실제로 적용된다**
 
 **검증** — `MemberRepositoryTest` (`@DataJpaTest`)
@@ -862,7 +865,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **두 회원을 연달아 `withdraw()`** | **둘 다 성공.** UNIQUE 위반 없음 |
 | `MemberReader`로 없는 `accountId` 조회 | `BusinessException(M001)` |
 | 테이블 메타데이터 | `email`·`password`·`role` 컬럼 없음 |
-| 테스트 실행 중 DataSource URL | `MODE=MySQL` 포함 |
+| 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
+| 저장된 테이블명 | **소문자** (`account`·`member`·`post`). `DATABASE_TO_LOWER` 효과 |
 | 엔티티에만 있는 컬럼 추가 후 실행 | **실패** — `SchemaManagementException` |
 
 > **탈퇴 2건 연속 테스트를 반드시 넣는다.** 첫 탈퇴는 항상 성공하므로 1건만 보면 UNIQUE 결함을 놓친다.
@@ -1274,7 +1278,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `CommentRepository.softDeleteByPostId()`가 동작한다
 - [ ] Entity에 `@Setter`·`@Data`가 없다
 - [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
-- [ ] **테스트가 `application-test.yml`의 URL(`MODE=MySQL`)로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
+- [ ] **테스트 DataSource URL이 [../tech-stack.md §5.3](../tech-stack.md)의 정본과 일치한다** — `DATABASE_TO_LOWER`·`CASE_INSENSITIVE_IDENTIFIERS`·`DB_CLOSE_DELAY=-1` 포함
+- [ ] **테스트가 그 URL로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
 - [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있고 마이그레이션에 없는 컬럼을 넣으면 테스트가 실패해야 한다
 
 **검증** — `PostRepositoryTest`, `CommentRepositoryTest` (`@DataJpaTest`)
@@ -1291,7 +1296,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | **`decreaseCommentCount()` (count=0)** | **0 유지, 음수 아님** |
 | `softDeleteByPostId()` | 해당 게시글의 댓글 전부 `deleted = true` |
 | `PostReader`로 없는 id 조회 | `BusinessException(P001)` |
-| 테스트 실행 중 DataSource URL | `MODE=MySQL` 포함 (`jdbc:h2:mem:<uuid>` 아님) |
+| 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
+| 저장된 테이블명 | **소문자** (`account`·`member`·`post`). `DATABASE_TO_LOWER` 효과 |
 | 엔티티에만 있는 컬럼 추가 후 실행 | **실패** — `SchemaManagementException`. 초록이면 `validate`가 안 걸린 것 |
 
 ---

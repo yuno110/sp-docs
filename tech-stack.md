@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v3
-updated: 2026-09-15
+version: v4
+updated: 2026-09-29
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -297,6 +297,40 @@ class MemberRepositoryTest { ... }
 ```
 
 **모든 `@DataJpaTest` 클래스에 이 애노테이션을 붙인다.** `ddl-auto`는 프로파일에서 오고 URL은 덮이는, 절반만 적용되는 상태를 막는다.
+
+### 5.3 테스트 DataSource URL — 정본
+
+**이 URL을 그대로 쓴다.** `<스키마>`만 서비스별로 바꾼다.
+
+```yaml
+# src/test/resources/application-test.yml
+spring:
+  datasource:
+    url: jdbc:h2:mem:<스키마>;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+```
+
+`<스키마>`는 `sp_auth` / `sp_member` / `sp_board`다.
+
+**파라미터마다 이유가 있다.** H2 2.3.232로 측정한 결과다.
+
+| 파라미터 | 빼면 |
+| --- | --- |
+| `MODE=MySQL` | 마이그레이션의 MySQL 문법(`AUTO_INCREMENT`, `UNIQUE KEY`, `ENGINE=InnoDB`)이 호환 모드 없이 실행된다 (§5.2) |
+| `DATABASE_TO_LOWER=TRUE`<br>`CASE_INSENSITIVE_IDENTIFIERS=TRUE` | H2가 테이블명을 **`ACCOUNT`로 대문자 저장**한다. MySQL은 `account`다. `MODE=MySQL`만으로는 이것이 맞춰지지 않는다 |
+| `DB_CLOSE_DELAY=-1` | **마지막 커넥션이 닫히는 순간 DB가 사라진다.** Flyway는 컨텍스트 기동 시 한 번만 돌기 때문에 다시 만들어지지 않고, 이후 테스트가 "테이블 없음"으로 깨진다. 컨텍스트 캐싱과 맞물려 **간헐적으로만** 재현되므로 원인을 찾기 어렵다 |
+
+| URL | 테이블명 | 커넥션 0개 후 재접속 |
+| --- | --- | --- |
+| `MODE=MySQL`만 | `ACCOUNT` | **사라짐** |
+| 위 정본 | `account` | **살아있음** |
+
+> `DB_CLOSE_ON_EXIT=FALSE`는 넣지 않는다. JVM 종료는 테스트가 끝난 시점이라 효과가 없다.
 
 ## 6. 시간대 — KST 통일
 
