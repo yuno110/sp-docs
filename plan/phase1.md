@@ -318,7 +318,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `BusinessException`을 던지면 해당 코드의 HTTP 상태와 응답 본문이 나온다
 - [ ] `@Valid` 검증 실패가 `C001`로 변환되고 `fieldErrors`에 필드별 메시지가 담긴다
 - [ ] 응답 본문에 스택트레이스·SQL이 포함되지 않는다
-- [ ] `/swagger-ui.html`이 열린다
+- [ ] **springdoc이 OpenAPI 문서를 생성한다.** `/v3/api-docs`가 문서를 돌려주고 `SwaggerConfig`가 등록된다
+- [ ] `/swagger-ui.html`이 **인증 없이** 열리는 것은 이 항목의 기준이 아니다. `SecurityConfig`가 없으면 Boot 기본 필터가 전 경로를 401로 막는다([../security.md §5.1.1](../security.md)). 보안 기반 항목에서 확인한다
 
 **검증** — `GlobalExceptionHandlerTest` (`@WebMvcTest`)
 
@@ -434,6 +435,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] jjwt 의존성을 사용하지 않는다
 - [ ] [../api-contract.md §2](../api-contract.md)의 **모든 경로**에 인가 규칙이 선언되어 있다
 - [ ] **`/accounts/me`가 `/accounts`보다 먼저 선언되어 있다**
+- [ ] **`/swagger-ui/**`·`/v3/api-docs/**`가 `permitAll`이고 인증 없이 열린다** ([../security.md §5.1.1](../security.md))
+- [ ] `/actuator/health` 외의 actuator 경로가 노출되지 않는다
 - [ ] 세션이 생성되지 않는다
 - [ ] CORS 설정에 `*`가 없다
 
@@ -452,6 +455,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **토큰 없이 `GET /api/v1/accounts/me`** | **401 `A001`** |
 | 토큰 없이 `POST /api/v1/accounts` | 401이 아님 |
 | 토큰 없이 `POST /api/v1/auth/login` | 401이 아님 |
+| **토큰 없이 `/swagger-ui.html`** | **302·401이 아님. 문서가 열린다** |
+| **토큰 없이 `/v3/api-docs`** | **200, OpenAPI 문서** |
 | 응답 헤더 | `Set-Cookie` 세션 쿠키 없음 |
 
 ---
@@ -779,7 +784,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `BusinessException`을 던지면 해당 코드의 HTTP 상태와 응답 본문이 나온다
 - [ ] `@Valid` 검증 실패가 `C001`로 변환되고 `fieldErrors`에 필드별 메시지가 담긴다
 - [ ] 응답 본문에 스택트레이스·SQL이 포함되지 않는다
-- [ ] `/swagger-ui.html`이 열린다
+- [ ] **springdoc이 OpenAPI 문서를 생성한다.** `/v3/api-docs`가 문서를 돌려주고 `SwaggerConfig`가 등록된다
+- [ ] `/swagger-ui.html`이 **인증 없이** 열리는 것은 이 항목의 기준이 아니다. `SecurityConfig`가 없으면 Boot 기본 필터가 전 경로를 401로 막는다([../security.md §5.1.1](../security.md)). 보안 기반 항목에서 확인한다
 
 **검증** — `GlobalExceptionHandlerTest` (`@WebMvcTest`)
 
@@ -893,6 +899,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `role` claim이 `GrantedAuthority`로 변환된다
 - [ ] [../api-contract.md §3](../api-contract.md)의 **모든 경로**에 인가 규칙이 선언되어 있다
 - [ ] **`/members/me`가 `/members/{accountId}`보다 먼저 선언되어 있다**
+- [ ] **`/swagger-ui/**`·`/v3/api-docs/**`가 `permitAll`이고 인증 없이 열린다** ([../security.md §5.1.1](../security.md))
+- [ ] `/actuator/health` 외의 actuator 경로가 노출되지 않는다
 - [ ] `/internal/**`이 외부 인증 체인에서 분리되어 있다
 - [ ] 세션이 생성되지 않는다
 - [ ] CORS 설정에 `*`가 없다
@@ -909,6 +917,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **토큰 없이 `GET /api/v1/members/me`** | **401 `A001`** |
 | **토큰 없이 `GET /api/v1/members/1`** | **401이 아님** |
 | 공개키 없이 기동 | 기동 실패 |
+| **토큰 없이 `/swagger-ui.html`** | **302·401이 아님. 문서가 열린다** |
+| **토큰 없이 `/v3/api-docs`** | **200, OpenAPI 문서** |
 | 응답 헤더 | `Set-Cookie` 세션 쿠키 없음 |
 
 > `/members/me`와 `/members/{accountId}` 두 케이스를 **반드시 함께** 검증한다. 하나만 보면 순서 결함을 놓친다.
@@ -1203,7 +1213,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `S002`가 403이고 메시지가 [../api-contract.md §8.3](../api-contract.md)과 일치한다
 - [ ] 코드·HTTP·메시지가 [../api-contract.md §8.1 §8.3](../api-contract.md)과 일치한다
 - [ ] 복제 파일 상단에 정본 주석이 있다
-- [ ] `/swagger-ui.html`이 열린다
+- [ ] **springdoc이 OpenAPI 문서를 생성한다.** `/v3/api-docs`가 문서를 돌려주고 `SwaggerConfig`가 등록된다
+- [ ] `/swagger-ui.html`이 **인증 없이** 열리는 것은 이 항목의 기준이 아니다. `SecurityConfig`가 없으면 Boot 기본 필터가 전 경로를 401로 막는다([../security.md §5.1.1](../security.md)). 보안 기반 항목에서 확인한다
 
 **검증** — `GlobalExceptionHandlerTest` (`@WebMvcTest`)
 
@@ -1335,6 +1346,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] JWT 검증 필터를 직접 구현하지 않았다
 - [ ] [../api-contract.md §3](../api-contract.md)의 **모든 경로**에 인가 규칙이 선언되어 있다
 - [ ] 비로그인 허용 경로(`GET /posts`, `GET /posts/{id}`, 댓글 목록)가 토큰 없이 통과한다
+- [ ] **`/swagger-ui/**`·`/v3/api-docs/**`가 `permitAll`이고 인증 없이 열린다** ([../security.md §5.1.1](../security.md))
+- [ ] `/actuator/health` 외의 actuator 경로가 노출되지 않는다
 - [ ] 세션이 생성되지 않는다
 
 **검증** — `JwtAuthenticationTest` (`@SpringBootTest` + MockMvc)
@@ -1348,6 +1361,9 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `role = ADMIN` 토큰 | `ROLE_ADMIN` 권한 보유 |
 | 토큰 없이 `GET /posts` | 401이 아님 |
 | `LoginMember` 필드 목록 | **`nickname` 없음** |
+| **토큰 없이 `/swagger-ui.html`** | **302·401이 아님. 문서가 열린다** |
+| **토큰 없이 `/v3/api-docs`** | **200, OpenAPI 문서** |
+| `/actuator/env` | 404 또는 403 |
 
 **`MemberClientTest`** — 스텁 서버로 응답을 흉내 낸다
 

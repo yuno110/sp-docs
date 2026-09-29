@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-09-29
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -127,6 +127,22 @@ private void validateOwner(Post post, LoginMember member) {
     }
 }
 ```
+
+### 5.1.1 인프라 경로의 인가
+
+업무 API가 아닌 경로도 인가 규칙이 있어야 한다. **`spring-boot-starter-security`가 클래스패스에 있으면 Boot 기본 필터 체인이 전 경로에 인증을 요구하므로**, 선언하지 않은 경로는 401이 된다.
+
+| 경로 | 인가 | 비고 |
+| --- | --- | --- |
+| `/swagger-ui/**`, `/swagger-ui.html` | `permitAll` | `prod` 프로파일에서는 **비활성화**한다 |
+| `/v3/api-docs/**` | `permitAll` | 같음 |
+| `/actuator/health` | `permitAll` | Boot 기본값이 이미 허용한다 |
+| `/actuator/**` (health 외) | 차단 | 404 또는 403. 노출 자체를 막는다 |
+| `/internal/**` | 외부 인증 체인에서 분리 | `X-Internal-Api-Key` 필터가 담당한다(§6) |
+
+**`permitAll`은 `prod`에서 열어 두라는 뜻이 아니다.** springdoc 자체를 `prod` 프로파일에서 끄므로 경로가 사라진다. 그 확인은 각 서비스의 마무리 항목(AU-11·M-11·B-09)에 있다.
+
+> **공통 기반 항목(AU-02·M-02·B-02)에서는 `/swagger-ui.html`이 열리지 않는다.** `SecurityConfig`가 보안 기반 항목(AU-04·M-04·B-04)의 산출물이기 때문이다. 공통 기반에서 확인할 수 있는 것은 **springdoc이 OpenAPI 문서를 생성하는가**까지다.
 
 ### 5.2 권한 매트릭스
 

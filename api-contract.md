@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-09-29
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -25,6 +25,8 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | `/api/v1/posts/**` | board | `http://localhost:8082` |
 | `/api/v1/comments/**` | board | `http://localhost:8082` |
 | `/internal/v1/members/**` | member | 서비스 간 호출 전용. 외부 노출 금지 |
+
+업무 API가 아닌 경로(`/swagger-ui/**`, `/v3/api-docs/**`, `/actuator/**`)의 인가는 [security.md §5.1.1](security.md)이 정본이다. **선언하지 않으면 Boot 기본 필터가 401로 막는다.**
 
 `/api/v1` 버저닝의 이유는 [adr/0008](adr/0008-api-versioning.md)을 본다.
 
