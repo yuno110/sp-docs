@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-09-29
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -24,13 +24,17 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | createdAt | LocalDateTime | `@CreatedDate`, `updatable = false` |
 | updatedAt | LocalDateTime | `@LastModifiedDate` |
 
-컬럼 타입은 `DATETIME`이다([tech-stack.md §5](tech-stack.md)).
+컬럼 타입은 `DATETIME`이고 **둘 다 NOT NULL**이다([tech-stack.md §5](tech-stack.md)). 감사가 INSERT 시점에 둘을 함께 채우므로 NULL이 들어올 경로가 없다.
+
+> `@DataJpaTest` 슬라이스는 `@Configuration`을 스캔하지 않아 `@EnableJpaAuditing`이 빠진다. 그러면 두 컬럼이 NULL로 들어가 NOT NULL 제약에 걸린다. 테스트에서 `@Import(JpaConfig.class)`로 올린다.
 
 ### 1.2 명명 규칙
 
 - 테이블·컬럼은 snake_case, 엔티티·필드는 camelCase
 - 마이그레이션 파일은 `V<번호>__<설명>.sql` (예: `V1__create_member.sql`)
 - Enum은 `@Enumerated(EnumType.STRING)`으로 저장한다. ORDINAL 금지
+- **Enum 컬럼은 `VARCHAR(20)`이다.** 세 서비스가 각자 마이그레이션을 쓰므로 길이를 여기서 고정한다
+- **제약 이름은 `uk_`(UNIQUE)·`fk_`(FK)·`idx_`(인덱스) + 테이블 + 컬럼**이다. 이름은 각 스키마의 인덱스 절이 배정한다. **배정되지 않은 제약이 필요하면 스스로 정하지 말고 보고한다**([plan/phase1.md](plan/phase1.md) §2.6)
 
 ## 2. sp_auth (auth-service 소유)
 
@@ -80,6 +84,10 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | --- | --- |
 | `uk_account_email` | `account(email)` UNIQUE |
 | `uk_refresh_account_id` | `refresh_token(account_id)` UNIQUE |
+| `uk_refresh_token` | `refresh_token(token)` UNIQUE |
+| `fk_refresh_token_account` | `refresh_token(account_id)` → `account(id)` |
+
+**이 표가 제약 이름의 정본이다.** §2.2가 "FK 제약을 둔다"고만 적은 것의 이름이 `fk_refresh_token_account`다.
 
 ## 3. sp_member (member-service 소유)
 
