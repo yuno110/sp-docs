@@ -2,14 +2,16 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-09-29
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
 # 코드 컨벤션
 
 ## 1. 패키지 구조
+
+`support`는 **도메인 조회 보조**다. "없으면 예외를 던지는 조회"(`AccountReader`·`MemberReader`)처럼 여러 서비스 클래스가 같은 방식으로 쓰는 것을 둔다. 기반 단계가 만들고 기능 단계는 읽기만 한다([plan/phase1.md](plan/phase1.md) §2.1).
 
 도메인형으로 나눈다. 계층형(controller/service/repository를 최상위로)으로 두지 않는다.
 
@@ -26,7 +28,7 @@ com.example.auth
 ├── auth
 │   ├── controller / service / repository / entity / dto   # 로그인·재발급·로그아웃, RefreshToken
 └── account
-    └── controller / service / repository / entity / dto   # 계정 생성·조회·비밀번호·탈퇴
+    └── controller / service / repository / entity / dto / support   # 계정 생성·조회·비밀번호·탈퇴
 ```
 
 **`auth`와 `account` 사이에 단방향 제약을 두지 않는다.** 비밀번호 변경·계정 탈퇴가 `account` 갱신과 `RefreshToken` 삭제를 **한 로컬 트랜잭션**으로 묶어야 하기 때문이다. 이전 `adr/0006 §예외`가 우회로 다루던 문제가 같은 서비스 안으로 들어오면서 사라졌다([adr/0012](adr/0012-auth-as-separate-service.md)).
@@ -44,7 +46,7 @@ com.example.member
 │   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
 │   └── security        # RoleClaimConverter, LoginMember(record), @CurrentMember
 ├── member
-│   ├── controller / service / repository / entity / dto
+│   ├── controller / service / repository / entity / dto / support
 └── internal
     └── controller      # InternalMemberController (/internal/v1/**)
 ```
@@ -64,7 +66,7 @@ com.example.board
 │   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
 │   └── security        # RoleClaimConverter, LoginMember(record), @CurrentMember
 ├── post
-│   ├── controller / service / repository / entity / dto
+│   ├── controller / service / repository / entity / dto / support
 ├── comment
 │   ├── controller / service / repository / entity / dto
 └── client
