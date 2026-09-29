@@ -455,7 +455,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **토큰 없이 `GET /api/v1/accounts/me`** | **401 `A001`** |
 | 토큰 없이 `POST /api/v1/accounts` | 401이 아님 |
 | 토큰 없이 `POST /api/v1/auth/login` | 401이 아님 |
-| **토큰 없이 `/swagger-ui.html`** | **302·401이 아님. 문서가 열린다** |
+| **토큰 없이 `/swagger-ui.html`** | **302 → `/swagger-ui/index.html`.** `/login` 으로 가면 실패 |
+| **토큰 없이 `/swagger-ui/index.html`** | **200** |
 | **토큰 없이 `/v3/api-docs`** | **200, OpenAPI 문서** |
 | 응답 헤더 | `Set-Cookie` 세션 쿠키 없음 |
 
@@ -917,7 +918,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **토큰 없이 `GET /api/v1/members/me`** | **401 `A001`** |
 | **토큰 없이 `GET /api/v1/members/1`** | **401이 아님** |
 | 공개키 없이 기동 | 기동 실패 |
-| **토큰 없이 `/swagger-ui.html`** | **302·401이 아님. 문서가 열린다** |
+| **토큰 없이 `/swagger-ui.html`** | **302 → `/swagger-ui/index.html`.** `/login` 으로 가면 실패 |
+| **토큰 없이 `/swagger-ui/index.html`** | **200** |
 | **토큰 없이 `/v3/api-docs`** | **200, OpenAPI 문서** |
 | 응답 헤더 | `Set-Cookie` 세션 쿠키 없음 |
 
@@ -1361,7 +1363,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `role = ADMIN` 토큰 | `ROLE_ADMIN` 권한 보유 |
 | 토큰 없이 `GET /posts` | 401이 아님 |
 | `LoginMember` 필드 목록 | **`nickname` 없음** |
-| **토큰 없이 `/swagger-ui.html`** | **302·401이 아님. 문서가 열린다** |
+| **토큰 없이 `/swagger-ui.html`** | **302 → `/swagger-ui/index.html`.** `/login` 으로 가면 실패 |
+| **토큰 없이 `/swagger-ui/index.html`** | **200** |
 | **토큰 없이 `/v3/api-docs`** | **200, OpenAPI 문서** |
 | `/actuator/env` | 404 또는 403 |
 
