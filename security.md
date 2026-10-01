@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v3
-updated: 2026-09-29
+version: v4
+updated: 2026-10-01
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -18,10 +18,25 @@ related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 | Access Token | 만료 30분. `Authorization: Bearer {token}` |
 | Refresh Token | 만료 14일. **`sp_auth` 저장**, 재발급 시 회전(Rotation) |
 | CSRF | Stateless REST API이므로 비활성화 |
-| CORS | 서비스별 화이트리스트로 관리. `*` 금지 |
+| CORS | 허용 오리진은 **환경이 정한다**(§1.1). 메서드·헤더·credentials는 §1.1이 고정한다. `*` 금지 |
 | SQL Injection | JPA·QueryDSL 파라미터 바인딩. 네이티브 쿼리 문자열 결합 금지 |
 | XSS | 서버는 원문 저장, 출력 이스케이프는 클라이언트 책임 |
 | 민감정보 로깅 | 비밀번호·토큰·키를 로그에 남기지 않음 |
+
+### 1.1 CORS — 무엇을 정본이 정하고 무엇을 환경이 정하는가
+
+| 항목 | 누가 정하는가 | 값 |
+| --- | --- | --- |
+| 허용 오리진 | **환경** | `cors.allowed-origins`로 **기본값 없이** 주입한다. 비었거나 `*`가 섞이면 **기동을 실패시킨다** |
+| 허용 메서드 | **정본** | `GET`, `POST`, `PATCH`, `DELETE` ([api-contract.md §2~§4](api-contract.md)에서 도출) |
+| 허용 헤더 | **정본** | `Authorization`, `Content-Type` |
+| `allowCredentials` | **정본** | `false`. 토큰을 `Authorization` 헤더로 보내므로 쿠키가 필요 없다 |
+
+**오리진 목록을 정본에 박지 않는다.** 이 프로젝트는 프론트엔드가 없는 JSON API이므로([overview.md §1](overview.md)) 지금 값을 정하면 없는 클라이언트를 상상해 만드는 것이 된다.
+
+**기본값도 두지 않는다.** 비밀 값이 아니지만 **정책값**이다. 임의 기본값을 두면 그 값이 정해진 정책인지 임시값인지 구분할 수 없다. 환경변수는 [tech-stack.md §4.3](tech-stack.md)에 있다.
+
+**CORS 설정은 `SecurityConfig`에 둔다.** MVC(`WebConfig`) 쪽에만 두면 preflight(`OPTIONS`)가 인가 필터에 **401로 막힌다**([conventions.md §1.1](conventions.md)).
 
 ## 2. 서명 알고리즘 — RS256
 
@@ -29,7 +44,7 @@ related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 
 | 서비스 | 보유 키 | 가능한 일 |
 | --- | --- | --- |
-| auth | 개인키 (`JWT_PRIVATE_KEY`) | 토큰 발급·검증 |
+| auth | 개인키 (`JWT_PRIVATE_KEY_LOCATION`) | 토큰 발급·검증 |
 | member | 공개키 (`jwt-public.pem`) | 검증만 |
 | board | 공개키 (`jwt-public.pem`) | 검증만 |
 
@@ -43,15 +58,18 @@ HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있
 
 | 항목 | 규칙 |
 | --- | --- |
-| 개인키 주입 | 환경변수 `JWT_PRIVATE_KEY`. 기본값을 두지 않는다(없으면 기동 실패) |
+| 개인키 주입 | 환경변수 `JWT_PRIVATE_KEY_LOCATION`에 **경로**를 준다 (`file:`·`classpath:`). 기본값을 두지 않는다(없으면 기동 실패) |
 | 개인키 보유 | **auth-service 하나뿐이다.** member·board에 두지 않는다 |
 | 공개키 배포 | **member·board 두 곳**의 리소스 파일(`classpath:jwt-public.pem`). 커밋 가능 |
 | 공개키 동기 | 두 사본이 같은 키인지 통합 검증에서 확인한다([plan/integration.md](plan/integration.md) I-01) |
 | Git | `private.pem`, `*.env`를 `.gitignore`에 등록한다 (스캐폴딩 시 선행 조치) |
-| 환경 분리 | 개발용 키와 운영용 키를 분리한다. 운영 개인키는 시크릿 저장소에서만 주입 |
-| 키 회전 | JWT header에 `kid`를 포함한다. 키 재생성 시 기존 토큰은 모두 무효화되어 전 사용자 재로그인이 필요하다 |
+| 환경 분리 | 개발용 키와 운영용 키를 분리한다. 운영 개인키는 시크릿 저장소에서만 주입하며, **파일로 마운트하고 그 경로를 준다** |
+| 키 회전 | JWT header에 `kid`를 포함한다. **값은 발급 측이 정한다** — 공개키 thumbprint(RFC 7638)를 쓴다. 1차의 검증 측(member·board)은 공개키 하나를 설정으로 받으므로 `kid`를 보지 않는다. JWKS와 복수 키가 들어오는 2차에 계약값으로 올린다 |
+| 키 재생성 | 키를 다시 만들면 기존 토큰이 모두 무효화되어 전 사용자 재로그인이 필요하다 |
 
 공개키가 유출돼도 토큰을 위조할 수 없으므로 저장소에 두어도 된다. **개인키는 어떤 경우에도 커밋하지 않는다.**
+
+> **PEM 본문이 아니라 경로를 주입한다.** 본문을 환경변수에 넣으면 줄바꿈 이스케이프가 필요해 사고가 난다. 컨테이너·K8s의 시크릿은 파일로 마운트되므로 경로 쪽이 자연스럽다. 변수명이 `JWT_PRIVATE_KEY`가 아니라 `JWT_PRIVATE_KEY_LOCATION`인 이유다.
 
 ## 4. 인증 흐름
 
@@ -114,7 +132,7 @@ HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있
 | 판정 | 위치 |
 | --- | --- |
 | 인증 필요 여부(경로별) | `SecurityFilterChain`의 `permitAll` / `authenticated` |
-| ADMIN 여부 | `role` claim 기반 `GrantedAuthority` |
+| ADMIN 여부 | `role` claim 기반 `GrantedAuthority` — **member·board가 갖는다.** auth는 자기 경로에 ADMIN 전용이 없어 변환을 두지 않고, 권한을 `LoginAccount.role`로만 전달한다 |
 | **소유자 검증(본인 글인가)** | **Service 계층** |
 
 소유자 검증을 Controller나 Security 설정에 두지 않는다. 리소스를 조회해야 판정할 수 있기 때문이다.

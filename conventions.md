@@ -2,14 +2,16 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v3
-updated: 2026-09-29
+version: v4
+updated: 2026-10-01
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
 # 코드 컨벤션
 
 ## 1. 패키지 구조
+
+**CORS는 `WebConfig`가 아니라 `SecurityConfig`에 둔다.** MVC 쪽에만 두면 preflight(`OPTIONS`)가 인가 필터에 401로 막힌다([security.md §1.1](security.md)). `WebConfig`는 ArgumentResolver 등록만 한다.
 
 `support`는 **도메인 조회 보조**다. "없으면 예외를 던지는 조회"(`AccountReader`·`MemberReader`)처럼 여러 서비스 클래스가 같은 방식으로 쓰는 것을 둔다. 기반 단계가 만들고 기능 단계는 읽기만 한다([plan/phase1.md](plan/phase1.md) §2.1).
 
@@ -21,7 +23,7 @@ related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md
 com.example.auth
 ├── AuthApplication.java
 ├── global
-│   ├── config          # SecurityConfig, JpaConfig, SwaggerConfig, WebConfig(CORS)
+│   ├── config          # SecurityConfig(인가·CORS), JpaConfig, SwaggerConfig, WebConfig(ArgumentResolver)
 │   ├── common          # BaseTimeEntity, ApiResponse, PageResponse
 │   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
 │   └── security        # JwtTokenProvider(서명), LoginAccount(record), @CurrentAccount
@@ -41,7 +43,7 @@ com.example.auth
 com.example.member
 ├── MemberApplication.java
 ├── global
-│   ├── config          # SecurityConfig, JpaConfig, SwaggerConfig, WebConfig(CORS)
+│   ├── config          # SecurityConfig(인가·CORS), JpaConfig, SwaggerConfig, WebConfig(ArgumentResolver)
 │   ├── common          # BaseTimeEntity, ApiResponse, PageResponse
 │   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
 │   └── security        # RoleClaimConverter, LoginMember(record), @CurrentMember
@@ -61,7 +63,7 @@ com.example.member
 com.example.board
 ├── BoardApplication.java
 ├── global
-│   ├── config          # SecurityConfig, JpaConfig, QuerydslConfig, SwaggerConfig, WebConfig
+│   ├── config          # SecurityConfig(인가·CORS), JpaConfig, QuerydslConfig, SwaggerConfig, WebConfig
 │   ├── common          # BaseTimeEntity, ApiResponse, PageResponse
 │   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
 │   └── security        # RoleClaimConverter, LoginMember(record), @CurrentMember
