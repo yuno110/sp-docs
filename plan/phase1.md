@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v4
-updated: 2026-09-15
+version: v5
+updated: 2026-10-01
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -552,6 +552,9 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **산출물**
 - `auth/dto/ReissueRequest.java`
 - `AuthService`·`AuthController` 확장
+- `global/security/SecurityErrorResponder` 확장 — `A002`·`A003` 구분
+
+**`global/security/`는 AU-04 소유지만 이 항목이 확장한다.** AU-04는 필터 단계의 모든 인증 실패를 `A001`로 냈고, `A002`·`A003`의 구분은 여기 배정되어 있다(§2.5). 판단할 필요 없이 진행하고 보고에 적는다.
 
 **경합 방지가 이 항목의 핵심이다.** 재발급은 RefreshToken 조회와 `account.deleted` 확인을 **같은 트랜잭션**에서 하고, 회전은 AU-03의 조건부 UPDATE로 처리한다. 그렇지 않으면 탈퇴와 겹칠 때 삭제한 행이 되살아나 탈퇴 계정이 14일간 갱신할 수 있다([../requirements/member.md §6](../requirements/member.md)).
 
@@ -565,6 +568,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **회전이 조건부 UPDATE이고 0행이면 실패한다**
 - [ ] `POST /api/v1/auth/logout`이 204를 반환하고 저장된 Refresh Token을 삭제한다
 - [ ] 로그아웃 후 같은 Refresh Token으로 재발급이 실패한다
+- [ ] **서명이 잘못된 토큰은 401 `A002`, 만료된 토큰은 401 `A003`이다** — Access Token과 Refresh Token 양쪽. AU-04는 필터 단계의 모든 인증 실패를 `A001`로 냈으므로 여기서 구분한다
+- [ ] 세 코드가 [../api-contract.md §8.1](../api-contract.md)의 상태·메시지와 일치한다
 
 **검증** — `AuthServiceTest`, `AuthControllerTest`
 
@@ -578,6 +583,9 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **탈퇴 커밋 후 재발급 시도** | **실패. `refresh_token` 행이 되살아나지 않음** |
 | 정상 로그아웃 | 204, `refresh_token` 행 삭제됨 |
 | 로그아웃 후 재발급 | 실패 |
+| **서명 변조된 Access Token으로 보호 경로 접근** | **401 `A002`** |
+| **만료된 Access Token으로 보호 경로 접근** | **401 `A003`** |
+| 토큰 없이 보호 경로 접근 | 401 `A001` |
 
 ---
 

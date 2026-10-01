@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v4
-updated: 2026-09-29
+version: v5
+updated: 2026-10-01
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -196,7 +196,17 @@ openssl rsa -in private.pem -pubout -out public.pem
 
 ### 4.3 설정 외부화 (필수)
 
-환경 의존 값은 기본값과 함께 환경변수로 외부화한다. 2차 컨테이너 전환을 코드 변경 없이 하기 위해서이며, 보안 요구와도 일치한다.
+환경 의존 값은 환경변수로 외부화한다. 2차 컨테이너 전환을 코드 변경 없이 하기 위해서이며, 보안 요구와도 일치한다.
+
+**기본값을 둘 수 있는 것과 둘 수 없는 것을 구분한다.**
+
+| 분류 | 기본값 | 예 |
+| --- | --- | --- |
+| 편의값 | **둔다** | `DB_URL`, `DB_USERNAME`, `MEMBER_SERVICE_URL` |
+| 비밀값 | **두지 않는다** | `DB_PASSWORD`, `JWT_PRIVATE_KEY_LOCATION`, `INTERNAL_API_KEY` |
+| **정책값** | **두지 않는다** | `CORS_ALLOWED_ORIGINS` |
+
+**정책값은 비밀이 아니지만 기본값을 두지 않는다.** 임의 기본값을 두면 그 값이 정해진 정책인지 임시값인지 구분할 수 없고, 운영에 그대로 나갈 수 있다. 없으면 기동이 실패해야 한다.
 
 ```yaml
 spring:
@@ -245,7 +255,7 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 
 > `DB_PASSWORD`가 어디에도 없으면 `Access denied for user 'root'@'localhost' (using password: YES)`로 기동이 실패한다. **비밀번호가 틀린 게 아니라 값이 없는 것이다.** Spring이 해석되지 않은 placeholder를 리터럴로 남기기 때문이다.
 
-`JWT_PRIVATE_KEY`(auth만)와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다.
+`JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`(auth만)와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다.
 
 ### 4.4 실행
 
