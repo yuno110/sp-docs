@@ -479,6 +479,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `db/migration/V3__seed_admin_account.sql` — 값은 [../requirements/member.md §10.1](../requirements/member.md)이 정본. **해시는 Flyway placeholder로 주입하고 커밋하지 않는다**(§10.2)
 - `application.yml`에 `spring.flyway.placeholders.adminPasswordHash: ${ADMIN_PASSWORD_HASH}` (기본값 없음)
 - `build.gradle`에 `bcrypt` 태스크 ([../tech-stack.md §4.2.1](../tech-stack.md))
+- `global/config/FlywayConfig.java` — `adminPasswordHash` 가드. **`global/config/`는 AU-04 소유지만 이 항목이 새 빈을 추가한다**(§2.5). YAML만으로는 기동이 실패하지 않으므로 필요하다([../requirements/member.md §10.2](../requirements/member.md))
 
 **완료 기준**
 - [ ] `POST /api/v1/accounts`가 201과 `{accountId, email}`을 반환한다
@@ -492,7 +493,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **탈퇴 계정의 이메일은 `available: false`다**
 - [ ] **seed의 `account.id`가 `1`로 명시되어 있다.** AUTO_INCREMENT에 맡기지 않는다 ([../requirements/member.md §10.1](../requirements/member.md))
 - [ ] **seed에 평문도 해시도 커밋되지 않았다.** `${adminPasswordHash}` placeholder다 (§10.2)
-- [ ] **`ADMIN_PASSWORD_HASH` 없이 기동하면 마이그레이션이 실패한다**
+- [ ] **`ADMIN_PASSWORD_HASH` 없이 기동하면 실패한다.** YAML만으로는 리터럴이 통과하므로 가드가 필요하다 ([../requirements/member.md §10.2](../requirements/member.md))
 - [ ] `./gradlew bcrypt -Ppassword=...`가 해시를 출력한다
 - [ ] **닉네임을 받지도 저장하지도 않는다**
 - [ ] 비밀번호 특수문자 집합이 [../requirements/member.md §2.1](../requirements/member.md)과 일치한다
@@ -511,7 +512,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 요청에 `nickname` 포함 | 무시되거나 400. **저장되지 않음** |
 | seed 적용 후 `SELECT id FROM account WHERE role='ADMIN'` | **`1`** |
 | seed 적용 후 ADMIN 이메일 | `admin@example.com` |
-| **`ADMIN_PASSWORD_HASH` 미주입으로 기동** | **마이그레이션 실패** — `No value provided for placeholder` |
+| **`ADMIN_PASSWORD_HASH` 미주입으로 기동** | **기동 실패.** 가드가 던진다 — 마이그레이션이 돌기 전에 |
+| **가드 없이 미주입으로 기동** | 마이그레이션 성공, `password = "${ADMIN_PASSWORD_HASH}"`. **이것이 가드가 필요한 이유다** |
 | 미사용 이메일 중복 확인 | `{ "available": true }` |
 | 사용 중 이메일 중복 확인 | `{ "available": false }` |
 | **탈퇴 계정 이메일 중복 확인** | **`{ "available": false }`** |

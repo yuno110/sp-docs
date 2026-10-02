@@ -199,7 +199,35 @@ spring:
       adminPasswordHash: ${ADMIN_PASSWORD_HASH}
 ```
 
-**주입하지 않으면 마이그레이션이 실패한다.** Flyway 11.14.1로 실측했다 — `No value provided for placeholder: ${adminPasswordHash}. Check your configuration!`
+**YAML만으로는 기동이 실패하지 않는다. 가드가 필요하다.**
+
+`spring.flyway.placeholders`는 `@ConfigurationProperties` 바인딩이고, **Spring은 해석되지 않은 placeholder를 리터럴 문자열로 남긴다**([../tech-stack.md §4.3](../tech-stack.md)이 `DB_PASSWORD`로 설명한 그 동작이다). 따라서 환경변수가 없으면 Flyway는 `"${ADMIN_PASSWORD_HASH}"`라는 **문자열을 값으로 받아** 마이그레이션에 성공하고, `account.password`에 그것이 그대로 저장된다.
+
+실측 결과다.
+
+| 경로 | 결과 |
+| --- | --- |
+| Flyway에 placeholder를 **아예 주지 않음** | 마이그레이션 실패 — `No value provided for placeholder` |
+| **Spring YAML로 주되 환경변수가 없음** | **마이그레이션 성공.** `password = "${ADMIN_PASSWORD_HASH}"` |
+
+> `@Value`는 미해결 placeholder에 `PlaceholderResolutionException`을 던지지만(`JWT_PRIVATE_KEY_LOCATION`이 그렇다), `@ConfigurationProperties` 바인딩은 리터럴을 통과시킨다. **같은 `${}` 문법인데 경로에 따라 동작이 다르다.**
+
+**`FlywayConfigurationCustomizer`로 가드를 둔다.** `migrate()`보다 반드시 먼저 돌고, 값의 출처와 무관하게 Flyway가 실제로 쓸 값을 본다.
+
+```java
+@Bean
+FlywayConfigurationCustomizer adminPasswordHashValidator() {
+	return config -> {
+		String hash = config.getPlaceholders().get("adminPasswordHash");
+		// 해석되지 않은 placeholder 는 "${ADMIN_PASSWORD_HASH}" 리터럴로 들어온다
+		if (!StringUtils.hasText(hash) || hash.startsWith("${")) {
+			throw new IllegalStateException("ADMIN_PASSWORD_HASH 가 없다 ...");
+		}
+	};
+}
+```
+
+**예외 메시지에 해시를 넣지 않는다**([../conventions.md §8](../conventions.md)).
 
 해시 생성은 `./gradlew bcrypt -Ppassword=...`로 한다([../tech-stack.md §4.2.1](../tech-stack.md)).
 
