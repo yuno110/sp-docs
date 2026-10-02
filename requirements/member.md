@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v3
-updated: 2026-09-15
+version: v4
+updated: 2026-10-02
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -42,10 +42,20 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-au
 | 항목 | 규칙 | 메시지 |
 | --- | --- | --- |
 | email | 이메일 형식, 최대 100자 | "올바른 이메일 형식이 아닙니다." |
-| password | 8~20자, 영문·숫자·특수문자 각 1자 이상 | "비밀번호는 8~20자의 영문, 숫자, 특수문자 조합이어야 합니다." |
+| password | 8~20자, 영문·숫자·특수문자 각 1자 이상. 아래 집합 참고 | "비밀번호는 8~20자의 영문, 숫자, 특수문자 조합이어야 합니다." |
 | nickname | 2~10자, 한글/영문/숫자 | "닉네임은 2~10자여야 합니다." |
 
-검증 실패는 `C001`(400)로 응답하고 `fieldErrors`에 필드별 메시지를 담는다.
+검증 실패는 `C001`(400)로 응답하고 `fieldErrors`에 필드별 메시지를 담는다. **`rejectedValue`를 담지 않는다** — 비밀번호 검증 실패 시 평문이 응답에 실린다([../api-contract.md §7](../api-contract.md)).
+
+### 2.1 비밀번호의 "특수문자"
+
+```
+!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+```
+
+**ASCII 출력 가능 문자만 허용하고 공백을 금지한다.** 집합을 비워 두면 `[^A-Za-z0-9]`로 읽혀 한글 한 글자도 특수문자로 통과한다 — 틀린 동작은 아니지만 "특수문자"의 통념과 다르고 서비스마다 다르게 구현된다.
+
+세 조건을 각각 1자 이상 요구한다: 영문(`A-Za-z`), 숫자(`0-9`), 위 집합.
 
 ## 3. 비즈니스 규칙
 
@@ -153,11 +163,46 @@ ADMIN은 **계정과 프로필을 모두** 가져야 한다. 두 스키마에 �
 
 | 스키마 | 스크립트 | 내용 |
 | --- | --- | --- |
-| `sp_auth` | `V3__seed_admin_account.sql` | `account` 1행. **id를 명시적으로 고정한다** |
-| `sp_member` | `V2__seed_admin_profile.sql` | `member` 1행. `account_id`는 위에서 고정한 값 |
+| `sp_auth` | `V3__seed_admin_account.sql` | `account` 1행 |
+| `sp_member` | `V2__seed_admin_profile.sql` | `member` 1행 |
 
-**`account.id`를 AUTO_INCREMENT에 맡기지 않는다.** 두 스키마가 서로를 조회할 수 없으므로, member의 seed가 참조할 값이 결정적이어야 한다. `INSERT INTO account (id, ...) VALUES (1, ...)`처럼 명시한다.
+### 10.1 두 seed가 공유하는 값 — 정본
 
-- 두 seed의 `accountId` 일치는 통합 검증에서 확인한다([../plan/integration.md](../plan/integration.md) I-01)
-- 개발용 비밀번호는 운영 배포 전에 교체해야 한다
-- seed 스크립트에 평문 비밀번호를 두지 않는다. BCrypt 해시로 넣는다
+| 값 | 확정값 |
+| --- | --- |
+| `account.id` / `member.account_id` | **`1`** |
+| `account.email` | **`admin@example.com`** |
+| `account.role` | `ADMIN` |
+| `member.nickname` | **`관리자`** |
+
+**`account.id`를 AUTO_INCREMENT에 맡기지 않는다.** 두 스키마가 서로를 조회할 수 없으므로 member의 seed가 참조할 값이 결정적이어야 한다. `INSERT INTO account (id, ...) VALUES (1, ...)`처럼 명시한다.
+
+두 seed의 일치는 통합 검증에서 확인한다([../plan/integration.md](../plan/integration.md) I-01).
+
+### 10.2 비밀번호 — seed 스크립트에 넣지 않는다
+
+**평문도 해시도 커밋하지 않는다.** 해시를 커밋하면 공개 저장소에 ADMIN 자격증명이 남고, 아무도 교체하지 않은 채 배포될 수 있다.
+
+**Flyway placeholder로 주입한다.**
+
+```sql
+-- V3__seed_admin_account.sql
+INSERT INTO account (id, email, password, role, deleted, created_at, updated_at)
+VALUES (1, 'admin@example.com', '${adminPasswordHash}', 'ADMIN', false, NOW(), NOW());
+```
+
+```yaml
+# application.yml — 기본값을 두지 않는다
+spring:
+  flyway:
+    placeholders:
+      adminPasswordHash: ${ADMIN_PASSWORD_HASH}
+```
+
+**주입하지 않으면 마이그레이션이 실패한다.** Flyway 11.14.1로 실측했다 — `No value provided for placeholder: ${adminPasswordHash}. Check your configuration!`
+
+해시 생성은 `./gradlew bcrypt -Ppassword=...`로 한다([../tech-stack.md §4.2.1](../tech-stack.md)).
+
+- 로컬 해시는 `application-local.yml`에 넣는다 (gitignore 대상)
+- **운영 해시는 개발용과 다른 값이어야 한다**
+- `member`의 seed는 비밀번호를 갖지 않으므로 placeholder가 필요 없다

@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v4
-updated: 2026-10-01
+version: v5
+updated: 2026-10-02
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -164,6 +164,16 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 - 테스트 클래스명은 `<대상>Test`
 - 메서드명은 한글 또는 `should_...` 형식으로 무엇을 검증하는지 드러낸다
 - 작성 시점과 검증 절차는 [process/dev-workflow.md](process/dev-workflow.md)를 따른다
+
+### 9.1 `@WebMvcTest`는 대상을 지정한다
+
+**`@WebMvcTest(controllers = XxxController.class)`로 좁힌다.** 인자를 비우면 모든 `@Controller`를 올리면서 그 의존(`@Service`)은 올리지 않으므로, **나중에 컨트롤러가 하나 추가될 때마다 기존 테스트가 기동에 실패한다.**
+
+기능 단계가 컨트롤러를 차례로 추가하는 구조([plan/phase1.md](plan/phase1.md) §1.1)에서 이 결함은 반드시 터진다. 처음부터 좁혀 둔다.
+
+### 9.2 `@DataJpaTest`는 두 애노테이션이 함께 필요하다
+
+`@AutoConfigureTestDatabase(replace = NONE)`와 `@Import(JpaConfig.class)`다. 전자가 없으면 DataSource URL이 덮이고([tech-stack.md §5.2](tech-stack.md)), 후자가 없으면 감사 컬럼이 NULL로 들어간다([domain-model.md §1.1](domain-model.md)).
 
 ## 10. 커밋
 

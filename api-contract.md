@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v3
-updated: 2026-09-29
+version: v4
+updated: 2026-10-02
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -57,7 +57,7 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | Method | Path | 설명 | 인증 | 성공 |
 | --- | --- | --- | --- | --- |
 | POST | `/api/v1/accounts` | 계정 생성 (가입 1단계) | - | 201 |
-| GET | `/api/v1/accounts/check-email?email=` | 이메일 중복 확인 | - | 200 |
+| GET | `/api/v1/accounts/check-email?email=` | 이메일 중복 확인 (§2.3) | - | 200 |
 | GET | `/api/v1/accounts/me` | 내 계정 조회 (이메일·가입일) | O | 200 |
 | PATCH | `/api/v1/accounts/me/password` | 비밀번호 변경 | O | 204 |
 | DELETE | `/api/v1/accounts/me` | **계정 탈퇴 (탈퇴 1단계)** | O | 204 |
@@ -66,12 +66,31 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 
 `PATCH /api/v1/accounts/me/password`도 RefreshToken을 삭제한다. 같은 로컬 트랜잭션이다.
 
+### 2.3 중복 확인 응답
+
+**두 중복 확인 엔드포인트(`check-email`·`check-nickname`)는 같은 형태를 쓴다.**
+
+```json
+// GET /api/v1/accounts/check-email?email=user@example.com  -> 200
+{ "success": true, "data": { "available": false }, "error": null }
+```
+
+| 필드 | 의미 |
+| --- | --- |
+| `available` | **쓸 수 있으면 `true`**, 이미 쓰이고 있으면 `false` |
+
+**`duplicated`가 아니라 `available`이다.** 두 서비스가 각자 만들므로 여기서 고정한다. `duplicated: false`처럼 부정형을 쓰면 이중 부정이 생겨 호출 측이 뒤집어 읽는다.
+
+**탈퇴한 계정의 이메일과 탈퇴한 프로필의 닉네임은 `available: false`다.** 이메일은 재사용하지 않고([requirements/member.md §3](requirements/member.md) 규칙 1), 닉네임은 탈퇴 시 비워지므로 다시 쓸 수 있다 — **닉네임만 `true`가 될 수 있다**([domain-model.md §3.1](domain-model.md)).
+
+**이 엔드포인트는 경합을 막지 못한다.** 확인과 생성 사이에 다른 사용자가 같은 값을 쓸 수 있다. 최종 판정은 UNIQUE 제약이고, 생성 요청이 409를 돌려준다. 중복 확인은 편의 기능이다.
+
 ## 3. member-service API
 
 | Method | Path | 설명 | 인증 | 성공 |
 | --- | --- | --- | --- | --- |
 | POST | `/api/v1/members` | **프로필 등록 (가입 3단계)** | O | 201 / 200 |
-| GET | `/api/v1/members/check-nickname?nickname=` | 닉네임 중복 확인 | - | 200 |
+| GET | `/api/v1/members/check-nickname?nickname=` | 닉네임 중복 확인 ([§2.3](#23-중복-확인-응답)) | - | 200 |
 | GET | `/api/v1/members/me` | 내 프로필 조회 | O | 200 |
 | PATCH | `/api/v1/members/me` | 닉네임 수정 | O | 200 |
 | DELETE | `/api/v1/members/me` | **프로필 탈퇴 (탈퇴 2단계)** | O | 204 |

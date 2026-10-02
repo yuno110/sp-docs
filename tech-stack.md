@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v5
-updated: 2026-10-01
+version: v6
+updated: 2026-10-02
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -194,6 +194,30 @@ openssl rsa -in private.pem -pubout -out public.pem
 
 **개인키는 auth-service 하나만 갖는다.** 공개키는 member와 board **두 곳**에 배포한다. 배포 방식과 보관 규칙은 [security.md §3](security.md)를 본다.
 
+#### 4.2.1 BCrypt 해시 생성 (auth만)
+
+ADMIN seed의 비밀번호 해시를 만들 때 쓴다([requirements/member.md §10.2](requirements/member.md)).
+
+```groovy
+// sp-auth/build.gradle
+tasks.register('bcrypt') {
+	description = 'ADMIN seed 용 BCrypt 해시를 출력한다. ./gradlew bcrypt -Ppassword=...'
+	doLast {
+		if (!project.hasProperty('password')) {
+			throw new GradleException("-Ppassword=... 를 준다")
+		}
+		javaexec {
+			classpath = sourceSets.main.runtimeClasspath
+			mainClass = 'org.springframework.security.crypto.bcrypt.BCrypt'
+		}
+	}
+}
+```
+
+> 위 `mainClass`는 예시다. `BCryptPasswordEncoder(10).encode(...)`를 호출해 표준출력에 해시 한 줄만 내는 것이 요구사항이고, 구현 형태는 자유다. **해시를 로그·커밋에 남기지 않는다.**
+
+`strength`는 10이다([security.md §1](security.md)).
+
 ### 4.3 설정 외부화 (필수)
 
 환경 의존 값은 환경변수로 외부화한다. 2차 컨테이너 전환을 코드 변경 없이 하기 위해서이며, 보안 요구와도 일치한다.
@@ -203,7 +227,7 @@ openssl rsa -in private.pem -pubout -out public.pem
 | 분류 | 기본값 | 예 |
 | --- | --- | --- |
 | 편의값 | **둔다** | `DB_URL`, `DB_USERNAME`, `MEMBER_SERVICE_URL` |
-| 비밀값 | **두지 않는다** | `DB_PASSWORD`, `JWT_PRIVATE_KEY_LOCATION`, `INTERNAL_API_KEY` |
+| 비밀값 | **두지 않는다** | `DB_PASSWORD`, `JWT_PRIVATE_KEY_LOCATION`, `INTERNAL_API_KEY`, `ADMIN_PASSWORD_HASH`(auth만) |
 | **정책값** | **두지 않는다** | `CORS_ALLOWED_ORIGINS` |
 
 **정책값은 비밀이 아니지만 기본값을 두지 않는다.** 임의 기본값을 두면 그 값이 정해진 정책인지 임시값인지 구분할 수 없고, 운영에 그대로 나갈 수 있다. 없으면 기동이 실패해야 한다.
