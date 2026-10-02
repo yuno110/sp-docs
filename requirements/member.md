@@ -234,3 +234,21 @@ FlywayConfigurationCustomizer adminPasswordHashValidator() {
 - 로컬 해시는 `application-local.yml`에 넣는다 (gitignore 대상)
 - **운영 해시는 개발용과 다른 값이어야 한다**
 - `member`의 seed는 비밀번호를 갖지 않으므로 placeholder가 필요 없다
+
+#### 테스트 프로파일 — BCrypt 모양을 쓰지 않는다
+
+테스트는 가드를 통과해야 기동되므로 값이 **반드시 있어야 한다.** 그 값을 `src/test/resources/application-test.yml`에 커밋하게 된다.
+
+**BCrypt 모양(`$2a$...`)을 쓰지 않는다.** 실제 자격증명이 아니어도 시크릿 스캐너에 걸리고, 위에서 "해시를 커밋하지 않는다"고 정한 것과 모양이 같아 읽는 사람이 구분할 수 없다.
+
+```yaml
+# src/test/resources/application-test.yml
+spring:
+  flyway:
+    placeholders:
+      adminPasswordHash: test-not-a-hash
+```
+
+가드는 `hasText`와 `"${"`로 시작하는지만 보고 **형식을 보지 않는다.** `account.password`는 `VARCHAR(60) NOT NULL`에 CHECK가 없으므로 짧은 마커가 그대로 들어간다.
+
+**저장된 값이 BCrypt 형식인지 단언하지 않는다.** 그 단언은 커밋된 픽스처가 자기 모양을 되읽는 순환이라 실질 정보가 없다 — 치환 여부는 `"${"`가 없는지로 이미 확인된다. **해시 형식을 고정하려면 `bcrypt` 태스크의 출력에 건다.** 실제 해시가 생기는 유일한 지점이다.
