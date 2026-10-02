@@ -83,6 +83,17 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 
 **탈퇴한 계정의 이메일과 탈퇴한 프로필의 닉네임은 `available: false`다.** 이메일은 재사용하지 않고([requirements/member.md §3](requirements/member.md) 규칙 1), 닉네임은 탈퇴 시 비워지므로 다시 쓸 수 있다 — **닉네임만 `true`가 될 수 있다**([domain-model.md §3.1](domain-model.md)).
 
+**파라미터를 검증한다.**
+
+| 요청 | 응답 |
+| --- | --- |
+| 파라미터 누락 | 400 `C001` |
+| 빈 문자열 | 400 `C001` |
+| 형식 오류 (`check-email`) | 400 `C001` — 생성과 같은 규칙을 적용한다([requirements/member.md §2](requirements/member.md)) |
+| 길이 초과 | 400 `C001` |
+
+**형식 오류에 `available: true`를 돌려주지 않는다.** 쓸 수 없는 값인데 쓸 수 있다고 답하는 셈이고, 클라이언트가 생성을 시도해 400을 받는다. 같은 판정을 두 번 하게 된다.
+
 **이 엔드포인트는 경합을 막지 못한다.** 확인과 생성 사이에 다른 사용자가 같은 값을 쓸 수 있다. 최종 판정은 UNIQUE 제약이고, 생성 요청이 409를 돌려준다. 중복 확인은 편의 기능이다.
 
 ## 3. member-service API
