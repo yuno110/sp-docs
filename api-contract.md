@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v4
+version: v5
 updated: 2026-10-02
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -91,6 +91,15 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | 빈 문자열 | 400 `C001` |
 | 형식 오류 (`check-email`) | 400 `C001` — 생성과 같은 규칙을 적용한다([requirements/member.md §2](requirements/member.md)) |
 | 길이 초과 | 400 `C001` |
+
+**`fieldErrors`는 바인딩된 필드의 오류에만 담는다.**
+
+| 경우 | `fieldErrors` |
+| --- | --- |
+| 파라미터 **누락** | **빈 배열** — 바인딩 자체가 일어나지 않아 담을 필드가 없다 |
+| 빈 값·형식 오류·길이 초과 | 해당 필드 1건 (`field`는 파라미터명) |
+
+이것은 요청 수준 오류와 바인딩 수준 오류의 구분이다. 클라이언트는 `fieldErrors`가 빈 경우를 이미 처리해야 한다 — `C005` 같은 코드에는 애초에 없다.
 
 **형식 오류에 `available: true`를 돌려주지 않는다.** 쓸 수 없는 값인데 쓸 수 있다고 답하는 셈이고, 클라이언트가 생성을 시도해 400을 받는다. 같은 판정을 두 번 하게 된다.
 

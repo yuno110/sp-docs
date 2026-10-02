@@ -2,7 +2,7 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v4
+version: v5
 updated: 2026-10-02
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
@@ -46,6 +46,24 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-au
 | nickname | 2~10자, 한글/영문/숫자 | "닉네임은 2~10자여야 합니다." |
 
 검증 실패는 `C001`(400)로 응답하고 `fieldErrors`에 필드별 메시지를 담는다. **`rejectedValue`를 담지 않는다** — 비밀번호 검증 실패 시 평문이 응답에 실린다([../api-contract.md §7](../api-contract.md)).
+
+### 2.0 "이메일 형식"이 무엇인가
+
+**Hibernate Validator의 `@Email` 기본 구현을 쓴다.** 정규식을 직접 쓰지 않는다.
+
+그 구현의 실제 동작을 적어 둔다. 8.0.3으로 측정한 결과이고, **구현자가 놀라는 지점이 셋 있다.**
+
+| 입력 | 판정 |
+| --- | --- |
+| `user@example.com` | 통과 |
+| 로컬 파트 64자 | 통과 |
+| **로컬 파트 65자** | **거부** — 전체가 100자 이하여도 거부한다 |
+| **`user@example`** (TLD 없음) | **통과** |
+| **`사용자@example.com`** (비ASCII 로컬) | **통과** |
+| `user@`, `userexample.com`, 공백 포함, `user..name@…` | 거부 |
+
+- **로컬 파트 64자 제한은 `@Email`이 이미 건다.** `@Size(max = 100)`과 별개로 동작하므로 따로 적지 않는다
+- **TLD와 비ASCII를 추가로 막지 않는다.** 1차 범위 밖이다 — 막아야 할 요구가 생기면 그때 정본을 고친다. 지금 막으면 YAGNI이고, 국제화 도메인을 쓰는 사용자를 임의로 배제한다
 
 ### 2.1 비밀번호의 "특수문자"
 
@@ -174,6 +192,9 @@ ADMIN은 **계정과 프로필을 모두** 가져야 한다. 두 스키마에 �
 | `account.email` | **`admin@example.com`** |
 | `account.role` | `ADMIN` |
 | `member.nickname` | **`관리자`** |
+| `created_at` / `updated_at` | **`NOW()`** — seed 적용 시각 |
+
+`NOW()`를 쓰는 이유는 고정 상수를 박으면 "언제 만들어진 계정인가"가 거짓이 되기 때문이다. 두 컬럼은 `NOT NULL`이므로([../domain-model.md §1.1](../domain-model.md)) 생략할 수 없다. seed는 `@CreatedDate` 감사를 거치지 않는다 — JPA가 아니라 SQL이다.
 
 **`account.id`를 AUTO_INCREMENT에 맡기지 않는다.** 두 스키마가 서로를 조회할 수 없으므로 member의 seed가 참조할 값이 결정적이어야 한다. `INSERT INTO account (id, ...) VALUES (1, ...)`처럼 명시한다.
 
