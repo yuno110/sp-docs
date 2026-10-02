@@ -494,9 +494,10 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **seed의 `account.id`가 `1`로 명시되어 있다.** AUTO_INCREMENT에 맡기지 않는다 ([../requirements/member.md §10.1](../requirements/member.md))
 - [ ] **seed에 평문도 해시도 커밋되지 않았다.** `${adminPasswordHash}` placeholder다 (§10.2)
 - [ ] **커밋되는 어떤 파일에도 BCrypt 모양 문자열이 없다** (§10.2). 검색 패턴은 문자 클래스로 조립해 자기 파일이 걸리지 않게 한다
-- [ ] 저장된 값이 BCrypt 형식인지 단언하지 않는다. 형식은 `bcrypt` 태스크 출력에 건다 (§10.2)
+- [ ] **커밋된 픽스처의 모양을 되읽는 단언이 없다** (§10.2). 런타임 생성값에 형식을 단언하는 것은 해당 없다
+- [ ] **애플리케이션 `PasswordEncoder` 빈의 해시가 `$2[aby]$10$`로 시작하는지 단언한다** — `security.md` §1의 strength 10을 고정한다
 - [ ] **`ADMIN_PASSWORD_HASH` 없이 기동하면 실패한다.** YAML만으로는 리터럴이 통과하므로 가드가 필요하다 ([../requirements/member.md §10.2](../requirements/member.md))
-- [ ] `./gradlew bcrypt -Ppassword=...`가 해시를 출력한다
+- [ ] `./gradlew bcrypt -Ppassword=...`가 해시 한 줄을 출력하고 평문을 출력하지 않는다. 인자가 없으면 실패한다 (**관측으로 충족**)
 - [ ] **닉네임을 받지도 저장하지도 않는다**
 - [ ] 비밀번호 특수문자 집합이 [../requirements/member.md §2.1](../requirements/member.md)과 일치한다
 
@@ -514,7 +515,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 요청에 `nickname` 포함 | 무시되거나 400. **저장되지 않음** |
 | seed 적용 후 `SELECT id FROM account WHERE role='ADMIN'` | **`1`** |
 | seed 적용 후 ADMIN 이메일 | `admin@example.com` |
-| **`ADMIN_PASSWORD_HASH` 미주입으로 기동** | **기동 실패.** 가드가 던진다 — 마이그레이션이 돌기 전에 |
+| **`ADMIN_PASSWORD_HASH` 미주입으로 기동** | **기동 실패.** 가드가 던지고 **테이블이 생성되지 않는다** |
 | **가드 없이 미주입으로 기동** | 마이그레이션 성공, `password = "${ADMIN_PASSWORD_HASH}"`. **이것이 가드가 필요한 이유다** |
 | 미사용 이메일 중복 확인 | `{ "available": true }` |
 | 사용 중 이메일 중복 확인 | `{ "available": false }` |
@@ -522,8 +523,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 한글만으로 특수문자 조건 충족 시도 (`비밀번호1234`) | 400 `C001` |
 | `V3` SQL 전문 검색 | `$2a$`·`$2b$` 로 시작하는 문자열 없음 |
 | **저장소 전문 검색** | **`$2[aby]$` 0건.** `git ls-files -co --exclude-standard` 전체 |
-| 더미 파일을 심고 재실행 | **실패한다** — 검색이 실제로 도는지 확인 |
-| `./gradlew bcrypt -Ppassword=...` 출력 | `$2a$10$` 로 시작하는 한 줄 |
+| **스캔 자기 점검** | 수집 파일 수가 0이 아니고, 패턴이 알려진 양성 샘플(`$2a$10$...`)을 잡는다. **스캔이 0개 파일을 보면 `isEmpty()`는 공허하게 통과한다** |
+| **애플리케이션 `PasswordEncoder` 빈이 만든 해시** | **`$2[aby]$10$` 로 시작** — `security.md` §1의 strength 10을 고정한다. 패턴은 문자 클래스로 조립 |
 
 ---
 
