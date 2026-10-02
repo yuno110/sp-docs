@@ -493,7 +493,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **탈퇴 계정의 이메일은 `available: false`다**
 - [ ] **seed의 `account.id`가 `1`로 명시되어 있다.** AUTO_INCREMENT에 맡기지 않는다 ([../requirements/member.md §10.1](../requirements/member.md))
 - [ ] **seed에 평문도 해시도 커밋되지 않았다.** `${adminPasswordHash}` placeholder다 (§10.2)
-- [ ] **테스트 프로파일 값이 BCrypt 모양이 아니다** (§10.2). 저장소 전체에 `$2[aby]$` 문자열이 없다
+- [ ] **`application-test.yml`의 `adminPasswordHash` 값이 BCrypt 모양이 아니다** (§10.2)
 - [ ] 저장된 값이 BCrypt 형식인지 단언하지 않는다. 형식은 `bcrypt` 태스크 출력에 건다 (§10.2)
 - [ ] **`ADMIN_PASSWORD_HASH` 없이 기동하면 실패한다.** YAML만으로는 리터럴이 통과하므로 가드가 필요하다 ([../requirements/member.md §10.2](../requirements/member.md))
 - [ ] `./gradlew bcrypt -Ppassword=...`가 해시를 출력한다
@@ -521,7 +521,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **탈퇴 계정 이메일 중복 확인** | **`{ "available": false }`** |
 | 한글만으로 특수문자 조건 충족 시도 (`비밀번호1234`) | 400 `C001` |
 | `V3` SQL 전문 검색 | `$2a$`·`$2b$` 로 시작하는 문자열 없음 |
-| **저장소 전문 검색** | **`$2[aby]$` 문자열 0건** — 테스트 픽스처 포함 |
+| `application-test.yml`의 `adminPasswordHash` | BCrypt 모양(`$2[aby]$`)이 아니다 |
 | `./gradlew bcrypt -Ppassword=...` 출력 | `$2a$10$` 로 시작하는 한 줄 |
 
 ---
