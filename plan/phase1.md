@@ -476,7 +476,9 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `account/dto/AccountCreateRequest.java`, `AccountResponse.java`, `CheckResponse.java`
 - `account/service/AccountService.java` (생성)
 - `account/controller/AccountController.java` (생성)
-- `db/migration/V3__seed_admin_account.sql` (**`id` 명시 고정**, BCrypt 해시)
+- `db/migration/V3__seed_admin_account.sql` — 값은 [../requirements/member.md §10.1](../requirements/member.md)이 정본. **해시는 Flyway placeholder로 주입하고 커밋하지 않는다**(§10.2)
+- `application.yml`에 `spring.flyway.placeholders.adminPasswordHash: ${ADMIN_PASSWORD_HASH}` (기본값 없음)
+- `build.gradle`에 `bcrypt` 태스크 ([../tech-stack.md §4.2.1](../tech-stack.md))
 
 **완료 기준**
 - [ ] `POST /api/v1/accounts`가 201과 `{accountId, email}`을 반환한다
@@ -486,9 +488,14 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] 검증 규칙이 [../requirements/member.md §2](../requirements/member.md)와 일치한다
 - [ ] `GET /api/v1/accounts/check-email`이 동작한다
 - [ ] **탈퇴 계정의 이메일로 재가입할 수 없다** (409 `AU002`)
-- [ ] **seed의 `account.id`가 SQL에 명시되어 있다.** AUTO_INCREMENT에 맡기지 않는다
-- [ ] seed 비밀번호가 BCrypt 해시로 저장되어 있다 (평문 아님)
+- [ ] `GET /api/v1/accounts/check-email`의 응답이 `{ "available": boolean }`이다 ([../api-contract.md §2.3](../api-contract.md))
+- [ ] **탈퇴 계정의 이메일은 `available: false`다**
+- [ ] **seed의 `account.id`가 `1`로 명시되어 있다.** AUTO_INCREMENT에 맡기지 않는다 ([../requirements/member.md §10.1](../requirements/member.md))
+- [ ] **seed에 평문도 해시도 커밋되지 않았다.** `${adminPasswordHash}` placeholder다 (§10.2)
+- [ ] **`ADMIN_PASSWORD_HASH` 없이 기동하면 마이그레이션이 실패한다**
+- [ ] `./gradlew bcrypt -Ppassword=...`가 해시를 출력한다
 - [ ] **닉네임을 받지도 저장하지도 않는다**
+- [ ] 비밀번호 특수문자 집합이 [../requirements/member.md §2.1](../requirements/member.md)과 일치한다
 
 **검증** — `AccountServiceTest`, `AccountControllerTest`
 
@@ -502,7 +509,14 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 이메일 형식 오류 | 400 `C001` |
 | 비밀번호 7자 / 특수문자 없음 | 400 `C001` |
 | 요청에 `nickname` 포함 | 무시되거나 400. **저장되지 않음** |
-| seed 적용 후 `SELECT id FROM account WHERE role='ADMIN'` | SQL에 적힌 값과 일치 |
+| seed 적용 후 `SELECT id FROM account WHERE role='ADMIN'` | **`1`** |
+| seed 적용 후 ADMIN 이메일 | `admin@example.com` |
+| **`ADMIN_PASSWORD_HASH` 미주입으로 기동** | **마이그레이션 실패** — `No value provided for placeholder` |
+| 미사용 이메일 중복 확인 | `{ "available": true }` |
+| 사용 중 이메일 중복 확인 | `{ "available": false }` |
+| **탈퇴 계정 이메일 중복 확인** | **`{ "available": false }`** |
+| 한글만으로 특수문자 조건 충족 시도 (`비밀번호1234`) | 400 `C001` |
+| `V3` SQL 전문 검색 | `$2a$`·`$2b$` 로 시작하는 문자열 없음 |
 
 ---
 
@@ -953,7 +967,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `member/dto/ProfileCreateRequest.java`, `MemberResponse.java`, `CheckResponse.java`
 - `member/service/MemberService.java` (생성)
 - `member/controller/MemberController.java` (생성)
-- `db/migration/V2__seed_admin_profile.sql` (**`account_id`는 AU-05가 고정한 값**)
+- `db/migration/V2__seed_admin_profile.sql` — `account_id = 1`, `nickname = 관리자`. 값은 [../requirements/member.md §10.1](../requirements/member.md)이 정본. **비밀번호가 없으므로 placeholder가 필요 없다**
 
 **⚠ `POST /api/v1/members`는 인증이 필요하다.** `account_id`는 **검증된 JWT의 `sub`에서만** 가져온다. 요청 본문의 식별자를 신뢰하지 않는다.
 
@@ -966,7 +980,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **멱등이다** — 상태별 응답이 [../api-contract.md §3](../api-contract.md) 표와 일치한다
 - [ ] 중복 닉네임 409 `M003`
 - [ ] 검증 규칙이 [../requirements/member.md §2](../requirements/member.md)와 일치한다
-- [ ] `GET /api/v1/members/check-nickname`이 동작한다
+- [ ] `GET /api/v1/members/check-nickname`의 응답이 `{ "available": boolean }`이다 ([../api-contract.md §2.3](../api-contract.md))
+- [ ] **탈퇴로 해방된 닉네임은 `available: true`다** — 이메일과 달리 닉네임은 재사용할 수 있다
 - [ ] **이메일·비밀번호를 받지도 저장하지도 않는다**
 - [ ] seed 프로필의 `account_id`가 `AU-05`의 seed와 같은 값이다
 
