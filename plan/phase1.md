@@ -794,6 +794,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 **산출물**
 - `README.md` 갱신 (실행 절차, 환경변수 목록, **키 배치 절차**)
+- `JwtConfig`의 claim 검증기 집합을 고정하는 테스트 — AU-07에서 넘어온 것
 - Actuator 설정 (`/actuator/health`만 노출)
 - `application-prod.yml` (Swagger·SQL 로그 비활성화)
 
@@ -805,6 +806,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `prod` 프로파일에서 SQL 로그가 꺼진다
 - [ ] 전체 테스트가 통과한다 (`./gradlew test`)
 - [ ] **커밋된 파일에 개인키·비밀 값이 없다**
+- [ ] **`JwtConfig`가 쓰는 claim 검증기 집합이 테스트로 고정되어 있다.** AU-07의 `failureCode`가 예외 타입만 보고 `A002`·`A003`을 가르는데, 그 판정은 `JwtValidators.createDefault()`가 `JwtTimestampValidator`와 `X509CertificateThumbprintValidator` 둘뿐이라는 데 걸려 있다. 검증기를 하나 더 붙이면 **`iss` 불일치가 조용히 `A003`(만료)로 나간다**
 
 **검증**
 
@@ -815,6 +817,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `prod` 프로파일로 `/swagger-ui.html` | 404 |
 | `git log -p`에서 `BEGIN PRIVATE KEY` 검색 | **없음** |
 | `git log -p`에서 비밀번호 검색 | 없음 |
+| **`JwtConfig`의 검증기 집합** | **`JwtTimestampValidator`·`X509CertificateThumbprintValidator` 둘뿐.** 늘면 테스트가 깨져 `failureCode`를 함께 보게 한다 |
 
 ## 5. member-service 작업 항목
 
