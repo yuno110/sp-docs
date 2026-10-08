@@ -71,7 +71,7 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | --- | --- | --- |
 | id | Long | PK |
 | accountId | Long | NOT NULL, UNIQUE |
-| token | String(1024), **`CHARACTER SET ascii`** | NOT NULL, UNIQUE |
+| token | String(1024). 테이블 문자셋이 **ascii**다 | NOT NULL, UNIQUE |
 | expiresAt | LocalDateTime | NOT NULL |
 
 계정당 1행이다. 재로그인 시 갱신(upsert)한다. `account_id`에 FK 제약을 둔다(같은 서비스 내이므로 허용).
@@ -102,7 +102,19 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 
 InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바이트이므로 **768자가 상한**이다. JWT는 base64url과 점으로만 이뤄져 ASCII이므로, 그 컬럼만 ascii로 선언하면 1024자를 쓸 수 있다.
 
-> **이 프로젝트에서 컬럼별 문자셋을 지정하는 유일한 곳이다.** 나머지는 스키마 기본값(utf8mb4)을 따른다([tech-stack.md §4.1](tech-stack.md)).
+**문자셋은 테이블 단위로 바꾼다.** 컬럼 단위 구문은 H2가 거부하고, 테스트가 같은 마이그레이션을 돌리므로([tech-stack.md §5.3](tech-stack.md)) 양쪽에서 되는 구문이어야 한다. 측정값이다.
+
+| 구문 | MySQL 8.0 | H2 2.3.232 (MySQL 모드) |
+| --- | --- | --- |
+| `MODIFY COLUMN token VARCHAR(1024) CHARACTER SET ascii` | OK | **Syntax error** |
+| `ALTER COLUMN token SET DATA TYPE VARCHAR(1024) CHARACTER SET ascii` | — | **Syntax error** |
+| `ALTER TABLE refresh_token CONVERT TO CHARACTER SET ascii` | OK | OK |
+
+**순서가 뒤집히면 실패한다.** utf8mb4 상태에서 먼저 넓히면 `1024 × 4 = 4096`바이트가 되어 `ERROR 1071`이다. **ascii로 바꾼 뒤 넓힌다.**
+
+`refresh_token`의 문자 컬럼은 `token` 하나뿐이므로 테이블 단위와 컬럼 단위의 결과가 같다. **그 테이블에 문자 컬럼을 더 두지 않는다** — 두게 되면 ascii가 그것에도 걸린다.
+
+> **이 프로젝트에서 테이블 문자셋을 기본값과 다르게 두는 유일한 곳이다.** 나머지는 스키마 기본값(utf8mb4)을 따른다([tech-stack.md §4.1](tech-stack.md)).
 
 **재발급은 이 행 조회와 `account.deleted` 확인을 같은 트랜잭션에서 한다.** 회전은 조건부 UPDATE(affected rows 확인)로 처리한다. 그렇지 않으면 탈퇴와 재발급이 겹칠 때 삭제된 행이 되살아난다([adr/0012](adr/0012-auth-as-separate-service.md) §8).
 

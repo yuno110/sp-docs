@@ -419,12 +419,13 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **`V2`를 고치지 않는다.** 이미 적용되어 Flyway가 체크섬을 보관하므로 수정하면 다음 기동이 실패한다. 새 마이그레이션을 쓴다(§2.4가 `V4`를 배정했다).
 
 **산출물**
-- `db/migration/V4__widen_refresh_token.sql` — `token`을 `VARCHAR(1024) CHARACTER SET ascii`로
+- `db/migration/V4__widen_refresh_token.sql` — 테이블을 ascii 로 바꾼 **뒤** `token`을 `VARCHAR(1024)`로. **순서가 뒤집히면 `ERROR 1071`이다.** 컬럼 단위 `CHARACTER SET` 구문은 H2가 거부한다 ([../domain-model.md §2.2](../domain-model.md))
 - `auth/entity/RefreshToken.java` — `@Column(length = ...)` 갱신
 - `auth/repository/RefreshTokenRepositoryTest` — 픽스처를 실제 길이로
 
 **완료 기준**
-- [ ] `token`이 `VARCHAR(1024)`이고 문자셋이 `ascii`다 ([../domain-model.md §2.2](../domain-model.md))
+- [ ] `token`이 `VARCHAR(1024)`이고 테이블 문자셋이 `ascii`다 ([../domain-model.md §2.2](../domain-model.md))
+- [ ] **마이그레이션이 MySQL 과 H2 양쪽에서 돈다.** 테스트가 같은 스크립트를 쓴다
 - [ ] `uk_refresh_token` UNIQUE 제약이 유지된다
 - [ ] **`V2`를 수정하지 않았다.** 기존 `flyway_schema_history`와 체크섬이 맞는다
 - [ ] 엔티티의 `length`가 마이그레이션과 일치한다 (`ddl-auto: validate`가 통과한다)
