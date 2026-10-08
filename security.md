@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v4
-updated: 2026-10-01
+version: v5
+updated: 2026-10-08
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -124,6 +124,36 @@ HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있
 ```
 
 **재발급이 `account.deleted`를 검사하지 않으면 탈퇴 경계가 무너진다.** 조회와 확인을 같은 트랜잭션에 두고 회전을 조건부 UPDATE로 하지 않으면, 탈퇴와 재발급이 겹칠 때 삭제한 RefreshToken이 되살아나 탈퇴 계정이 14일간 갱신할 수 있다([requirements/member.md §6](requirements/member.md)).
+
+### 4.1 "어느 쪽이 틀렸는지 노출하지 않는다"는 시간도 포함한다
+
+로그인 실패를 **없는 이메일**과 **비밀번호 불일치**로 구별할 수 없어야 한다([requirements/member.md §1](requirements/member.md) MR-04). 응답 본문과 상태 코드를 같게 맞추는 것으로는 부족하다.
+
+**계정이 없을 때 BCrypt 비교를 건너뛰면 응답 시간으로 드러난다.** 측정값이다(strength 10).
+
+| 경로 | 시간 |
+| --- | --- |
+| 없는 이메일 — `matches` 생략 | **0.0 ms** |
+| 비밀번호 불일치 | 48.5 ms |
+| 정상 로그인 | 48.5 ms |
+
+불일치와 정상은 구별되지 않는다 — BCrypt의 비교가 그렇게 설계되어 있다. **누출은 오직 비교를 건너뛰는 데서 나오고, 48ms 차이는 네트워크 지터에 묻히지 않는다.**
+
+**계정이 없어도 더미 해시로 `matches`를 한 번 수행한다.** 그 결과는 쓰지 않고 버린다.
+
+```java
+// 계정이 없으면 더미 해시와 비교해 시간을 맞춘다. 결과는 쓰지 않는다
+Account account = repository.findByEmail(email).orElse(null);
+boolean ok = (account != null)
+        ? passwordEncoder.matches(raw, account.getPassword())
+        : passwordEncoder.matches(raw, DUMMY_HASH) && false;
+```
+
+**더미 해시는 실제 비밀번호의 해시가 아니어야 한다.** 기동 시 임의 값으로 한 번 인코딩해 메모리에만 둔다 — 상수로 커밋하면 [requirements/member.md §10.2](requirements/member.md)의 "BCrypt 모양을 커밋하지 않는다"에 걸린다.
+
+**탈퇴 계정도 같은 경로로 처리한다.** 계정을 찾았으나 `deleted = true`인 경우에 비교를 건너뛰면, 그것이 "그 이메일은 존재하되 탈퇴했다"를 알려준다.
+
+> 이 규칙은 로그인에만 적용한다. 비밀번호 변경·계정 탈퇴는 **이미 인증된 요청**이므로 자기 계정의 존재가 전제되어 있고 숨길 것이 없다.
 
 ## 5. 인가
 
