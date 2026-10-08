@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v6
+version: v7
 updated: 2026-10-08
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -49,6 +49,10 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | POST | `/api/v1/auth/login` | 로그인, 토큰 발급 | - | 200 |
 | POST | `/api/v1/auth/reissue` | 토큰 재발급(Rotation) | - | 200 |
 | POST | `/api/v1/auth/logout` | 로그아웃 | O | 204 |
+
+재발급의 응답 본문은 **로그인과 같은 `TokenResponse`**다(§9.2). 재발급 거부는 만료만 `A003`이고 나머지는 전부 `A002`다(§8.5) — 세션 없음·저장값 불일치·탈퇴 계정을 가르지 않는다.
+
+`POST /api/v1/auth/logout`은 **멱등이다.** 저장된 Refresh Token이 없어도 204다.
 
 **로그인은 400을 쓰지 않는다.** 자격증명 누락·빈 값·형식 오류도 **401 `AU003`**이다.
 
@@ -330,6 +334,24 @@ public record FieldError(String field, String message) { }
 | `AU004` | 400 | 현재 비밀번호가 일치하지 않습니다. |
 
 `AU002`·`AU003`·`AU004`는 각각 이전의 `M002`·`M004`·`M005`다.
+
+### 8.5 `A001`·`A002`·`A003`을 가르는 경계
+
+세 코드가 모두 401이므로 어느 것을 내보낼지 정해 둔다. **경계는 RFC 6750의 `b64token` 문법이다.**
+
+| 요청의 `Authorization` | 코드 | 왜 |
+| --- | --- | --- |
+| 헤더 없음 | `A001` | 제시된 자격증명이 없다 |
+| `Bearer`(값 없음), `Basic …` 등 다른 스킴 | `A001` | 같음 |
+| **`Bearer not!a!token`** — `b64token` 문법 위반 | **`A001`** | RFC 6750 §2.1이 허용하는 문자는 `ALPHA / DIGIT / - . _ ~ + /`와 꼬리 `=`뿐이다. 위반한 값은 **애초에 bearer 자격증명이 아니다** |
+| **`Bearer <문법은 맞지만 JWT가 아님>`** | **`A002`** | 자격증명은 제시됐고 해석에 실패했다 |
+| 서명 불일치·변조 | `A002` | 같음 |
+| **`exp` 경과** | **`A003`** | 클라이언트가 토큰을 읽어 이미 아는 사실이므로 가려도 누출이 아니다 |
+| 그 밖의 claim 검증 실패 | `A002` | 사유를 가르지 않는다 |
+
+**`A003`만 사유를 드러낸다.** 나머지를 `A002`로 모으는 이유는 세션 존재와 계정 탈퇴 여부가 드러나지 않게 하는 것이다([security.md §4.1](security.md)).
+
+> 문법 위반이 `A001`로 떨어지는 것은 Spring의 `DefaultBearerTokenResolver`가 디코더 앞에서 끊기 때문이고, **그 동작이 RFC와 일치하므로 그대로 둔다.** 구현은 예외 타입만 보고 가른다 — 메시지 문자열을 파싱하면 버전업에 깨진다.
 
 접두어로 어느 서비스에서 난 오류인지 식별한다. 응답에 스택트레이스·SQL·내부 호스트명을 포함하지 않는다.
 
