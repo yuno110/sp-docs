@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v5
-updated: 2026-10-02
+version: v6
+updated: 2026-10-08
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -130,6 +130,41 @@ R2) 재발급:  옛 행 삭제; 새 행 INSERT;  COMMIT      <- 삭제한 행이
 ```
 
 R2 이후 탈퇴한 계정에 새 RefreshToken(14일)이 생겨, **"탈퇴 후 최대 30분"이라는 경계가 무너진다.**
+
+### 6.1 "0행이면 실패"는 JDBC 설정에 의존한다
+
+조건부 UPDATE의 판정이 **드라이버가 found rows를 돌려주는 것**에 기대고 있다. 측정값이다.
+
+```sql
+UPDATE refresh_token SET token = :new WHERE account_id = :id AND token = :current
+```
+
+| 경우 | MySQL (Connector/J 기본) | H2 |
+| --- | --- | --- |
+| 값이 바뀌는 회전 | 1 | 1 |
+| **값이 같은 회전** | **1** | **1** |
+| 저장값과 다른 토큰 | 0 | 0 |
+| **값이 같은 회전 + `useAffectedRows=true`** | **0** | — |
+
+**`useAffectedRows=true`를 쓰지 않는다.** 그 설정은 *변경된* 행을 돌려주므로, **같은 값으로 회전할 때 0행이 되어 정당한 재발급이 거부된다.** JDBC URL에 추가하지 않는다([../tech-stack.md §4.3](../tech-stack.md)).
+
+"값이 같은 회전"이 실제로 일어나는 이유는 §6.2다.
+
+### 6.2 같은 초에 발급한 두 토큰은 문자열이 같다 — 1차의 알려진 한계
+
+JWT Claim에 `jti`가 없고 `iat`가 초 단위이므로([../api-contract.md §6](../api-contract.md)), **같은 계정이 같은 초에 두 번 발급받으면 토큰이 완전히 같다.** `exp`도 `iat`에서 유도되므로 같다.
+
+그 1초 안에서는 **"이전 Refresh Token은 무효"가 문자 그대로 성립하지 않는다.** 이전 토큰이 곧 새 토큰이다.
+
+| | |
+| --- | --- |
+| 보안 영향 | **없다.** 이전 토큰을 가진 자는 새 토큰을 가진 것과 같고, 그는 어차피 그것을 갖고 있었다 |
+| 실질 영향 | 로그인 직후 1초 안에 재발급하는 클라이언트가 없으므로 거의 발생하지 않는다 |
+| 테스트 영향 | **있다.** 회전 전후를 비교하는 테스트는 발급 경로로 서로 다른 값을 만들 수 없다 ([../conventions.md §9.2](../conventions.md) 예외) |
+
+**1차에서 `jti`를 넣지 않는다.** [../api-contract.md §6](../api-contract.md)의 claim 집합은 세 서비스가 공유하는 계약이고 AU-04·AU-06이 `containsOnlyKeys`로 고정했다. 보안 이득이 없는 변경에 완료된 두 항목을 되돌릴 이유가 없다.
+
+**재검토 조건** — Refresh Token을 저장소 대조 없이 신뢰해야 할 때, 또는 한 계정에 여러 세션(기기별 토큰)을 허용할 때. 그때는 `jti`를 넣거나 Refresh Token을 JWT가 아닌 불투명 난수로 바꾼다 — 후자가 표준에 가깝다. 저장소 대조가 최종 판정이므로 JWT 형식이 주는 이득이 없다.
 
 ## 7. MR-08 상세 — 닉네임 변경
 
