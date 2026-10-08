@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v5
-updated: 2026-10-02
+version: v6
+updated: 2026-10-08
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -49,6 +49,12 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | POST | `/api/v1/auth/login` | 로그인, 토큰 발급 | - | 200 |
 | POST | `/api/v1/auth/reissue` | 토큰 재발급(Rotation) | - | 200 |
 | POST | `/api/v1/auth/logout` | 로그아웃 | O | 204 |
+
+**로그인은 400을 쓰지 않는다.** 자격증명 누락·빈 값·형식 오류도 **401 `AU003`**이다.
+
+`LoginRequest`에 형식 검증을 걸지 않는다. 생성 쪽 규칙([requirements/member.md §2](requirements/member.md))을 복제하면 "형식이 틀린 비밀번호"와 "비밀번호 불일치"가 응답에서 갈려, 숨기려던 것이 드러난다([security.md §4.1](security.md)).
+
+> **§2.3의 `check-email`과 다르다.** 그쪽은 형식 오류에 400 `C001`을 쓴다. 비대칭이 의도다 — 중복 확인은 숨길 것이 없고, 로그인은 있다.
 
 로그인·재발급은 **`account.deleted = false`를 검사한다.** 재발급은 RefreshToken 조회와 상태 확인을 같은 트랜잭션에서 하고 회전을 조건부 UPDATE로 처리한다([adr/0012](adr/0012-auth-as-separate-service.md) §8).
 
