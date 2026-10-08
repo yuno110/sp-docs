@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v6
-updated: 2026-10-02
+version: v7
+updated: 2026-10-08
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -331,6 +331,25 @@ class MemberRepositoryTest { ... }
 ```
 
 **모든 `@DataJpaTest` 클래스에 이 애노테이션을 붙인다.** `ddl-auto`는 프로파일에서 오고 URL은 덮이는, 절반만 적용되는 상태를 막는다.
+
+#### `validate`가 보지 않는 것 — 컬럼 길이
+
+**`validate`는 안전망이지만 길이 불일치를 통과시킨다.** Hibernate 6.6.53으로 측정했다.
+
+| 엔티티 vs 스키마 | `validate` |
+| --- | --- |
+| 엔티티에만 있는 컬럼 | **기동 실패** `SchemaManagementException` |
+| 컬럼명 불일치 | **기동 실패** |
+| **`@Column(length = 1024)` vs `VARCHAR(2000)`** | **정상 기동** |
+
+실제로 이 한계 때문에 `refresh_token.token`의 512자 결함이 **세 항목을 통과했다**. 엔티티·마이그레이션이 둘 다 512였고 발급 토큰이 541자인 것은 어느 쪽도 보지 않는다([domain-model.md §2.2](domain-model.md)).
+
+**길이가 의미를 갖는 컬럼은 따로 고정한다.**
+
+- `information_schema`의 실제 폭과 `@Column(length)`를 비교하는 테스트
+- 실제로 들어갈 최대 길이의 값으로 저장을 확인하는 테스트 ([conventions.md §9.2](conventions.md))
+
+`validate`에 기대지 않는다.
 
 ### 5.3 테스트 DataSource URL — 정본
 

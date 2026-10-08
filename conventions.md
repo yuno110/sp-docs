@@ -2,7 +2,7 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v6
+version: v7
 updated: 2026-10-08
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
@@ -183,6 +183,15 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 | 길이가 넉넉한 것 (이메일, 닉네임) | 읽기 쉬운 값 + 경계 케이스 별도 테스트 |
 
 **생성 규칙이 있는 값은 그 규칙으로 만든다.** 토큰이면 실제 발급 경로로, 해시면 실제 인코더로. 리터럴을 길게 늘여 적는 것보다 낫다 — 규칙이 바뀌면 함께 바뀐다.
+
+**예외 — 서로 다른 값이 필요할 때는 발급 경로를 쓸 수 없다.** JWT Claim에 `jti`가 없고 `iat`가 초 단위이므로([api-contract.md §6](api-contract.md)), **같은 계정의 두 발급이 같은 초에 일어나면 토큰 문자열이 완전히 같다.**
+
+| 픽스처 용도 | 만드는 법 |
+| --- | --- |
+| 길이·형식이 중요한 값 1개 | **실제 발급 경로** |
+| **서로 달라야 하는 값 2개 이상** (UNIQUE 충돌, 회전 전후 비교) | 같은 문자 집합·모양으로 **조립한다.** 조립한 것임을 주석에 적는다 |
+
+후자를 발급 경로로 만들려고 `Thread.sleep(1000)`을 넣지 않는다. 테스트가 느려지고, 초 경계에 걸리면 여전히 같아진다.
 
 ### 9.3 `@DataJpaTest`는 두 애노테이션이 함께 필요하다
 
