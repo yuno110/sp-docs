@@ -2,7 +2,7 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v5
+version: v6
 updated: 2026-10-08
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
@@ -216,13 +216,17 @@ ADMIN에게 **수정 권한을 주지 않는다.** 타인 글의 내용 변조�
 
 | | 1차 동작 |
 | --- | --- |
-| 최대 노출 시간 | Access Token 만료까지 (30분) |
+| 최대 노출 시간 | Access Token 만료까지 (30분) **+ clock skew 60초** |
 | 재발급으로 연장되는가 | 아니다 — 탈퇴 시 RefreshToken 삭제 + `deleted` 검사(§4) |
 | 잔여 권한 | 그 `role`이 가진 **모든 변경 권한**. ADMIN이면 **타인 글·댓글 삭제 포함** |
 | 새 글 작성 | 통상 막힌다(프로필 `deleted`). 확인–커밋 창에서는 통과할 수 있다 |
 | 프로필 재생성 | 막힌다(`uk_member_account_id`) |
 
 **"자기 글만"이 아니다.** ADMIN 계정의 탈퇴·권한 회수는 30분의 노출을 동반한다.
+
+> **clock skew 60초는 Spring의 기본값이다.** `JwtTimestampValidator`가 `DEFAULT_MAX_CLOCK_SKEW = 60s`로 두고 있어(6.5.11 바이트코드로 확인), **`exp`가 지난 토큰이 60초 더 통과한다.** 분산 환경의 시계 드리프트를 흡수하려는 값이다.
+>
+> 1차에서 줄이지 않는다. 노출 창이 30분에서 31분이 되는 것이고, 줄이려면 `JwtConfig`에 validator를 직접 주입해야 한다. **즉시 차단이 요구가 되면 그때 skew와 블랙리스트를 함께 본다**([adr/0012](adr/0012-auth-as-separate-service.md) 포기 목록 1).
 
 즉시 차단은 1차 범위 밖이다. 요구가 되면 토큰 블랙리스트나 introspection을 2차에 도입한다([adr/0012](adr/0012-auth-as-separate-service.md) 포기 목록 1). **오프라인 검증만으로는 불가능하다.**
 
