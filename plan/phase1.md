@@ -638,14 +638,22 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 **경합 방지가 이 항목의 핵심이다.** 재발급은 RefreshToken 조회와 `account.deleted` 확인을 **같은 트랜잭션**에서 하고, 회전은 AU-03의 조건부 UPDATE로 처리한다. 그렇지 않으면 탈퇴와 겹칠 때 삭제한 행이 되살아나 탈퇴 계정이 14일간 갱신할 수 있다([../requirements/member.md §6](../requirements/member.md)).
 
+**`RefreshToken.renew()`를 쓰지 않는다.** AU-06이 로그인용으로 추가한 엔티티 메서드다. 회전에 쓰면 탈퇴와 겹칠 때 지운 행이 되살아난다 — 그것이 조건부 UPDATE를 쓰는 이유다. 엔티티 javadoc에도 경고가 있다.
+
+**`useAffectedRows=true`를 JDBC URL에 넣지 않는다.** "0행이면 실패" 판정이 found rows에 의존한다([../requirements/member.md §6.1](../requirements/member.md)).
+
+**AU-06이 남긴 경합이 여기서 닫힌다.** 로그인은 `authenticate()` 후 탈퇴가 커밋되면 탈퇴 계정 행을 INSERT할 수 있다. **재발급이 `account.deleted`를 같은 트랜잭션에서 검사하는 한 무해하다** — 그 검사가 이 항목의 완료 기준이다.
+
 **완료 기준**
 - [ ] `POST /api/v1/auth/reissue`가 새 Access/Refresh를 반환한다
-- [ ] Rotation이 적용된다 (이전 Refresh Token은 무효)
+- [ ] Rotation이 적용된다 (이전 Refresh Token은 무효). **같은 초에 발급한 두 토큰이 같은 것은 1차의 알려진 한계다** ([../requirements/member.md §6.2](../requirements/member.md))
 - [ ] 저장값과 다른 Refresh Token은 거부된다
 - [ ] 만료·변조된 Refresh Token은 거부된다
 - [ ] **탈퇴 계정은 재발급받을 수 없다**
 - [ ] **조회와 `deleted` 확인이 같은 트랜잭션이다**
 - [ ] **회전이 조건부 UPDATE이고 0행이면 실패한다**
+- [ ] **`RefreshToken.renew()`를 쓰지 않는다**
+- [ ] JDBC URL에 `useAffectedRows=true`가 없다
 - [ ] `POST /api/v1/auth/logout`이 204를 반환하고 저장된 Refresh Token을 삭제한다
 - [ ] 로그아웃 후 같은 Refresh Token으로 재발급이 실패한다
 - [ ] **서명이 잘못된 토큰은 401 `A002`, 만료된 토큰은 401 `A003`이다** — Access Token과 Refresh Token 양쪽. AU-04는 필터 단계의 모든 인증 실패를 `A001`로 냈으므로 여기서 구분한다
@@ -661,6 +669,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 만료된 Refresh Token | 실패 |
 | **탈퇴 계정의 유효 Refresh Token** | **실패** |
 | **탈퇴 커밋 후 재발급 시도** | **실패. `refresh_token` 행이 되살아나지 않음** |
+| **값이 같은 토큰으로 회전** | **성공.** 0행으로 떨어지면 `useAffectedRows` 설정을 확인한다 ([../requirements/member.md §6.1](../requirements/member.md)) |
 | 정상 로그아웃 | 204, `refresh_token` 행 삭제됨 |
 | 로그아웃 후 재발급 | 실패 |
 | **서명 변조된 Access Token으로 보호 경로 접근** | **401 `A002`** |
