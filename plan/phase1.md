@@ -541,8 +541,12 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `auth/service/AuthService.java` (생성)
 - `auth/controller/AuthController.java` (생성)
 
+`RefreshToken` 엔티티·리포지토리와 `TokenResponse`는 AU-03·AU-04 산출물이다. **이 항목에서 만들지 않고 쓴다.**
+
 **완료 기준**
 - [ ] `POST /api/v1/auth/login`이 200과 `TokenResponse`를 반환한다
+- [ ] **발급한 Refresh Token을 `sp_auth`에 upsert한다** ([../security.md §4](../security.md), [../domain-model.md §2.2](../domain-model.md))
+- [ ] **계정당 1행이다.** 재로그인하면 행이 늘지 않고 값이 교체된다
 - [ ] 비밀번호 불일치·없는 이메일 **모두** 401 `AU003` (어느 쪽이 틀렸는지 노출하지 않는다)
 - [ ] **탈퇴 계정(`deleted = true`)은 로그인할 수 없다**
 - [ ] 발급된 토큰의 `sub`·`role` Claim이 계정 정보와 일치한다
@@ -554,11 +558,14 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 케이스 | 기대 결과 |
 | --- | --- |
 | 정상 로그인 | 200, accessToken·refreshToken 존재 |
+| 정상 로그인 후 `refresh_token` | **1행. 응답의 refreshToken과 저장값이 같다** |
+| **같은 계정으로 재로그인** | **여전히 1행. 토큰 값이 새것으로 교체됨** |
+| 로그인 실패(비밀번호 불일치) 후 `refresh_token` | **행이 생기지 않는다** |
 | 비밀번호 불일치 | 401 `AU003` |
 | 없는 이메일 | 401 `AU003` (메시지가 위와 동일) |
 | **탈퇴 계정 로그인** | **401** |
 | 발급 토큰의 Claim | 계정의 `id`·`role`과 일치, `nickname` 없음 |
-| 유효 토큰으로 `/accounts/me` 접근 | 401이 아님 |
+| 유효 토큰으로 `/accounts/me` 접근 | **401이 아님** — `GET /accounts/me`는 AU-10이 만들므로 지금은 404여도 된다. 보는 것은 **토큰이 인증을 통과하는가**다 |
 
 ---
 
