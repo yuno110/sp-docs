@@ -28,7 +28,7 @@ related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements
 | 단계 | 항목 | 성격 |
 | --- | --- | --- |
 | **정본 개정** | **D-01** | 나머지 전부의 선행 조건. §3 |
-| **기반** | AU-01~AU-04, M-01R~M-04, B-01~B-04 | 순차. 뒤의 모든 항목이 의존한다 |
+| **기반** | AU-01~AU-04, **AU-03R**, M-01R~M-04, B-01~B-04 | 순차. 뒤의 모든 항목이 의존한다 |
 | **기능** | AU-05~AU-11, M-05·M-08~M-11, B-05~B-09 | 기반 산출물을 **읽기만** 하고 자기 파일을 만든다 |
 
 기반 단계에 **순서 의존과 공유 상태를 몰아서 제거한다.** 엔티티 도메인 메서드, 전체 경로 인가 설정, 마이그레이션, 공통 빈이 모두 여기서 끝난다.
@@ -173,11 +173,13 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | 서비스 | 기반 | 기능 |
 | --- | --- | --- |
-| **auth** | `V1__create_account.sql`, `V2__create_refresh_token.sql` (AU-03) | `V3__seed_admin_account.sql` (AU-05) |
+| **auth** | `V1__create_account.sql`, `V2__create_refresh_token.sql` (AU-03) | `V3__seed_admin_account.sql` (AU-05)<br>`V4__widen_refresh_token.sql` (**AU-03R**) |
 | **member** | `V1__create_member.sql` (M-03) | `V2__seed_admin_profile.sql` (M-05) |
 | board | `V1__create_post.sql`, `V2__create_comment.sql` (B-03) | 없음 |
 
 > **member의 번호 의미가 바뀌었다.** v3에서 `V2`는 `create_refresh_token`이었으나, 그 테이블이 auth로 옮겨가면서 `V2`가 seed가 됐다. **코드가 아직 없으므로 무해하지만, v3 기준으로 기억한 번호를 쓰지 않는다.**
+
+**적용된 마이그레이션을 고치지 않는다.** Flyway가 체크섬을 보관하므로 이미 적용된 파일을 수정하면 다음 기동이 실패한다. `V2`의 컬럼 폭을 바꿔야 할 때도 `V2`를 고치지 않고 `V4`를 새로 쓴다(AU-03R).
 
 **ADMIN seed는 두 스키마에 걸친다.** `AU-05`의 `account.id`를 명시적으로 고정하고, `M-05`의 `V2__seed_admin_profile.sql`이 그 값을 `account_id`로 쓴다. AUTO_INCREMENT에 맡기면 두 값이 어긋난다([../requirements/member.md §10](../requirements/member.md)). 일치 여부는 I-01에서 확인한다.
 
@@ -402,6 +404,46 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 ---
 
+### AU-03R 토큰 컬럼 폭 정정 [기반]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-auth` |
+| 의존 | AU-03 |
+| 참조 | [../domain-model.md §2.2](../domain-model.md), [../conventions.md §9.2](../conventions.md) |
+
+**AU-03의 완료 기준이 깨졌다.** `refresh_token.token`이 `VARCHAR(512)`인데 **이 서비스가 발급하는 토큰은 541~557자**다. AU-06에서 로그인이 `Value too long for column`으로 끊겨 드러났다.
+
+§2.6 #2(완료된 항목의 완료 기준을 깨야 할 때)에 해당하므로 AU-03을 수정하지 않고 후속 항목으로 처리한다. `M-01R`과 같은 방식이다.
+
+**`V2`를 고치지 않는다.** 이미 적용되어 Flyway가 체크섬을 보관하므로 수정하면 다음 기동이 실패한다. 새 마이그레이션을 쓴다(§2.4가 `V4`를 배정했다).
+
+**산출물**
+- `db/migration/V4__widen_refresh_token.sql` — `token`을 `VARCHAR(1024) CHARACTER SET ascii`로
+- `auth/entity/RefreshToken.java` — `@Column(length = ...)` 갱신
+- `auth/repository/RefreshTokenRepositoryTest` — 픽스처를 실제 길이로
+
+**완료 기준**
+- [ ] `token`이 `VARCHAR(1024)`이고 문자셋이 `ascii`다 ([../domain-model.md §2.2](../domain-model.md))
+- [ ] `uk_refresh_token` UNIQUE 제약이 유지된다
+- [ ] **`V2`를 수정하지 않았다.** 기존 `flyway_schema_history`와 체크섬이 맞는다
+- [ ] 엔티티의 `length`가 마이그레이션과 일치한다 (`ddl-auto: validate`가 통과한다)
+- [ ] **리포지토리 테스트가 실제 발급 토큰 길이의 값으로 저장을 확인한다** ([../conventions.md §9.2](../conventions.md))
+- [ ] AU-03의 나머지 완료 기준이 여전히 충족된다
+
+**검증** — `RefreshTokenRepositoryTest`
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| **557자 토큰 저장** | 성공. 조회값이 입력과 같다 |
+| **898자 토큰 저장** | 성공 — 4096비트 키로 회전해도 들어간다 |
+| 1025자 토큰 저장 | 실패 (길이 제약이 실재한다) |
+| 같은 토큰 2건 저장 | `DataIntegrityViolationException` (`uk_refresh_token` 유지) |
+| 기동 시 Flyway | `V1`~`V4` 적용, 체크섬 오류 없음 |
+| `ddl-auto: validate` | 통과 (엔티티와 스키마 일치) |
+
+---
+
 ### AU-04 보안 기반 [기반]
 
 | | |
@@ -533,8 +575,10 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | | |
 | --- | --- |
 | 저장소 | `yuno110/sp-auth` |
-| 의존 | AU-05 |
+| 의존 | AU-05, **AU-03R** |
 | 참조 | [../requirements/member.md §1](../requirements/member.md) (MR-04), [../security.md §4](../security.md), [../api-contract.md §9.2](../api-contract.md) |
+
+> **AU-03R이 선행 조건이다.** 그것 없이는 발급한 Refresh Token 을 저장할 수 없다.
 
 **산출물**
 - `auth/dto/LoginRequest.java`
