@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v3
-updated: 2026-09-29
+version: v4
+updated: 2026-10-08
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -71,10 +71,38 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | --- | --- | --- |
 | id | Long | PK |
 | accountId | Long | NOT NULL, UNIQUE |
-| token | String(512) | NOT NULL, UNIQUE |
+| token | String(1024), **`CHARACTER SET ascii`** | NOT NULL, UNIQUE |
 | expiresAt | LocalDateTime | NOT NULL |
 
 계정당 1행이다. 재로그인 시 갱신(upsert)한다. `account_id`에 FK 제약을 둔다(같은 서비스 내이므로 허용).
+
+#### `token` 길이가 1024이고 ascii인 이유 — 측정값
+
+이 서비스가 발급하는 토큰은 **512자에 들어가지 않는다.** AU-06에서 드러났다.
+
+| 구성 | 길이 |
+| --- | --- |
+| header (`kid` 43자 포함) | 90 |
+| payload (claim 5개, `sub` 자릿수에 따라) | 107 ~ 123 |
+| 서명 (RSA 2048비트) | 342 |
+| 점 2개 | 2 |
+| **합계** | **541 ~ 557** |
+
+`kid`는 RFC 7638 thumbprint(SHA-256)라 **항상 43자**다([security.md §3](security.md)).
+
+**여유를 1024로 두는 이유는 키 크기다.** 4096비트로 회전하면 서명이 683자가 되어 토큰이 약 898자가 된다. 768자로 잡으면 그때 또 막힌다.
+
+**`CHARACTER SET ascii`인 이유는 UNIQUE 인덱스 한계다.** 측정값이다.
+
+| 선언 | UNIQUE 인덱스 |
+| --- | --- |
+| `VARCHAR(768)` utf8mb4 | 생성됨 |
+| `VARCHAR(769)` utf8mb4 | **`ERROR 1071` — max key length is 3072** |
+| `VARCHAR(1024)` ascii | 생성됨 |
+
+InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바이트이므로 **768자가 상한**이다. JWT는 base64url과 점으로만 이뤄져 ASCII이므로, 그 컬럼만 ascii로 선언하면 1024자를 쓸 수 있다.
+
+> **이 프로젝트에서 컬럼별 문자셋을 지정하는 유일한 곳이다.** 나머지는 스키마 기본값(utf8mb4)을 따른다([tech-stack.md §4.1](tech-stack.md)).
 
 **재발급은 이 행 조회와 `account.deleted` 확인을 같은 트랜잭션에서 한다.** 회전은 조건부 UPDATE(affected rows 확인)로 처리한다. 그렇지 않으면 탈퇴와 재발급이 겹칠 때 삭제된 행이 되살아난다([adr/0012](adr/0012-auth-as-separate-service.md) §8).
 

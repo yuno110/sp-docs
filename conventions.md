@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v5
-updated: 2026-10-02
+version: v6
+updated: 2026-10-08
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -171,7 +171,20 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 
 기능 단계가 컨트롤러를 차례로 추가하는 구조([plan/phase1.md](plan/phase1.md) §1.1)에서 이 결함은 반드시 터진다. 처음부터 좁혀 둔다.
 
-### 9.2 `@DataJpaTest`는 두 애노테이션이 함께 필요하다
+### 9.2 길이 제약이 있는 컬럼은 실제 최대 길이로 테스트한다
+
+**짧은 더미로 저장만 확인하면 길이 제약을 못 잡는다.**
+
+`refresh_token.token`이 그랬다. AU-03의 리포지토리 테스트가 `"old.refresh.token"` 같은 17자 문자열로 저장·조회를 확인해 통과했지만, **실제 발급 토큰이 들어가는 첫 지점인 AU-06에서 541자가 512자 컬럼에 막혔다.** 결함은 AU-03에 있었고 발견은 세 항목 뒤였다.
+
+| 컬럼 성격 | 픽스처 |
+| --- | --- |
+| 길이 제약이 **의미를 갖는** 것 (토큰, 해시, 본문) | **실제로 들어갈 최대 길이**의 값 |
+| 길이가 넉넉한 것 (이메일, 닉네임) | 읽기 쉬운 값 + 경계 케이스 별도 테스트 |
+
+**생성 규칙이 있는 값은 그 규칙으로 만든다.** 토큰이면 실제 발급 경로로, 해시면 실제 인코더로. 리터럴을 길게 늘여 적는 것보다 낫다 — 규칙이 바뀌면 함께 바뀐다.
+
+### 9.3 `@DataJpaTest`는 두 애노테이션이 함께 필요하다
 
 `@AutoConfigureTestDatabase(replace = NONE)`와 `@Import(JpaConfig.class)`다. 전자가 없으면 DataSource URL이 덮이고([tech-stack.md §5.2](tech-stack.md)), 후자가 없으면 감사 컬럼이 NULL로 들어간다([domain-model.md §1.1](domain-model.md)).
 
