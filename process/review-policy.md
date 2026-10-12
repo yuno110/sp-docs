@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v7
+version: v8
 updated: 2026-10-12
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -198,6 +198,17 @@ related: [dev-workflow.md, orchestration.md]
 - 경위·처분 이력을 문서에 적지 않는다
 
 ## 8. 정본 문서 개정
+
+**개정한 뒤 `python tools/check_refs.py`를 돌린다.** 깨진 참조가 있으면 종료 코드 1이다.
+
+| 검사하는 것 | |
+| --- | --- |
+| 링크 대상 파일이 있는가 | `[...](other.md)` |
+| 라벨의 절 번호가 대상에 있는가 | `[tech-stack.md §5.3](tech-stack.md)` |
+
+절을 지우거나 번호를 바꾸면 **다른 문서가 가리키던 주소가 조용히 죽는다.** 32편이 서로를 참조하므로 손으로 좇을 수 없다.
+
+> 이 도구는 AU-09 리뷰까지 **세션 scratchpad에만 있었다.** D-01의 완료를 그것으로 판정했는데 저장소에 없었으므로, 그 판정은 누구도 재현할 수 없는 상태였다. 리뷰어가 "`check_refs.py`가 검사한다"는 내 전제를 확인하려다 파일이 없다는 것을 발견했다. **정본의 완료 기준이 가리키는 도구는 정본과 함께 커밋한다.**
 
 `api-contract.md`, `domain-model.md`, `tech-stack.md`, `conventions.md`, `requirements/`, `adr/`의 변경은 개정이다.
 

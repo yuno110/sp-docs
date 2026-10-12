@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v7
-updated: 2026-10-08
+version: v8
+updated: 2026-10-12
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -197,7 +197,26 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 
 `@AutoConfigureTestDatabase(replace = NONE)`와 `@Import(JpaConfig.class)`다. 전자가 없으면 DataSource URL이 덮이고([tech-stack.md §5.2](tech-stack.md)), 후자가 없으면 감사 컬럼이 NULL로 들어간다([domain-model.md §1.1](domain-model.md)).
 
-## 10. 커밋
+### 9.4 코드 주석에 정본의 **버전**을 적지 않는다
+
+주소는 **절 번호**로만 적는다. `(sp-docs/api-contract.md §2.2)` 는 좋고 `(… §2.2 v11)` 은 안 된다.
+
+**정본 버전은 자주 오른다.** `api-contract.md`는 AU-08·AU-09 두 항목에서만 v7 → v12로 다섯 번 올랐다. 코드에 박은 버전은 그때마다 낡고, **낡은 핀은 핀이 없는 것보다 나쁘다** — "이 버전과 대조했다"고 주장하면서 그 버전이 더 이상 없다.
+
+AU-09 리뷰에서 27곳을 전부 열어 측정한 결과다.
+
+| | |
+| --- | --- |
+| 장식이었다 (지워도 문장이 그대로 성립) | **26곳** |
+| 버전이 실제로 일을 했다 | **1곳** — 그리고 **그 한 곳이 거짓 진술이 됐다** |
+
+그 한 곳은 번호를 주소가 아니라 **내용에 대한 수량 주장**으로 썼다 — "§2.2 v11의 표는 둘만 정한다". 표가 네 행이 되자 주석이 거짓이 됐다. **버전을 적어 이득을 본 사례가 0이고 손해를 본 사례가 1이다.**
+
+**"언제 기준으로 쓴 주석인가"는 `git blame`이 답한다.** `git log -L<줄>,<줄>:<파일>`로 그 줄의 커밋을 얻고, 그 날짜로 정본 쪽 상태를 복원한다. blame은 틀릴 수 없고 유지비가 0이다. 손으로 적은 핀은 틀릴 수 있고, 걸러 줄 기계장치도 없다.
+
+> **정본의 내용을 주석에 복제할 때는 수량·목록을 쓰지 않는다.** "표는 둘만 정한다", "코드는 넷이다" 류는 정본이 늘어나면 거짓이 된다. 성질을 적는다 — "표가 이 입력을 404로 정한다".
+
+## 10. 커밋 메시지
 
 ```
 <type>(<scope>): <요약>
