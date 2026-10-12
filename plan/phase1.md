@@ -697,6 +697,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] 현재 비밀번호 불일치 시 **400** `AU004` (401이 아니다 — 요청자는 이미 인증되어 있다)
 - [ ] **`currentPassword`에 형식 검증을 걸지 않는다.** 틀린 형식과 틀린 비밀번호가 응답에서 갈리면 안 된다
 - [ ] **새 비밀번호가 현재와 같아도 거부하지 않는다** ([../api-contract.md §2.2](../api-contract.md))
+- [ ] **`currentPassword`에 `@NotBlank`는 붙인다.** 금지되는 것은 `@Pattern`이다 ([../api-contract.md §2.2](../api-contract.md))
+- [ ] **탈퇴한 계정은 404 `AU001`로 거부한다.** 검사를 `AccountReader`에 두지 않는다 ([../api-contract.md §2.2](../api-contract.md))
 - [ ] **더미 해시 비교를 넣지 않는다.** 이미 인증된 요청이므로 숨길 것이 없다 ([../security.md §4.1](../security.md))
 - [ ] 새 비밀번호가 BCrypt로 해싱되어 저장된다 (`Account.changePassword()` 사용)
 - [ ] **비밀번호 변경 시 Refresh Token이 삭제된다**
@@ -711,7 +713,9 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 변경 후 `refresh_token` 행 | 삭제됨 |
 | 새 비밀번호 형식 오류 | 400 `C001`, `fieldErrors`에 `newPassword` |
 | **`currentPassword`가 형식 위반이고 값도 틀림** | **400 `AU004`** — `C001`이 아니다. 형식으로 가르지 않는다 |
-| **`currentPassword` 누락 · `null` · 빈 문자열** | **400 `AU004`** — 같은 코드다 ([../api-contract.md §2.2](../api-contract.md)) |
+| **`currentPassword` 누락 · `null` · 빈 문자열** | **400 `C001`**, `fieldErrors`에 `currentPassword`. AU-09와 같다 |
+| **새 비밀번호 형식 오류 + 현재 비밀번호 불일치 동시** | **400 `C001`** — Bean Validation이 먼저 돈다 |
+| **탈퇴한 계정의 토큰으로 변경 시도** | **404 `AU001`.** `password`와 `updated_at`이 **둘 다 그대로** |
 | **새 비밀번호가 현재와 같음** | **204** — 거부하지 않는다 |
 | **변경 후 기존 Access Token으로 보호 경로** | **통과한다** — 만료까지 유효하다 ([../security.md §5.3](../security.md)) |
 | 변경 후 기존 Refresh Token으로 재발급 | 실패 (저장값 삭제됨) |
@@ -790,6 +794,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 응답 본문 | `password` 키 없음, `nickname` 키 없음 |
 | 토큰 없이 접근 | 401 `A001` |
 | 타인의 accountId를 본문·파라미터로 전달 | 무시됨. 자기 정보만 반환 |
+| **탈퇴한 계정의 토큰으로 조회** | **404 `AU001`** ([../api-contract.md §2.2](../api-contract.md)) |
 
 ---
 
