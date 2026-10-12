@@ -711,6 +711,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 변경 후 `refresh_token` 행 | 삭제됨 |
 | 새 비밀번호 형식 오류 | 400 `C001`, `fieldErrors`에 `newPassword` |
 | **`currentPassword`가 형식 위반이고 값도 틀림** | **400 `AU004`** — `C001`이 아니다. 형식으로 가르지 않는다 |
+| **`currentPassword` 누락 · `null` · 빈 문자열** | **400 `AU004`** — 같은 코드다 ([../api-contract.md §2.2](../api-contract.md)) |
 | **새 비밀번호가 현재와 같음** | **204** — 거부하지 않는다 |
 | **변경 후 기존 Access Token으로 보호 경로** | **통과한다** — 만료까지 유효하다 ([../security.md §5.3](../security.md)) |
 | 변경 후 기존 Refresh Token으로 재발급 | 실패 (저장값 삭제됨) |

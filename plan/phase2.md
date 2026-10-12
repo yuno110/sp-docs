@@ -115,6 +115,7 @@ Spring Cloud Gateway를 도입한다. Boot 버전과 호환되는 릴리스 트�
 | M-13 | 회원 목록 (ADMIN) | QueryDSL 페이징 |
 | - | 조회수 어뷰징 방지 | 동일 사용자 24h 1회 |
 | - | 로그인 실패 5회 잠금 | |
+| - | **중복 확인 rate limit** | `check-email`·`check-nickname`이 무인증·무제한이라 계정 열거가 가능하다. 1차는 감수한다([../security.md §4.1](../security.md)) |
 | - | 이메일 인증·비밀번호 재설정 | |
 
 ## 6. 운영 강화

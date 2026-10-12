@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v8
+version: v9
 updated: 2026-10-12
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -56,7 +56,9 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 
 **로그인은 400을 쓰지 않는다.** 자격증명 누락·빈 값·형식 오류도 **401 `AU003`**이다.
 
-`LoginRequest`에 형식 검증을 걸지 않는다. 생성 쪽 규칙([requirements/member.md §2](requirements/member.md))을 복제하면 "형식이 틀린 비밀번호"와 "비밀번호 불일치"가 응답에서 갈려, 숨기려던 것이 드러난다([security.md §4.1](security.md)).
+`LoginRequest`에 형식 검증을 걸지 않는다. 생성 쪽 규칙([requirements/member.md §2](requirements/member.md))을 복제하면 **규칙이 바뀌는 순간 기존 사용자가 잠긴다** — 옛 규칙으로 만든 비밀번호가 올바른데도 400으로 거부되고, 본인에게는 그것을 고칠 방법이 없다. 게다가 자격증명 필드의 형식 검증은 막을 수 있는 것이 없다. **형식이 틀린 비밀번호는 그냥 틀린 비밀번호이고, 대조가 그것을 끝낸다.**
+
+> **이전 판은 근거를 "숨기려던 것이 드러난다"로 적었다. 그것은 성립하지 않아 정정했다.** `C001`과 `AU003`으로 갈리는 것은 MR-04가 숨기려는 사실(이메일의 존재)을 누출하지 않는다 — 비밀번호 정책은 공개되어 있으므로 "정책을 만족한다"는 정보량이 0이다. 규칙은 그대로 두고 근거만 바꿨다.
 
 > **§2.3의 `check-email`과 다르다.** 그쪽은 형식 오류에 400 `C001`을 쓴다. 비대칭이 의도다 — 중복 확인은 숨길 것이 없고, 로그인은 있다.
 
@@ -84,10 +86,17 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 
 | 필드 | 검증 |
 | --- | --- |
-| `currentPassword` | 존재만 본다. 형식 검증을 걸지 않는다 — 틀린 형식과 틀린 비밀번호가 응답에서 갈리면 안 된다 |
-| `newPassword` | [requirements/member.md §2](requirements/member.md)의 비밀번호 규칙. 위반은 400 `C001` |
+| `currentPassword` | **제약 애노테이션을 붙이지 않는다.** 존재 검사는 서비스가 하고, 누락·빈 값도 불일치와 같은 `AU004`다 |
+| `newPassword` | [requirements/member.md §2](requirements/member.md)의 비밀번호 규칙. 위반은 400 `C001`, `fieldErrors`에 `newPassword` |
 
 **현재 비밀번호 불일치는 400 `AU004`다.** 401이 아니다 — 요청자는 이미 인증되어 있고, 틀린 것은 본문의 값이다.
+
+| `currentPassword` | 응답 |
+| --- | --- |
+| 값이 틀림 | 400 `AU004` |
+| **누락 · `null` · 빈 문자열** | **400 `AU004`** — 같은 코드다 |
+
+**누락을 `C001`로 가르지 않는 이유는 §2.1과 같다.** 여기서는 잠금 위험이 더 직접적이다 — 정책이 바뀐 뒤 `currentPassword`에 옛 비밀번호를 넣으면 형식 검증이 그것을 거부하므로, **비밀번호를 바꾸려는 사용자가 바로 그 화면에서 막힌다.** 또 `C001`로 내리려면 `fieldErrors`에 담을 메시지가 필요한데 자격증명 필드에는 쓸 메시지가 없다.
 
 **새 비밀번호가 현재와 같아도 거부하지 않는다.** 비교하려면 BCrypt를 한 번 더 돌려야 하고(약 48ms), 같은 값으로 바꾸는 것이 해를 끼치지 않는다 — RefreshToken은 어차피 삭제되어 세션이 끊긴다. 막아야 할 요구가 생기면 그때 정한다.
 
