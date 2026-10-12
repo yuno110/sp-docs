@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v6
-updated: 2026-10-08
+version: v7
+updated: 2026-10-12
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -319,6 +319,8 @@ spring:
 가드는 `hasText`와 `"${"`로 시작하는지만 보고 **형식을 보지 않는다.** `account.password`는 `VARCHAR(60) NOT NULL`에 CHECK가 없으므로 짧은 마커가 그대로 들어간다.
 
 **규칙의 범위는 저장소 전체다.** 커밋되는 어떤 파일에도 BCrypt 모양 문자열을 두지 않는다.
+
+**검사할 때 경로를 좁힌다.** 저장소 전체를 `$2[aby]$`로 긁으면 `application-local.yml`의 **실제 ADMIN 해시가 출력에 찍힌다.** 그 파일은 gitignore 되어 있어 규칙 위반은 아니지만, 비밀 값을 로그·보고서·대화에 남기지 않는다. 커밋 대상만 보려면 `git grep` 또는 `--include`로 범위를 준다.
 
 ADMIN seed 값만 막으면 저장소에 "진짜처럼 보이는 것"과 "가짜"가 섞여, 시크릿 스캐너 경보가 뜰 때마다 사람이 하나씩 판별해야 한다. **0건이면 판별이 필요 없다.**
 

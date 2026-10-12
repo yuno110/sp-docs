@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v11
+version: v12
 updated: 2026-10-12
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -98,6 +98,11 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | 활성 | 맞음 | 204. `deleted = true`, RefreshToken 삭제 |
 | 활성 | 틀림 | 400 `AU004` |
 | **이미 탈퇴** | **맞든 틀리든** | **204.** 아무것도 바꾸지 않는다 |
+| **행이 없음** (`sub`가 가리키는 계정 부재) | — | **404 `AU001`.** 멱등의 대상이 아니다 |
+
+**"아무것도 바꾸지 않는다"는 RefreshToken도 포함한다.** 이미 탈퇴한 계정에 남은 토큰 행이 있어도 지우지 않는다.
+
+> **그 상태가 생기는 경로는 하나다** — 로그인이 `authenticate()`를 지난 뒤 탈퇴가 커밋되면, 로그인이 탈퇴한 계정에 토큰 행을 INSERT할 수 있다([requirements/member.md §6](requirements/member.md)). **무해하다**: 재발급이 `deleted`를 같은 트랜잭션에서 검사하므로 그 토큰으로는 아무것도 못 한다. 정리 수단을 1차에 두지 않는다 — 탈퇴 재호출로 치우게 하면 "닫힌 계정에는 손대지 않는다"가 깨지고, 틀린 비밀번호로 온 요청이 쓰기를 하게 된다.
 
 **`deleted` 검사가 비밀번호 비교보다 먼저다.** `PATCH /me/password`와 같은 순서이고, 결론만 반대다(그쪽은 404로 거부, 이쪽은 204로 통과). 이유도 같다 — **닫힌 행에 쓰기가 닿지 않아야 하고 `updated_at`이 움직이지 않아야 한다.** 재확인이 요구되는 것(MR-10)은 **계정을 닫는 행위**에 대한 것이고, 이미 닫힌 계정에는 보호할 상태가 없다.
 
@@ -154,7 +159,9 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | 막지 않으면 | |
 | --- | --- |
 | `account.password` | 닫힌 행의 자격증명이 요청자가 정한 값으로 덮인다. **계정 복구가 2차에 생기면 원래 소유자의 비밀번호가 아니라 마지막으로 바꾼 쪽의 비밀번호로 복구된다** |
-| `account.updated_at` | 갱신되어 **탈퇴 시점의 유일한 흔적이 지워진다.** `account`에 `deleted_at` 컬럼이 없다([domain-model.md §2.1](domain-model.md)) |
+| `account.updated_at` | 갱신되어 **탈퇴 시점의 흔적이 지워진다.** `account`에 `deleted_at` 컬럼이 없다([domain-model.md §2.1](domain-model.md)) |
+
+**그 흔적 자체가 약하다.** MySQL `DATETIME`은 **초 단위**이므로 같은 초 안의 덮어쓰기는 보이지 않고, 어떤 갱신이었는지도 구별되지 않는다([domain-model.md §1.1](domain-model.md)의 측정값). 위 검사는 **쓰기가 닿지 않게 하는 것**이고, `updated_at`을 감사 수단으로 만드는 것이 아니다.
 
 **`deleted_at`이 없는 것은 1차의 알려진 한계다.** 탈퇴 시각을 되짚을 필요가 생기면 컬럼을 추가한다 — 위 검사가 들어가면 비밀번호 변경이 흔적을 지우는 경로는 닫힌다.
 

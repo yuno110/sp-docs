@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v4
-updated: 2026-10-08
+version: v5
+updated: 2026-10-12
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -25,6 +25,18 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | updatedAt | LocalDateTime | `@LastModifiedDate` |
 
 컬럼 타입은 `DATETIME`이고 **둘 다 NOT NULL**이다([tech-stack.md §5](tech-stack.md)). 감사가 INSERT 시점에 둘을 함께 채우므로 NULL이 들어올 경로가 없다.
+
+**`DATETIME`은 초 단위다. 측정값이다.**
+
+| | `datetime_precision` | 저장되는 값 |
+| --- | --- | --- |
+| MySQL `DATETIME` | **0** | `2026-10-12 16:33:36` — 소수부가 **잘린다** |
+| MySQL `DATETIME(6)` | 6 | `2026-10-12 16:33:36.338618` |
+| **H2 `DATETIME`** | **6** | 소수부가 남는다 |
+
+**테스트와 운영이 다르다.** H2는 마이크로초를 보존하므로 "같은 초 안의 두 갱신"을 구별하지만 **MySQL은 구별하지 못한다.** `updated_at`의 변화 여부를 단언하는 테스트는 H2에서 반증 가능하고 운영에서는 그만큼 섬세하지 않다.
+
+**그래서 `updated_at`을 감사 흔적으로 쓰지 않는다.** 1초 안에 일어난 일은 보이지 않고, 어떤 갱신이었는지도 구별되지 않는다. 탈퇴 시점을 알아야 하면 `deleted_at`을 추가한다(§2.1의 알려진 한계).
 
 > `@DataJpaTest` 슬라이스는 `@Configuration`을 스캔하지 않아 `@EnableJpaAuditing`이 빠진다. 그러면 두 컬럼이 NULL로 들어가 NOT NULL 제약에 걸린다. 테스트에서 `@Import(JpaConfig.class)`로 올린다.
 
