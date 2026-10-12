@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v6
-updated: 2026-10-08
+version: v7
+updated: 2026-10-12
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -223,6 +223,15 @@ ADMIN에게 **수정 권한을 주지 않는다.** 타인 글의 내용 변조�
 | 프로필 재생성 | 막힌다(`uk_member_account_id`) |
 
 **"자기 글만"이 아니다.** ADMIN 계정의 탈퇴·권한 회수는 30분의 노출을 동반한다.
+
+**비밀번호 변경도 같은 창을 갖는다.** RefreshToken을 삭제하므로 **새 세션은 만들 수 없지만**, 이미 발급된 Access Token은 만료까지 계속 통과한다.
+
+| 비밀번호 변경 직후 | |
+| --- | --- |
+| 기존 Refresh Token으로 재발급 | **즉시 막힌다** (저장값이 삭제됐다) |
+| 기존 Access Token으로 API 호출 | **만료까지 통과한다** (30분 + skew) |
+
+즉 **"비밀번호를 바꿨으니 안전하다"는 최대 31분 뒤부터 참이다.** 비밀번호 변경이 침해 대응으로 쓰인다면 이 창이 그대로 노출이다. 즉시 차단은 1차 범위 밖이고([adr/0012](adr/0012-auth-as-separate-service.md) 포기 목록 1), 그때 탈퇴·권한 회수·비밀번호 변경 셋을 함께 다룬다.
 
 > **clock skew 60초는 Spring의 기본값이다.** `JwtTimestampValidator`가 `DEFAULT_MAX_CLOCK_SKEW = 60s`로 두고 있어(6.5.11 바이트코드로 확인), **`exp`가 지난 토큰이 60초 더 통과한다.** 분산 환경의 시계 드리프트를 흡수하려는 값이다.
 >

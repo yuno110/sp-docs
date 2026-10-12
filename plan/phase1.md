@@ -685,7 +685,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 저장소 | `yuno110/sp-auth` |
 | 의존 | AU-07 |
 | 공유 파일 | `AccountService`, `AccountController` (AU-05 생성) |
-| 참조 | [../requirements/member.md §1 §3](../requirements/member.md) (MR-09), [../security.md §7](../security.md) |
+| 참조 | [../requirements/member.md §1 §3](../requirements/member.md) (MR-09), [../api-contract.md §2.2](../api-contract.md), [../security.md §4.1 §5.3 §7](../security.md) |
 
 **산출물**
 - `account/dto/PasswordChangeRequest.java`
@@ -693,7 +693,11 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 **완료 기준**
 - [ ] `PATCH /api/v1/accounts/me/password`가 204를 반환한다
-- [ ] 현재 비밀번호 불일치 시 400 `AU004`
+- [ ] 요청 본문이 `{currentPassword, newPassword}`다 ([../api-contract.md §2.2](../api-contract.md))
+- [ ] 현재 비밀번호 불일치 시 **400** `AU004` (401이 아니다 — 요청자는 이미 인증되어 있다)
+- [ ] **`currentPassword`에 형식 검증을 걸지 않는다.** 틀린 형식과 틀린 비밀번호가 응답에서 갈리면 안 된다
+- [ ] **새 비밀번호가 현재와 같아도 거부하지 않는다** ([../api-contract.md §2.2](../api-contract.md))
+- [ ] **더미 해시 비교를 넣지 않는다.** 이미 인증된 요청이므로 숨길 것이 없다 ([../security.md §4.1](../security.md))
 - [ ] 새 비밀번호가 BCrypt로 해싱되어 저장된다 (`Account.changePassword()` 사용)
 - [ ] **비밀번호 변경 시 Refresh Token이 삭제된다**
 - [ ] **두 연산이 한 로컬 트랜잭션이다**
@@ -705,7 +709,11 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 정상 변경 | 204, 새 비밀번호로 로그인 가능 |
 | 현재 비밀번호 불일치 | 400 `AU004` |
 | 변경 후 `refresh_token` 행 | 삭제됨 |
-| 새 비밀번호 형식 오류 | 400 `C001` |
+| 새 비밀번호 형식 오류 | 400 `C001`, `fieldErrors`에 `newPassword` |
+| **`currentPassword`가 형식 위반이고 값도 틀림** | **400 `AU004`** — `C001`이 아니다. 형식으로 가르지 않는다 |
+| **새 비밀번호가 현재와 같음** | **204** — 거부하지 않는다 |
+| **변경 후 기존 Access Token으로 보호 경로** | **통과한다** — 만료까지 유효하다 ([../security.md §5.3](../security.md)) |
+| 변경 후 기존 Refresh Token으로 재발급 | 실패 (저장값 삭제됨) |
 | 변경 중 예외 발생 | 비밀번호와 토큰 **둘 다** 롤백 |
 
 ---

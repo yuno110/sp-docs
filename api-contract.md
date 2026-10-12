@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v7
-updated: 2026-10-08
+version: v8
+updated: 2026-10-12
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -73,6 +73,23 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | DELETE | `/api/v1/accounts/me` | **계정 탈퇴 (탈퇴 1단계)** | O | 204 |
 
 `DELETE /api/v1/accounts/me`는 **본문에 현재 비밀번호를 받아 재확인한다.** `account.deleted = true`와 해당 계정의 RefreshToken 삭제를 한 로컬 트랜잭션으로 처리한다. 멱등이다(이미 탈퇴했으면 204).
+
+`PATCH /api/v1/accounts/me/password`의 본문은 **현재 비밀번호와 새 비밀번호 둘**이다.
+
+```json
+// PATCH /api/v1/accounts/me/password
+{ "currentPassword": "Passw0rd!", "newPassword": "NewPassw0rd!" }
+// 204 (본문 없음)
+```
+
+| 필드 | 검증 |
+| --- | --- |
+| `currentPassword` | 존재만 본다. 형식 검증을 걸지 않는다 — 틀린 형식과 틀린 비밀번호가 응답에서 갈리면 안 된다 |
+| `newPassword` | [requirements/member.md §2](requirements/member.md)의 비밀번호 규칙. 위반은 400 `C001` |
+
+**현재 비밀번호 불일치는 400 `AU004`다.** 401이 아니다 — 요청자는 이미 인증되어 있고, 틀린 것은 본문의 값이다.
+
+**새 비밀번호가 현재와 같아도 거부하지 않는다.** 비교하려면 BCrypt를 한 번 더 돌려야 하고(약 48ms), 같은 값으로 바꾸는 것이 해를 끼치지 않는다 — RefreshToken은 어차피 삭제되어 세션이 끊긴다. 막아야 할 요구가 생기면 그때 정한다.
 
 `PATCH /api/v1/accounts/me/password`도 RefreshToken을 삭제한다. 같은 로컬 트랜잭션이다.
 
