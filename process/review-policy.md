@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v5
+version: v6
 updated: 2026-10-12
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -117,6 +117,10 @@ related: [dev-workflow.md, orchestration.md]
 **고치는 법 — 되돌릴 효과를 실제로 만든다.** 스텁이 그 연산을 **실제로 발행한 뒤** 예외를 던지면, 롤백될 것이 있으므로 단언이 일한다. AU-08에서는 스텁 안의 `JdbcTemplate` DELETE로 했다(`invocation.callRealMethod()`는 **불가** — Spring Data 리포지터리는 JDK 프록시라 `Cannot call abstract real method on java object!`가 난다). 올바른 구현에서 그 DELETE는 되돌려지고, 트랜잭션 경계가 없으면 그 자리에서 커밋되어 단언이 빨개진다.
 
 > **이 기법은 변이 B 전용이다.** 변이 C를 잡는 데는 쓸 수 없다 — 위 "근본 원인"이 그 이유다. C는 경계 관측이 잡는다.
+
+**주입한 효과가 실제로 일어났는지를 스텁 안에서 단언한다.** 영향 행 수를 버리면 **SQL이 어긋나 0행이 되었을 때 조용하다** — 되돌릴 효과가 없으므로 단언이 다시 반증 불가능해진다. AU-08에서 대조군으로 재현한 값이다: 가드 없이 SQL을 0행이 되게 어긋내니 **16개가 전부 통과했다.** 가드를 넣으면 그 자리에서 터진다.
+
+> **잔여 한계 — 행 수는 보고 발행한 문장의 동등성은 보지 않는다.** `deleted == 1`은 "한 행이 지워졌다"일 뿐이고 "운영 코드가 지울 그 행"인지는 모른다 — **다른 키로 1행을 지우면 통과한다.** `callRealMethod()`가 불가능한 데서 나오는 구조적 한계이고 값싼 해결이 없다. **기계장치를 더 넣지 않고, 주입하는 SQL 옆에 그 문장의 짝이 어느 리포지터리 메서드인지를 주석으로 달아 다음 사람의 앵커로 삼는다.**
 
 > 변이 A가 예상 밖의 지점에서 터질 수 있다. Spring Data의 파생 삭제(`deleteBy…`)는 `em.remove`로 처리되고 그것이 활성 트랜잭션을 요구하므로, `SimpleJpaRepository`의 기본 `@Transactional`이 **파생 쿼리 메서드에는 적용되지 않아** 즉시 예외가 난다(`No EntityManager with actual transaction available`). 조용히 사라지지 않는다 — 그래서 A는 쉽게 잡히고 B·C는 안 잡힌다.
 
