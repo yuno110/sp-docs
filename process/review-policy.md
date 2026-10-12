@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v4
+version: v5
 updated: 2026-10-12
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -93,8 +93,18 @@ related: [dev-workflow.md, orchestration.md]
 
 | 관측 | 잡는 변이 |
 | --- | --- |
-| **한 번의 호출에 커밋이 정확히 한 번** (`PlatformTransactionManager` 스파이) | **A**(0회) · **C**(2회) |
+| **한 번의 호출에 커밋이 정확히 한 번** (`PlatformTransactionManager` 스파이) | **A** · **C** |
 | 실패 주입 시 두 효과가 **둘 다** 미반영 | **B** |
+
+**`status.isNewTransaction()`이 참인 `commit`만 센다.** 필터가 없으면 **올바른 구현도 1을 넘는다** — `SimpleJpaRepository`의 `readOnly` 조회가 매니저의 `commit`을 함께 지나기 때문이다. AU-08 실측값:
+
+| | 집계 |
+| --- | --- |
+| 올바른 구현 | **1** |
+| 변이 C (연산마다 자기 트랜잭션) | **3** |
+| 변이 A | 집계 전에 예외가 난다 (아래 블록인용) |
+
+**숫자를 예측값으로 쓰지 않는다.** 이 절의 앞 판은 A를 0회, C를 2회로 적었고 **둘 다 틀렸다.** 단언은 "정확히 한 번"에 걸고, 그 외의 수치는 측정해서 적는다.
 
 **리뷰어는 A·B·C 셋을 돌린다.** C가 잡히지 않으면 `CHANGES_REQUESTED`다.
 
@@ -103,6 +113,10 @@ related: [dev-workflow.md, orchestration.md]
 스파이가 가로챈 연산의 **결과**를 단언하면 그 단언은 반증 불가능하다. AU-08의 예: `deleteByAccountId`를 `willThrow`로 가로채고 `refresh_token` 행 수가 1임을 단언했는데, DELETE가 발행될 자리가 없으므로 **어떤 구현에서도 1이다.** `@Transactional`이 아예 없을 때도 통과한다.
 
 **검증표의 한 케이스가 두 효과를 요구하면, 각 효과의 단언이 따로 반증 가능한지 확인한다.** 통과하는 것으로는 부족하다 — 깨뜨려 보고 빨개지는지 본다.
+
+**고치는 법 — 되돌릴 효과를 실제로 만든다.** 스텁이 그 연산을 **실제로 발행한 뒤** 예외를 던지면, 롤백될 것이 있으므로 단언이 일한다. AU-08에서는 스텁 안의 `JdbcTemplate` DELETE로 했다(`invocation.callRealMethod()`는 **불가** — Spring Data 리포지터리는 JDK 프록시라 `Cannot call abstract real method on java object!`가 난다). 올바른 구현에서 그 DELETE는 되돌려지고, 트랜잭션 경계가 없으면 그 자리에서 커밋되어 단언이 빨개진다.
+
+> **이 기법은 변이 B 전용이다.** 변이 C를 잡는 데는 쓸 수 없다 — 위 "근본 원인"이 그 이유다. C는 경계 관측이 잡는다.
 
 > 변이 A가 예상 밖의 지점에서 터질 수 있다. Spring Data의 파생 삭제(`deleteBy…`)는 `em.remove`로 처리되고 그것이 활성 트랜잭션을 요구하므로, `SimpleJpaRepository`의 기본 `@Transactional`이 **파생 쿼리 메서드에는 적용되지 않아** 즉시 예외가 난다(`No EntityManager with actual transaction available`). 조용히 사라지지 않는다 — 그래서 A는 쉽게 잡히고 B·C는 안 잡힌다.
 
