@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v10
+version: v11
 updated: 2026-10-12
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -74,7 +74,32 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | PATCH | `/api/v1/accounts/me/password` | 비밀번호 변경 | O | 204 |
 | DELETE | `/api/v1/accounts/me` | **계정 탈퇴 (탈퇴 1단계)** | O | 204 |
 
-`DELETE /api/v1/accounts/me`는 **본문에 현재 비밀번호를 받아 재확인한다.** `account.deleted = true`와 해당 계정의 RefreshToken 삭제를 한 로컬 트랜잭션으로 처리한다. 멱등이다(이미 탈퇴했으면 204).
+`DELETE /api/v1/accounts/me`는 **본문에 현재 비밀번호를 받아 재확인한다.** `account.deleted = true`와 해당 계정의 RefreshToken 삭제를 한 로컬 트랜잭션으로 처리한다.
+
+```json
+// DELETE /api/v1/accounts/me
+{ "password": "Passw0rd!" }
+// 204 (본문 없음)
+```
+
+**자격증명 필드가 하나면 이름은 `password`다.** `LoginRequest`도 그렇다. `PATCH /me/password`만 `currentPassword`를 쓰는데, 거기에는 비밀번호가 **둘** 있어서 구별이 필요하기 때문이다 — 그것이 예외이고 이쪽이 기본이다.
+
+검증 규칙은 `currentPassword`와 같다. **`@NotBlank`만 붙이고 `@Pattern`은 걸지 않는다**(§2.1의 잠금 이유).
+
+| `password` | 응답 |
+| --- | --- |
+| 누락 · `null` · 빈 문자열 | **400 `C001`**, `fieldErrors`에 `password` |
+| 값이 틀림 | **400 `AU004`.** `deleted`는 그대로 `false` |
+
+**멱등이다 — 이미 탈퇴했으면 204다.** 그리고 **그때는 비밀번호를 검증하지 않는다.**
+
+| 계정 상태 | 비밀번호 | 응답 |
+| --- | --- | --- |
+| 활성 | 맞음 | 204. `deleted = true`, RefreshToken 삭제 |
+| 활성 | 틀림 | 400 `AU004` |
+| **이미 탈퇴** | **맞든 틀리든** | **204.** 아무것도 바꾸지 않는다 |
+
+**`deleted` 검사가 비밀번호 비교보다 먼저다.** `PATCH /me/password`와 같은 순서이고, 결론만 반대다(그쪽은 404로 거부, 이쪽은 204로 통과). 이유도 같다 — **닫힌 행에 쓰기가 닿지 않아야 하고 `updated_at`이 움직이지 않아야 한다.** 재확인이 요구되는 것(MR-10)은 **계정을 닫는 행위**에 대한 것이고, 이미 닫힌 계정에는 보호할 상태가 없다.
 
 `PATCH /api/v1/accounts/me/password`의 본문은 **현재 비밀번호와 새 비밀번호 둘**이다.
 
