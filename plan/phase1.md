@@ -904,7 +904,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **`spring-security-oauth2-jose`가 없다.** member는 서명하지 않는다([../security.md §2](../security.md)) — `./gradlew dependencies` 출력으로 확인한다. **테스트로 쓰지 않는다**([../process/review-policy.md §5.3](../process/review-policy.md))
 - [ ] `spring-boot-starter-oauth2-resource-server`가 있다
 - [ ] 그 외 [../tech-stack.md §3.1](../tech-stack.md)의 의존성이 전부 선언되어 있다
-- [ ] `INTERNAL_API_KEY`가 기본값 없이 외부화되어 있다
+- [ ] `INTERNAL_API_KEY`가 **기본값 없이** 선언되어 있다 — `application.yml`을 읽어 확인한다. **"없으면 기동이 실패한다"는 이 항목에서 성립하지 않는다**: 그 속성을 읽는 코드가 없으므로 placeholder가 해석되지 않고 기동이 성공한다. 그 보장은 키를 실제로 읽는 M-10이 진다
 - [ ] `./gradlew build`가 성공하고 8081 포트에 기동된다
 - [ ] M-01의 나머지 완료 기준이 여전히 충족된다
 
@@ -913,7 +913,6 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 케이스 | 기대 결과 |
 | --- | --- |
 | 컨텍스트 로딩 | 예외 없이 기동 |
-| `INTERNAL_API_KEY` 없이 기동 | 기동 실패 |
 
 ---
 
@@ -1265,7 +1264,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] 탈퇴 프로필은 `deleted: true`, 닉네임 `"탈퇴한 회원"` (**DB에는 NULL**)
 - [ ] 내부 API 응답에 이메일·비밀번호가 없다 (애초에 갖고 있지 않다)
 - [ ] `X-Internal-Api-Key` 없이 호출하면 401 또는 403이다
-- [ ] 내부 API 키가 **기본값 없이** 주입된다
+- [ ] 내부 API 키가 **기본값 없이** 주입되고, **키가 없으면 기동이 실패한다.** 리터럴 `${INTERNAL_API_KEY}`가 유효한 키로 쓰이면 **커밋된 `application.yml`의 문자열이 내부 API의 키가 된다** — board도 같은 리터럴을 쓰면 통과한다
+- [ ] **그 실패를 측정해 확인한다.** `@Value` 주입이 미해결 placeholder에 예외를 던지는지는 읽는 방식에 달려 있다 — auth에서는 `@ConfigurationProperties` **맵** 값이 리터럴을 통과시켜 별도 가드가 필요했다([../requirements/member.md §10.2](../requirements/member.md)). **추측하지 말고 키 없이 기동해 본다.** 통과하면 가드를 넣는다
 - [ ] **단건 전용 엔드포인트가 없다**
 
 **검증** — `MemberControllerTest`, `InternalMemberControllerTest`
