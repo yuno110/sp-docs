@@ -1033,6 +1033,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **두 회원을 연달아 `withdraw()`** | **둘 다 성공.** UNIQUE 위반 없음 |
 | `MemberReader`로 없는 `accountId` 조회 | `BusinessException(M001)` |
 | 테이블 메타데이터 | `email`·`password`·`role` 컬럼 없음 |
+| **`information_schema` 의 `nickname` 폭** | **30.** 엔티티의 `@Column(length)` 와 일치한다 — **`validate` 는 길이를 보지 않으므로** 이 비교가 유일한 가드다 ([../tech-stack.md §5.2](../tech-stack.md)) |
 | 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
 | 저장된 테이블명 | **소문자** `member`. `DATABASE_TO_LOWER` 효과 |
 

@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v6
+version: v7
 updated: 2026-10-13
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -165,6 +165,10 @@ InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바�
 | accountId | Long | NOT NULL, UNIQUE, **FK 제약 없음** | `account.id` 논리 참조. 외부 식별자는 이것이다 |
 | nickname | String(30) | **NULL 허용**, UNIQUE | 표시 이름. 탈퇴 시 NULL |
 | deleted | boolean | NOT NULL, default false | 탈퇴 여부(Soft Delete) |
+
+**입력 규칙은 2~10자인데 컬럼이 30인 것은 의도된 여유다**([requirements/member.md §2](requirements/member.md)). 규칙이 넓어질 때 마이그레이션을 피한다. **넘침 위험은 없다** — 컬럼이 규칙보다 넓다. MySQL `VARCHAR`는 **문자 수**를 세므로 한글 10자도 30 안에 들어가고, `uk_member_nickname`은 utf8mb4로 120바이트라 InnoDB의 3072바이트 인덱스 한계와 무관하다(§2.2의 `refresh_token`과 다르다).
+
+> **`ddl-auto: validate`는 이 폭을 보지 않는다**(§5.2는 [tech-stack.md](tech-stack.md)에 있다). 엔티티와 마이그레이션의 길이가 어긋나도 기동한다 — auth에서 그 때문에 `refresh_token.token`의 512자 결함이 세 항목을 통과했다. **`information_schema`의 실제 폭을 읽어 비교하는 테스트로 고정한다.**
 
 **프로필의 세 가지 상태를 구분한다.** 셋을 섞으면 탈퇴한 프로필이 재생성된다.
 
