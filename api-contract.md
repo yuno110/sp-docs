@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v13
+version: v14
 updated: 2026-10-13
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -88,7 +88,7 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | 필드 | |
 | --- | --- |
 | `email` | `account.email` |
-| `createdAt` | `account.created_at`. 오프셋을 표기하지 않는다([tech-stack.md §5](tech-stack.md)) |
+| `createdAt` | `account.created_at`. 오프셋을 표기하지 않는다([tech-stack.md §6](tech-stack.md)). **소수부는 저장값에 따른다** — 운영에는 없고 H2 테스트에는 있다 |
 
 **`accountId`를 넣지 않는다.** MR-07이 정하는 값은 둘이고, 식별자가 필요한 클라이언트는 `POST /api/v1/accounts`의 응답이나 `GET /api/v1/members/me`에서 이미 받는다(§3). 필드를 **나중에 더하는 것은 호환되지만 빼는 것은 아니므로**, 요구가 생길 때 더한다.
 
@@ -543,7 +543,7 @@ public record FieldError(String field, String message) { }
 }
 ```
 
-시각은 KST 기준이며 오프셋을 표기하지 않는다([tech-stack.md §5](tech-stack.md)).
+시각은 KST 기준이며 오프셋을 표기하지 않는다([tech-stack.md §6](tech-stack.md)).
 
 ### 9.4 에러
 

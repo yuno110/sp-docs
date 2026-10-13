@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v5
-updated: 2026-10-12
+version: v6
+updated: 2026-10-13
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -24,7 +24,7 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | createdAt | LocalDateTime | `@CreatedDate`, `updatable = false` |
 | updatedAt | LocalDateTime | `@LastModifiedDate` |
 
-컬럼 타입은 `DATETIME`이고 **둘 다 NOT NULL**이다([tech-stack.md §5](tech-stack.md)). 감사가 INSERT 시점에 둘을 함께 채우므로 NULL이 들어올 경로가 없다.
+컬럼 타입은 `DATETIME`이고 **둘 다 NOT NULL**이다([tech-stack.md §6](tech-stack.md)). 감사가 INSERT 시점에 둘을 함께 채우므로 NULL이 들어올 경로가 없다.
 
 **`DATETIME`은 초 단위다. 측정값이다.**
 

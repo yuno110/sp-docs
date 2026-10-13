@@ -144,7 +144,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 **완료 기준**
 - [ ] auth·member·board의 `createdAt`이 같은 기준 시각이다
 - [ ] 세 DB에 저장된 값이 KST다
-- [ ] API 응답의 시각 형식이 `yyyy-MM-dd'T'HH:mm:ss`이고 오프셋이 없다
+- [ ] API 응답의 시각에 **오프셋이 없다.** 고정 패턴을 단언하지 않는다 — 소수부는 컬럼 타입이 정하고 코드가 보장하지 않는다([../tech-stack.md §6](../tech-stack.md))
 - [ ] **세 서비스**의 JDBC URL에 `serverTimezone=Asia/Seoul`이 있다
 - [ ] **세 서비스**에 `hibernate.jdbc.time_zone: Asia/Seoul`이 있다
 

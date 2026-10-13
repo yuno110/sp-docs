@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v7
-updated: 2026-10-08
+version: v8
+updated: 2026-10-13
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -395,7 +395,22 @@ spring:
 | Hibernate | `spring.jpa.properties.hibernate.jdbc.time_zone: Asia/Seoul` | `application.yml` |
 | 컬럼 타입 | `DATETIME` (`TIMESTAMP` 아님 — 자동 UTC 변환 회피) | 마이그레이션 |
 | Java 타입 | `LocalDateTime` | 엔티티 |
-| API 응답 | `yyyy-MM-dd'T'HH:mm:ss` (오프셋 미표기) | `spring.jackson.time-zone` |
+| API 응답 | 오프셋 미표기 (아래) | **`LocalDateTime` 타입 + Jackson 기본값** |
+
+#### 오프셋이 없는 이유는 Jackson 설정이 아니다
+
+**`spring.jackson.time-zone`은 `LocalDateTime` 직렬화에 영향을 주지 않는다.** 그 값에는 존이 없으므로 변환할 것이 없다. 오프셋이 붙지 않는 실제 이유는 **타입이 `LocalDateTime`이고 Spring Boot가 `WRITE_DATES_AS_TIMESTAMPS`를 끄기 때문**이며, 그 결과는 ISO-8601 지역시각이다.
+
+**그래서 소수부는 저장값에 있으면 그대로 나간다. 패턴을 강제하는 것이 없다.**
+
+| | `created_at`의 소수부 | API 응답 |
+| --- | --- | --- |
+| 운영 MySQL `DATETIME` | **없다** (초 단위, [domain-model.md §1.1](domain-model.md)의 측정값) | `2026-09-11T10:00:00` |
+| **테스트 H2** | **마이크로초까지 있다** | `2026-10-13T09:32:24.339402` (실측) |
+
+**계약은 "오프셋 없음"이다.** `yyyy-MM-dd'T'HH:mm:ss`라는 고정 패턴은 운영에서 참이고 **테스트에서는 아니다** — 그 모양은 컬럼 타입이 만들어 주는 것이고 코드가 보장하지 않는다. 그러므로 **시각 문자열을 단언하는 테스트는 소수부를 선택으로 둔다.**
+
+패턴을 진짜로 고정하려면 전역 Jackson 설정이나 `@JsonFormat`이 필요하고, **세 서비스에 함께 넣어야 한다**(한 서비스만 넣으면 응답이 갈린다). 1차에서는 넣지 않는다 — 운영에서 모양이 이미 같고, 계약이 요구하는 것은 오프셋 부재다.
 
 ### 6.1 JVM 시간대는 코드에서 건드리지 않는다
 

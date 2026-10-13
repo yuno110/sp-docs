@@ -2,8 +2,8 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-10-13
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
 ---
@@ -84,4 +84,4 @@ related: [architecture.md, process/dev-workflow.md]
 
 ## 9. 시간대
 
-전 구성요소 KST(`Asia/Seoul`) 통일. 설정 항목과 검증 방법은 [tech-stack.md §5](tech-stack.md)를 본다.
+전 구성요소 KST(`Asia/Seoul`) 통일. 설정 항목과 검증 방법은 [tech-stack.md §6](tech-stack.md)를 본다.

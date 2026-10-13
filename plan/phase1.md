@@ -805,7 +805,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **탈퇴한 계정의 토큰으로 조회** | **404 `AU001`** ([../api-contract.md §2.2](../api-contract.md)) |
 | **`sub`가 가리키는 행 부재** | **404 `AU001`.** 탈퇴와 같은 코드다 |
 | **응답 키 집합** | `email`·`createdAt` **정확히 둘.** `accountId`도 없다 |
-| `createdAt` 형식 | 오프셋 표기 없음 ([../tech-stack.md §5](../tech-stack.md)) |
+| `createdAt` 형식 | **오프셋 표기 없음.** 소수부는 선택으로 둔다 — H2 는 마이크로초를 남긴다 ([../tech-stack.md §6](../tech-stack.md)) |
 
 ---
 
