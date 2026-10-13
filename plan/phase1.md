@@ -823,7 +823,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `README.md` 갱신 (실행 절차, 환경변수 목록, **키 배치 절차**)
 - `JwtConfig`의 claim 검증기 집합을 고정하는 테스트 — AU-07에서 넘어온 것
 - `GlobalExceptionHandler`에 **미디어 타입 예외 둘** (`C006` 415 · `C007` 406), `ErrorCode` 확장
-- Actuator 설정 (`/actuator/health`만 노출)
+- Actuator 설정 — **AU-01의 `management.endpoints.web.exposure.include: health`와 AU-04의 `denyAll`이 이미 한다.** 확인만 하고 중복을 만들지 않는다
 - `application-prod.yml` (Swagger·SQL 로그 비활성화)
 
 **완료 기준**
@@ -831,6 +831,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `README.md`에 **개인키 배치 절차**가 적혀 있다
 - [ ] `/actuator/health`가 동작하고 그 외 엔드포인트는 노출되지 않는다
 - [ ] `prod` 프로파일에서 Swagger UI가 비활성화된다
+- [ ] **`springdoc.api-docs.enabled`도 끈다.** UI만 끄면 `/v3/api-docs`가 전체 엔드포인트 목록을 그대로 낸다
 - [ ] `prod` 프로파일에서 SQL 로그가 꺼진다
 - [ ] 전체 테스트가 통과한다 (`./gradlew test`)
 - [ ] **커밋된 파일에 개인키·비밀 값이 없다**
@@ -843,14 +844,23 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 케이스 | 기대 결과 |
 | --- | --- |
 | `/actuator/health` | 200, `{"status":"UP"}` |
-| `/actuator/env` | 404 또는 403 |
+| `/actuator/env` | **무토큰 401 `A001`, 유효 토큰 403 `A004`** (실측). 404가 아니다 — 익명 요청을 entry point로 보내는 것이 AU-04가 정한 동작이다 |
 | `prod` 프로파일로 `/swagger-ui.html` | 404 |
 | `git log -p`에서 `BEGIN PRIVATE KEY` 검색 | **없음** |
-| `git log -p`에서 비밀번호 검색 | 없음 |
+| **현재 트리**에서 비밀번호·BCrypt 모양 검색 | **없음** (`git grep`) |
+| `git log -p`에서 비밀번호 검색 | **BCrypt 모양 3줄이 이력에 남아 있다.** 아래를 본다 |
 | **`JwtConfig`의 검증기 집합** | **`JwtTimestampValidator`·`X509CertificateThumbprintValidator` 둘뿐.** 늘면 테스트가 깨져 `failureCode`를 함께 보게 한다 |
 | **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500이 아니다 |
 | `Content-Type: text/plain` + JSON 본문 | 415 `C006` |
 | **`Accept: application/xml`** | **406 `C007`** |
+
+#### 이력에 남은 BCrypt 모양 — 감수한다
+
+**현재 트리는 0건이지만 이력에는 3줄이 있다.** `c10ae9e`(AU-03)가 넣고 `f199186`(AU-05)가 뺐다. 값은 `$2a$10$abcdefghijklmnop…`처럼 순차 문자열로 조립한 것이라 **실제 자격증명이 아니다.**
+
+[../requirements/member.md §10.2](../requirements/member.md)의 근거 둘 중 하나는 이력에도 적용된다 — **이력을 훑는 시크릿 스캐너는 이 3줄을 집어낸다.** 다른 하나(읽는 사람이 진짜와 구분할 수 없다)는 현재 트리가 깨끗하므로 해당되지 않는다.
+
+**이력 재작성을 하지 않는다.** 비가역이고 force push 가 필요하며, `c10ae9e` 이후 모든 커밋 해시가 바뀐다 — `sp-docs`의 커밋 메시지들이 `sp-auth`의 해시를 인용하고 있어 그 참조가 전부 끊긴다. 실제 자격증명이 아니므로 비용이 이득을 넘는다. **필요해지면 명시적 결정으로 한다.**
 
 #### 하지 않기로 한 것 둘
 

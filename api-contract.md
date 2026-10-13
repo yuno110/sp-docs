@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v15
+version: v16
 updated: 2026-10-13
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -413,12 +413,16 @@ public record FieldError(String field, String message) { }
 
 **`C006`·`C007`이 없으면 클라이언트 실수가 500이 된다.** `GlobalExceptionHandler`가 `ResponseEntityExceptionHandler`를 상속하지 않으므로, 처리하지 않은 MVC 예외는 마지막 그물(`Exception.class`)로 떨어진다.
 
-| 요청 | 예외 | 다루지 않으면 |
+| 요청 | 예외 | 다루지 않으면 — **실측값** |
 | --- | --- | --- |
 | 본문이 있는데 `Content-Type`이 없거나 JSON이 아니다 | `HttpMediaTypeNotSupportedException` | **500 `C005`** |
-| `Accept`로 JSON을 받을 수 없다 | `HttpMediaTypeNotAcceptableException` | **500 `C005`** |
+| `Accept`로 JSON을 받을 수 없다 | `HttpMediaTypeNotAcceptableException` | **406, 본문이 비어 있다** |
 
-**상태 코드보다 로그가 더 문제다.** 마지막 그물은 `log.error`로 스택트레이스를 남기므로, **흔한 클라이언트 실수가 ERROR 경보를 만든다.** 원인이 서버에 있는 500과 구별되지 않으면 경보가 쓸모를 잃는다([../AGENTS.md](../AGENTS.md) 불변식 9).
+**두 번째가 500이 아닌 이유.** 마지막 그물이 만든 `C005` 본문을 **협상할 수 없어** Spring이 빈 406으로 떨어뜨린다. 상태는 맞으면서 **에러 코드가 아예 없는** 응답이 나간다.
+
+> **그래서 `C007` 핸들러는 응답의 `Content-Type`을 `application/json`으로 못박는다.** 그러지 않으면 핸들러 자신의 응답이 같은 협상에 걸려 또 빈 본문이 된다.
+
+**상태 코드보다 로그가 더 문제다.** 마지막 그물은 `log.error`로 스택트레이스를 남기므로, **두 경우 모두 ERROR 경보를 만든다**(실측 2건). 흔한 클라이언트 실수가 원인이 서버에 있는 500과 구별되지 않으면 경보가 쓸모를 잃는다([../AGENTS.md](../AGENTS.md) 불변식 9).
 
 세 서비스가 `GlobalExceptionHandler`를 각자 복제하므로([adr/0007](adr/0007-shared-code-policy.md)) **셋 다 이 둘을 다룬다.** 형식 일치는 [plan/integration.md](plan/integration.md) I-04의 3자 비교에서 확인한다.
 
