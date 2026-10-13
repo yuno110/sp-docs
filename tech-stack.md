@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v8
+version: v9
 updated: 2026-10-13
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -65,7 +65,7 @@ related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-pol
 
 RS256을 쓰기로 했으므로([adr/0004](adr/0004-rs256-over-hs256.md)) Spring Security 표준 기능을 사용한다. JWT 필터·Provider·검증 로직을 손으로 만들지 않는다. 근거는 [adr/0007](adr/0007-shared-code-policy.md)에 있다.
 
-### 2.1 board-service (검증)
+### 2.1 검증 — 세 서비스 전부
 
 ```groovy
 implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
@@ -82,15 +82,38 @@ spring:
 
 이것으로 서명 검증·만료 확인·`SecurityContext` 주입이 끝난다. 직접 작성할 것은 `role` claim을 `GrantedAuthority`로 바꾸는 컨버터뿐이다.
 
+**member·board뿐 아니라 auth도 이 의존성을 갖는다.** auth는 자기가 발급한 토큰을 보호 경로에서 검증해야 한다(§3.2).
+
 > 의존성 이름에 `oauth2`가 붙지만 OAuth2 인가 서버가 필요한 것이 아니다. 표준 JWT(RFC 7519) 검증기 부분만 사용한다.
 
-### 2.2 member-service (발급)
+### 2.2 발급 — auth-service만
 
 ```groovy
 implementation 'org.springframework.security:spring-security-oauth2-jose'
 ```
 
 `NimbusJwtEncoder`로 서명한다. jjwt 라이브러리는 사용하지 않는다.
+
+**이 줄을 쓰는 것은 auth 하나다.** 개인키를 갖는 서비스가 하나이기 때문이다([security.md §2](security.md), [adr/0012](adr/0012-auth-as-separate-service.md) §2).
+
+> **이전 판은 이 절을 "member-service (발급)"으로 적었다.** auth 분리 전의 구조이고 [adr/0012](adr/0012-auth-as-separate-service.md)와 정면으로 어긋났다 — `sp-member`의 `build.gradle`에 서명 의존성이 들어간 것이 이 절을 따른 결과다(M-01). M-01R이 그것을 정정했다.
+
+#### 검증 의존성이 서명 클래스를 함께 끌고 온다
+
+**`spring-boot-starter-oauth2-resource-server`가 `spring-security-oauth2-jose`를 추이 의존으로 가져온다.** 측정값이다.
+
+```
+spring-boot-starter-oauth2-resource-server
+ \--- spring-security-oauth2-resource-server
+      \--- spring-security-oauth2-jose
+           \--- com.nimbusds:nimbus-jose-jwt
+```
+
+`exclude`로 뺄 수도 없다 — 같은 jar 안에 `NimbusJwtEncoder`(서명)와 `NimbusJwtDecoder`(검증)가 **함께** 들어 있다.
+
+**그래서 "클래스패스에 서명 API가 없다"는 보장은 존재하지 않는다.** 세 서비스 모두 서명 클래스를 갖는다. §3.2가 금지하는 것은 **직접 선언**이고, 그것이 지키는 것은 역량이 아니라 **의도의 표시**다 — 서명 의존성을 직접 적은 서비스는 "서명할 생각"을 선언한 것이다.
+
+**실제 보장은 개인키가 없는 것이다.** member·board는 공개키만 배치받고 개인키 경로를 설정에 두지 않는다([security.md §3](security.md)). 그것이 M-04·B-04의 완료 기준이다.
 
 ## 3. Gradle 의존성
 
@@ -146,7 +169,11 @@ dependencies {
 | member | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` | 검증만 |
 | board | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` | 검증만 |
 
-**서명 의존성을 갖는 것은 auth 하나뿐이다.** member·board에 `oauth2-jose`를 넣지 않는다 — 넣으면 개인키만 있으면 토큰을 만들 수 있게 되어 [security.md §2](security.md)의 경계가 흐려진다.
+**`oauth2-jose`를 직접 선언하는 것은 auth 하나뿐이다.** member·board에 그 줄을 넣지 않는다.
+
+**다만 그것이 서명 역량을 막지는 못한다.** 검증 의존성이 `oauth2-jose`를 추이로 끌고 오므로 **세 서비스 모두 클래스패스에 서명 클래스를 갖는다**(§2.2의 측정값). 직접 선언을 금지하는 것은 **의도를 선언하지 않게 하는 것**이고, 실제 경계는 **개인키가 member·board에 없는 것**이다([security.md §2 §3](security.md)).
+
+> **의존성 트리에서 `oauth2-jose`가 0건인지 확인하지 않는다.** 불가능하다. 확인할 것은 `build.gradle`의 **직접 선언**이다.
 
 QueryDSL Q타입 생성 경로(`build/generated/sources/annotationProcessor`)를 `.gitignore`에 넣는다.
 

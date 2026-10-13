@@ -882,7 +882,17 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 ### M-01 프로젝트 스캐폴딩 [기반 · done]
 
-원래 완료 기준은 그대로 둔다. 바뀐 부분은 `M-01R`이 처리한다.
+**원래 완료 기준을 여기 남겨 둔다.** `M-01R`이 "M-01의 나머지 완료 기준이 여전히 충족된다"를 요구하므로, 그 목록이 정본에 있어야 한다 — 이전 판은 "원래 완료 기준은 그대로 둔다"고만 적고 목록을 지워서, 확인하려면 git 이력을 뒤져야 했다.
+
+- [x] `./gradlew build`가 성공한다
+- [x] Boot 플러그인 버전이 `3.5.16`이다
+- [x] `spring-boot-starter-webmvc` 등 Boot 4 스타터 이름이 남아 있지 않다
+- [x] `./gradlew bootRun`으로 8081 포트에 기동된다
+- [x] [../tech-stack.md §3.1 §3.2](../tech-stack.md)의 의존성이 전부 선언되어 있다
+- [x] DB 접속 정보가 환경변수로 외부화되어 있다 ([../tech-stack.md §4.3](../tech-stack.md))
+- [x] `.gitignore`에 `private.pem`, `*.env`가 있다
+
+**이 중 다섯째가 auth 분리로 틀려졌다.** `M-01`은 당시 [../tech-stack.md §2.2](../tech-stack.md)("member-service (발급)")를 따라 서명 의존성을 넣었고, 그 절이 분리 전 구조였다. `M-01R`이 의존성을 정정하고 §2.2도 함께 고쳤다.
 
 ---
 
@@ -901,7 +911,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `application.yml` 수정 — 내부 API 키 설정 추가
 
 **완료 기준**
-- [ ] **`spring-security-oauth2-jose`가 없다.** member는 서명하지 않는다([../security.md §2](../security.md)) — `./gradlew dependencies` 출력으로 확인한다. **테스트로 쓰지 않는다**([../process/review-policy.md §5.3](../process/review-policy.md))
+- [ ] **`spring-security-oauth2-jose`를 직접 선언하지 않는다.** member는 서명하지 않는다([../security.md §2](../security.md)) — `build.gradle`을 읽어 확인한다. **의존성 트리에서 0건인지 보지 않는다**: 검증 의존성이 그것을 추이로 끌고 오므로 불가능하다([../tech-stack.md §2.2](../tech-stack.md)의 측정값)
 - [ ] `spring-boot-starter-oauth2-resource-server`가 있다
 - [ ] 그 외 [../tech-stack.md §3.1](../tech-stack.md)의 의존성이 전부 선언되어 있다
 - [ ] `INTERNAL_API_KEY`가 **기본값 없이** 선언되어 있다 — `application.yml`을 읽어 확인한다. **"없으면 기동이 실패한다"는 이 항목에서 성립하지 않는다**: 그 속성을 읽는 코드가 없으므로 placeholder가 해석되지 않고 기동이 성공한다. 그 보장은 키를 실제로 읽는 M-10이 진다
