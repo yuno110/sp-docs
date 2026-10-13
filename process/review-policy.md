@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v10
+version: v11
 updated: 2026-10-13
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -219,6 +219,7 @@ related: [dev-workflow.md, orchestration.md]
 | --- | --- |
 | 링크 대상 파일이 있는가 | `[...](other.md)` |
 | 라벨의 절 번호가 대상에 있는가 | `[tech-stack.md §5.3](tech-stack.md)` |
+| **개정 대상을 고쳤으면 `version` 도 올랐는가** | `HEAD` 와 보므로 **촜밋 전에** 돌려야 의미가 있다 |
 
 절을 지우거나 번호를 바꾸면 **다른 문서가 가리키던 주소가 조용히 죽는다.** 32편이 서로를 참조하므로 손으로 좇을 수 없다.
 
@@ -228,7 +229,7 @@ related: [dev-workflow.md, orchestration.md]
 
 `api-contract.md`, `domain-model.md`, `tech-stack.md`, `conventions.md`, `requirements/`, `adr/`의 변경은 개정이다.
 
-- front matter의 `version`과 `updated`를 올린다
+- front matter의 `version`과 `updated`를 올린다. **`security.md` 도 같은 취급이다** — 세 서비스가 의존하는 계약이다. 누락은 도구가 잡는다(위 표 셋째 행)
 - **구현 워커는 정본 문서를 고치지 않는다**([orchestration.md §7](orchestration.md)). 문서가 틀렸다고 판단되면 BLOCKED로 보고한다
 - **`api-contract.md §6`(JWT Claim)는 세 서비스가 공유하는 계약이다.** 발급은 auth 하나, 검증은 member·board 둘이다. 개정 시 세 담당이 모두 확인한다
 - **`api-contract.md §5`(내부 API)는 board와 member가 공유하는 계약이다.** 1차부터 쓰기 경로에서 호출된다
