@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v3
+version: v4
 updated: 2026-10-13
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -191,6 +191,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | 각 서비스의 `ErrorCode` 열거 | 타 서비스 전용 접두어 없음 |
 | 세 서비스 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last` |
 | 500 응답 본문 | **세 서비스 모두** 스택트레이스 없음 |
+| **세 서비스의 로그 수준** | 클라이언트 오류는 `ERROR`가 **아니고** 마지막 그물은 `ERROR`다 ([../conventions.md §6.1](../conventions.md)). **auth 는 이 단언을 자기 테스트에 갖지 않으므로 여기가 유일한 게이트다** |
 
 불일치가 발견되면 [../api-contract.md](../api-contract.md)를 정본으로 삼아 세 서비스를 맞춘다.
 

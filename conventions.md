@@ -149,7 +149,7 @@ public class PostService {
 
 **양쪽을 다 단언한다.** 클라이언트 오류가 `error`가 아닌 것만 보면 **반대 방향이 열린다** — 마지막 그물을 `warn`으로 낮추면 500이 ERROR 경보를 전혀 만들지 않게 되고, 그것이 더 나쁘다. M-02 리뷰에서 그 변이가 잡히지 않는 것이 측정됐다.
 
-> **auth는 동작은 맞지만 그 단언이 없다.** `log.error`를 쓰고 있으나 `log.warn`으로 바꾸는 변이를 잡는 테스트가 없다. auth의 1차 항목이 모두 끝났으므로 지금 고치지 않는다 — **`GlobalExceptionHandler`를 다음에 손대는 사람이 단언을 더한다.**
+> **auth는 동작은 맞지만 그 단언이 없다.** `log.error`를 쓰고 있으나 `log.warn`으로 바꾸는 변이를 잡는 테스트가 없다. auth의 1차 항목이 모두 끝났으므로 지금 고치지 않고, **[plan/integration.md](plan/integration.md) I-04가 세 서비스의 로그 수준을 비교하는 것으로 그 공백을 받는다** — 거기가 auth에 대한 유일한 게이트다. `GlobalExceptionHandler`를 다음에 손대는 사람이 단언을 더하면 그때 닫힌다.
 
 > **`A001`·`A002`·`A003`은 이 표에 없다.** 인증 실패는 `GlobalExceptionHandler`에 닿기 전에 Security 필터 체인이 처리하므로, `AuthenticationEntryPoint`·`AccessDeniedHandler`가 낸다([api-contract.md §8.5](api-contract.md)의 경계). 보안 기반 항목(AU-04·M-04·B-04)의 몫이다.
 
