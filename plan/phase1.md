@@ -852,7 +852,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | `prod` 프로파일로 `/swagger-ui.html`·`/v3/api-docs` | **404.** 같은 경로가 `test` 프로파일에서는 열린다 — 그 대조가 404의 출처를 가린다 |
 | `prod` 프로파일의 SQL 로그 | `show-sql`과 `logging.level.*` **속성값**이 꺼짐으로 설정되어 있다 |
-| **미디어 타입 둘의 로그 수준** | **`WARN`.** `log.error`가 아니다 — 클라이언트 실수가 ERROR 경보를 만들면 안 된다 |
+| **미디어 타입 둘의 로그** | **`log.error`가 아니다** (실제는 `WARN`). 해당 완료 기준이 "ERROR를 남기지 않는다"이므로 **수준을 못박지 않는다** — 기준보다 좁은 주장을 하지 않는다([../process/review-policy.md §5.3](../process/review-policy.md)) |
 | **`JwtConfig`의 검증기 집합** | **`JwtTimestampValidator`·`X509CertificateThumbprintValidator` 둘뿐.** 늘면 테스트가 깨져 `failureCode`를 함께 보게 한다 |
 | **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500이 아니다 |
 | `Content-Type: text/plain` + JSON 본문 | 415 `C006` |
