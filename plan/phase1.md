@@ -1074,7 +1074,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `/internal/**`이 외부 인증 체인에서 분리되어 있다
 - [ ] 세션이 생성되지 않는다
 - [ ] CORS 설정에 `*`가 없다
-- [ ] 공개키가 없으면 **기동이 실패한다**
+- [ ] **공개키 설정 키가 `spring.security.oauth2.resourceserver.jwt.public-key-location`이다** ([../tech-stack.md §2.1](../tech-stack.md)). 현재 `application.yml`에 들어 있는 `jwt.public-key-location`은 **정본 키가 아니고 읽는 코드도 없다** — 내 설정 커밋(`5807372`)이 넣은 것이고 이 항목에서 교체한다. 표준 키를 쓰면 스타터가 `JwtDecoder`를 자동구성하므로 컨버터 외에 직접 만들 것이 없다
+- [ ] 공개키가 없으면 **기동이 실패한다.** **측정해서 확인한다** — 자동구성이 기동 시점에 키 파일을 읽는지가 전제다. `INTERNAL_API_KEY`가 그 전제 없이 적혀 있다가 M-10으로 옮겨졌다(M-01R 참조). **추측하지 말고 파일을 치우고 띄워 본다**
 
 **검증** — `SecurityConfigTest` (`@SpringBootTest` + MockMvc)
 
