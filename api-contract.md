@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v16
+version: v17
 updated: 2026-10-13
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -251,6 +251,43 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 - `GET /api/v1/members/me`는 **프로필이 없으면 404 `M001`**이다. 이것은 오류가 아니라 "가입 3단계가 아직"이라는 뜻이며, 클라이언트는 프로필 등록 화면으로 보낸다
 - `GET /api/v1/members/{accountId}`의 경로 변수는 **`accountId`다.** `member.id`는 외부에 노출하지 않는다
 - `DELETE /api/v1/members/me`는 멱등이다. 프로필 `deleted = true`, `nickname`은 NULL로 비운다
+
+### 3.1 두 조회의 응답 형태
+
+**`GET /me`와 `GET /{accountId}`가 다른 모양이다.** 요구사항이 다른 값을 배정하기 때문이다.
+
+```json
+// GET /api/v1/members/me  -> 200
+{ "success": true, "data": { "accountId": 1, "nickname": "홍길동" }, "error": null }
+
+// GET /api/v1/members/1   -> 200
+{ "success": true,
+  "data": { "accountId": 1, "nickname": "홍길동", "createdAt": "2026-09-11T10:05:00", "deleted": false },
+  "error": null }
+```
+
+| | 반환 | 근거 |
+| --- | --- | --- |
+| `GET /me` | `accountId`·`nickname` | [requirements/member.md §5](requirements/member.md) MR-07이 member에 배정한 것은 **닉네임뿐이다** |
+| `GET /{accountId}` | `accountId`·`nickname`·`createdAt`·`deleted` | MR-11이 "닉네임, 가입일"을 요구하고, 탈퇴 표기에 `deleted`가 필요하다 |
+
+`POST /api/v1/members`의 응답도 `GET /me`와 같은 모양이다(§9.1).
+
+**두 "가입일"이 다른 값이다.** MR-07의 가입일은 `account.created_at`(계정 생성)이고 `GET /api/v1/accounts/me`가 돌려준다. **MR-11의 가입일은 `member.created_at`(프로필 등록 시각)이다** — 가입이 2단계이므로 사이에 로그인이 끼고, 둘은 같지 않다([adr/0012](adr/0012-auth-as-separate-service.md) §4). 타인의 계정 생성 시각은 **읽을 수 없다** — `GET /accounts/me`는 자기 것만 돌려준다.
+
+#### 탈퇴한 프로필의 공개 조회
+
+| 요청 | 응답 |
+| --- | --- |
+| `GET /me`, 프로필 없음 **또는 탈퇴** | **404 `M001`** |
+| **`GET /{accountId}`, 탈퇴한 프로필** | **200.** `nickname`은 `"탈퇴한 회원"`, `deleted: true` |
+| `GET /{accountId}`, 그 `accountId`의 프로필이 **없음** | **404 `M001`** |
+
+**`/me`가 404인데 `/{accountId}`가 200인 것이 의도다.** 앞은 "내 프로필을 고치러 왔다"이고 탈퇴했으면 고칠 것이 없다. 뒤는 **"이 글을 쓴 사람의 표시 이름"**이고, 글이 남아 있으므로 표시할 것이 있다 — 404를 주면 클라이언트가 정상적으로 존재하는 글에 오류를 띄운다.
+
+**마스킹 규칙은 하나다.** `"탈퇴한 회원"`은 §5의 내부 API와 **같은 응답 시 변환**이며 저장값은 NULL이다([domain-model.md §3.1](domain-model.md)). 두 군데서 다르게 변환하지 않는다.
+
+> **없는 `accountId`에 404를 쓰는 것은 여기까지다.** §5.1이 금지한 것은 **내부 API**에서 404를 업무 의미로 쓰는 것이다 — board가 그것을 "프로필 없음"으로 읽으면 경로 오설정이 업무 오류로 위장된다. 공개 조회는 클라이언트를 상대하므로 404가 맞다. **두 경로를 같게 맞추지 않는다.**
 
 ## 4. board-service API
 

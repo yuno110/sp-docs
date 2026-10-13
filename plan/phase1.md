@@ -385,7 +385,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
 - [ ] **테스트 DataSource URL이 [../tech-stack.md §5.3](../tech-stack.md)의 정본과 일치한다** — `DATABASE_TO_LOWER`·`CASE_INSENSITIVE_IDENTIFIERS`·`DB_CLOSE_DELAY=-1` 포함
 - [ ] **테스트가 그 URL로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
-- [ ] **`ddl-auto: validate`가 실제로 적용된다**
+- [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있는 컬럼을 넣는 변이에서 `SchemaManagementException`으로 기동이 실패하는 것으로 확인한다 — **검증표에 넣지 않는다**(테스트가 자기 엔티티를 바꿀 수 없다, [../process/review-policy.md §5.3](../process/review-policy.md))
 
 **검증** — `AccountRepositoryTest`, `RefreshTokenRepositoryTest` (`@DataJpaTest`)
 
@@ -401,8 +401,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **이미 삭제된 행에 회전 시도** | **0행 갱신 → 실패로 처리** |
 | `AccountReader`로 없는 id 조회 | `BusinessException(AU001)` |
 | 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
-| 저장된 테이블명 | **소문자** (`account`·`member`·`post`). `DATABASE_TO_LOWER` 효과 |
-| 엔티티에만 있는 컬럼 추가 후 실행 | **실패** — `SchemaManagementException` |
+| 저장된 테이블명 | **소문자** `account`·`refresh_token`. `DATABASE_TO_LOWER` 효과 |
 
 ---
 
@@ -902,7 +901,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `application.yml` 수정 — 내부 API 키 설정 추가
 
 **완료 기준**
-- [ ] **`spring-security-oauth2-jose`가 없다.** member는 서명하지 않는다([../security.md §2](../security.md))
+- [ ] **`spring-security-oauth2-jose`가 없다.** member는 서명하지 않는다([../security.md §2](../security.md)) — `./gradlew dependencies` 출력으로 확인한다. **테스트로 쓰지 않는다**([../process/review-policy.md §5.3](../process/review-policy.md))
 - [ ] `spring-boot-starter-oauth2-resource-server`가 있다
 - [ ] 그 외 [../tech-stack.md §3.1](../tech-stack.md)의 의존성이 전부 선언되어 있다
 - [ ] `INTERNAL_API_KEY`가 기본값 없이 외부화되어 있다
@@ -914,7 +913,6 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 케이스 | 기대 결과 |
 | --- | --- |
 | 컨텍스트 로딩 | 예외 없이 기동 |
-| 의존성 트리에서 `oauth2-jose` 검색 | **없음** |
 | `INTERNAL_API_KEY` 없이 기동 | 기동 실패 |
 
 ---
@@ -925,7 +923,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-01R |
-| 참조 | [../api-contract.md §7 §8.1 §8.2](../api-contract.md), [../domain-model.md §1.1](../domain-model.md), [../conventions.md §6 §7](../conventions.md) |
+| 참조 | [../api-contract.md §7 §8.1 §8.2](../api-contract.md), [../domain-model.md §1.1](../domain-model.md), [../conventions.md §6 §7 §9](../conventions.md) |
 
 **산출물**
 - `global/common/ApiResponse.java`, `ErrorResponse.java`, `PageResponse.java`
@@ -968,7 +966,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-02 |
-| 참조 | [../domain-model.md §1 §3](../domain-model.md), [../conventions.md §2](../conventions.md), [../requirements/member.md §3](../requirements/member.md) |
+| 참조 | [../domain-model.md §1 §3](../domain-model.md), [../conventions.md §2 §9](../conventions.md), [../requirements/member.md §3](../requirements/member.md) |
 
 **엔티티가 하나로 줄었다.** `RefreshToken`은 auth(`AU-03`)로 옮겨갔고, `Member`에서 `email`·`password`·`role`이 빠졌다.
 
@@ -1007,7 +1005,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
 - [ ] **테스트 DataSource URL이 [../tech-stack.md §5.3](../tech-stack.md)의 정본과 일치한다** — `DATABASE_TO_LOWER`·`CASE_INSENSITIVE_IDENTIFIERS`·`DB_CLOSE_DELAY=-1` 포함
 - [ ] **테스트가 그 URL로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
-- [ ] **`ddl-auto: validate`가 실제로 적용된다**
+- [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있는 컬럼을 넣는 변이에서 `SchemaManagementException`으로 기동이 실패하는 것으로 확인한다 — **검증표에 넣지 않는다**(테스트가 자기 엔티티를 바꿀 수 없다, [../process/review-policy.md §5.3](../process/review-policy.md))
 
 **검증** — `MemberRepositoryTest` (`@DataJpaTest`)
 
@@ -1024,8 +1022,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `MemberReader`로 없는 `accountId` 조회 | `BusinessException(M001)` |
 | 테이블 메타데이터 | `email`·`password`·`role` 컬럼 없음 |
 | 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
-| 저장된 테이블명 | **소문자** (`account`·`member`·`post`). `DATABASE_TO_LOWER` 효과 |
-| 엔티티에만 있는 컬럼 추가 후 실행 | **실패** — `SchemaManagementException` |
+| 저장된 테이블명 | **소문자** `member`. `DATABASE_TO_LOWER` 효과 |
 
 > **탈퇴 2건 연속 테스트를 반드시 넣는다.** 첫 탈퇴는 항상 성공하므로 1건만 보면 UNIQUE 결함을 놓친다.
 
@@ -1037,7 +1034,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-03 |
-| 참조 | [../security.md](../security.md) 전체, [../api-contract.md §3 §6](../api-contract.md), [../conventions.md §1.2](../conventions.md) |
+| 참조 | [../security.md](../security.md) 전체, [../api-contract.md §3 §6 **§8.5**](../api-contract.md), [../conventions.md §1.2 §9](../conventions.md) |
 
 **member는 검증만 한다.** 개인키·`JwtTokenProvider`·`TokenResponse`는 auth(`AU-04`)로 옮겨갔다.
 
@@ -1060,6 +1057,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **개인키를 로딩하지 않는다.** 서명 기능이 없다
 - [ ] `LoginMember`가 `(accountId, role)`이고 **`nickname` 필드가 없다**
 - [ ] `role` claim이 `GrantedAuthority`로 변환된다
+- [ ] **`A001`·`A002`·`A003`의 경계가 [../api-contract.md §8.5](../api-contract.md)와 일치한다.** 세 서비스가 공유하는 계약이다 — auth(AU-04)가 이미 이 경계로 구현했고 I-04가 3자 비교한다. **예외 타입만 보고 가른다. 메시지 문자열을 파싱하지 않는다**
 - [ ] [../api-contract.md §3](../api-contract.md)의 **모든 경로**에 인가 규칙이 선언되어 있다
 - [ ] **`/members/me`가 `/members/{accountId}`보다 먼저 선언되어 있다**
 - [ ] **`/swagger-ui/**`·`/v3/api-docs/**`가 `permitAll`이고 인증 없이 열린다** ([../security.md §5.1.1](../security.md))
@@ -1075,8 +1073,12 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 유효 토큰으로 인증 | 통과, `LoginMember.accountId()`가 `sub`와 일치 |
 | `LoginMember` 필드 목록 | `nickname` 없음 |
-| payload 변조된 토큰 | 401 |
+| **헤더 없음** | **401 `A001`** |
+| **`Bearer not!a!token`** (`b64token` 문법 위반) | **401 `A001`** — 애초에 bearer 자격증명이 아니다 |
+| **`Bearer <문법은 맞지만 JWT가 아님>`** | **401 `A002`** |
+| payload 변조된 토큰 | **401 `A002`** |
 | 만료된 토큰 | 401 `A003` |
+| **`iss` 불일치** | **401 `A002`** — 사유를 가르지 않는다 |
 | **토큰 없이 `GET /api/v1/members/me`** | **401 `A001`** |
 | **토큰 없이 `GET /api/v1/members/1`** | **401이 아님** |
 | 공개키 없이 기동 | 기동 실패 |
@@ -1095,7 +1097,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-04 |
-| 참조 | [../requirements/member.md §1 §2 §3 §4 §10](../requirements/member.md) (MR-01 3단계, MR-03), [../api-contract.md §3 §9.1](../api-contract.md) |
+| 참조 | [../requirements/member.md §1 §2 §3 §4 §10](../requirements/member.md) (MR-01 3단계, MR-03), [../api-contract.md §3 §3.1 §9.1](../api-contract.md), [../conventions.md §9](../conventions.md) |
 
 **가입 3단계다.** 계정 생성(AU-05)과 로그인(AU-06)이 먼저다.
 
@@ -1145,7 +1147,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-05 |
 | 공유 파일 | `MemberService`, `MemberController` (M-05 생성) |
-| 참조 | [../requirements/member.md §1 §5 §7](../requirements/member.md) (MR-07의 프로필 절반, MR-08) |
+| 참조 | [../requirements/member.md §1 §5 §7](../requirements/member.md) (MR-07의 프로필 절반, MR-08), [../api-contract.md §3.1](../api-contract.md), [../conventions.md §9](../conventions.md) |
 
 **MR-07이 두 서비스로 갈라진 절반이다.** 이메일·가입일은 `AU-10`이 담당한다.
 
@@ -1156,7 +1158,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **⚠ 새 Access Token을 반환하지 않는다.** 이전 v3의 요구는 **폐기됐다.** Claim에 `nickname`이 없으므로 토큰이 낡을 이유가 없고, member는 개인키가 없어 발급할 수도 없다([../requirements/member.md §7](../requirements/member.md)).
 
 **완료 기준**
-- [ ] `GET /api/v1/members/me`가 내 프로필(닉네임)을 반환한다
+- [ ] `GET /api/v1/members/me`가 **`accountId`·`nickname` 둘만** 반환한다 ([../api-contract.md §3.1](../api-contract.md)). `createdAt`을 넣지 않는다 — MR-07이 member에 배정한 것은 닉네임뿐이다
 - [ ] **응답에 `email`이 없다.** member는 이메일을 모른다
 - [ ] **프로필이 없으면 404 `M001`이다.** 가입 3단계 미완료를 뜻한다
 - [ ] `PATCH /api/v1/members/me`가 닉네임을 변경한다 (`Member.updateNickname()` 사용)
@@ -1170,7 +1172,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 케이스 | 기대 결과 |
 | --- | --- |
 | 내 프로필 조회 | 200, 닉네임 존재 |
-| 응답 본문 | **`email` 키 없음, `accessToken` 키 없음** |
+| **응답 키 집합** | **`accountId`·`nickname` 정확히 둘.** `email`·`accessToken`·`createdAt` 없음 |
 | **프로필 없는 계정으로 조회** | **404 `M001`** |
 | 닉네임 변경 | 200, DB 반영됨 |
 | 변경 응답 본문 | **토큰 키 없음** |
@@ -1208,7 +1210,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **멱등이다.** 이미 탈퇴한 프로필에 다시 호출해도 204
 - [ ] 탈퇴 후 프로필 조회가 404 `M001`이다
 - [ ] 탈퇴 후 같은 계정으로 프로필을 재생성할 수 없다 (409 `M007`)
-- [ ] **auth를 호출하지 않는다**
+- [ ] **auth를 호출하지 않는다** — 저장소에 HTTP 클라이언트가 **없다**는 관측으로 충족한다. **검증표에 넣지 않는다**(없는 호출을 관측하는 테스트는 아무것도 잡지 못한다, [../process/review-policy.md §5.3](../process/review-policy.md))
 - [ ] **비밀번호를 받지 않는다**
 
 **검증** — `MemberServiceTest`, `MemberControllerTest`
@@ -1221,7 +1223,6 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 탈퇴 후 `GET /members/me` | 404 `M001` |
 | 탈퇴 후 `POST /members` 재시도 | 409 `M007` |
 | 탈퇴 후 해방된 닉네임으로 타인이 등록 | 201 |
-| 탈퇴 중 발신 호출 | **없음** |
 
 ---
 
@@ -1252,7 +1253,10 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 `/internal/**` 경로의 인가 설정은 M-04 산출물이다. 필터 등록만 이 항목에서 한다.
 
 **완료 기준**
-- [ ] `GET /api/v1/members/{accountId}`가 공개 정보(닉네임, 가입일)만 반환한다. **이메일 미포함**
+- [ ] `GET /api/v1/members/{accountId}`가 **`accountId`·`nickname`·`createdAt`·`deleted`** 를 반환한다 ([../api-contract.md §3.1](../api-contract.md)). **이메일 미포함**
+- [ ] **그 `createdAt`은 `member.created_at`(프로필 등록 시각)이다.** MR-07의 가입일(`account.created_at`)과 **다른 값이고**, 타인의 계정 생성 시각은 읽을 수 없다
+- [ ] **탈퇴한 프로필도 200이다.** `nickname`은 `"탈퇴한 회원"`, `deleted: true` — 글이 남아 있으므로 표시할 것이 있다
+- [ ] **그 `accountId`의 프로필이 아예 없으면 404 `M001`이다.** 공개 조회는 클라이언트를 상대하므로 404가 맞다 — §5.1이 금지한 것은 **내부 API**의 404다. **두 경로를 같게 맞추지 않는다**
 - [ ] **경로 변수가 `accountId`다.** `member.id`를 외부에 노출하지 않는다
 - [ ] **`GET /members/me`가 `GET /members/{accountId}`보다 먼저 매칭된다**
 - [ ] `POST /internal/v1/members/bulk`가 [../api-contract.md §5](../api-contract.md) 형식으로 응답한다
@@ -1268,7 +1272,9 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | 케이스 | 기대 결과 |
 | --- | --- |
-| 프로필 조회 | 200, `email` 키 없음 |
+| 프로필 조회 | 200, 키가 `accountId`·`nickname`·`createdAt`·`deleted`. `email` 없음 |
+| **탈퇴한 프로필 공개 조회** | **200**, `nickname = "탈퇴한 회원"`, `deleted: true` |
+| **프로필이 없는 `accountId`** | **404 `M001`** |
 | **`GET /members/me` (유효 토큰)** | **내 정보 반환** (`me`를 accountId로 해석하지 않음) |
 | 정상 벌크 조회 (3건) | 200, 3건 반환 |
 | **벌크 1건 요청** | **200, 1건 반환** |
@@ -1298,22 +1304,21 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **완료 기준**
 - [ ] `README.md`에 로컬 실행 절차와 필요한 환경변수가 모두 적혀 있다
 - [ ] `README.md`에 **공개키 배치 절차**와 `INTERNAL_API_KEY`가 적혀 있다
-- [ ] `/actuator/health`가 동작하고 그 외 엔드포인트는 노출되지 않는다
+- [ ] `/actuator/health`가 200 `{"status":"UP"}`이고 **그 외 엔드포인트는 노출되지 않는다.** auth 실측은 무토큰 401 `A001`·유효 토큰 403 `A004`이고 **404가 아니다** — member도 확인한다. **M-04가 만든 동작이므로 관측으로 충족한다**
 - [ ] `prod` 프로파일에서 Swagger UI가 비활성화된다
-- [ ] `prod` 프로파일에서 SQL 로그가 꺼진다
+- [ ] **`springdoc.api-docs.enabled`도 끈다.** UI만 끄면 `/v3/api-docs`가 전체 엔드포인트 목록을 그대로 낸다
+- [ ] `prod` 프로파일에서 SQL 로그가 꺼진다 — **`show-sql`과 `logging.level` 둘 다**. 후자가 보안 쪽이다: **바인드 파라미터 로그에는 비밀번호가 평문으로 실린다**. member는 비밀번호를 갖지 않지만 `logging.level`을 같은 모양으로 둔다(세 서비스가 같은 운영 설정을 쓴다)
+- [ ] **그 `logging.level` 블록을 지우면 테스트가 깨진다.** 루트 기본이 `INFO`라 설정이 없어도 로거는 이미 조용하다 — **효과가 아니라 속성값을 단언한다**
 - [ ] 전체 테스트가 통과한다 (`./gradlew test`)
-- [ ] 커밋된 파일에 비밀 값이 없다
-- [ ] **개인키가 저장소에 없다**
+- [ ] 커밋된 파일에 비밀 값이 없다. `git grep`으로 **현재 트리**를 확인한다
+- [ ] **개인키가 저장소에 없다.** `git log -p`의 `BEGIN PRIVATE KEY`를 확인한다 — **검증표에 넣지 않는다**(이력 조회는 테스트가 아니다, [../process/review-policy.md §5.3](../process/review-policy.md))
 
 **검증**
 
 | 케이스 | 기대 결과 |
 | --- | --- |
-| `/actuator/health` | 200, `{"status":"UP"}` |
-| `/actuator/env` | 404 또는 403 |
-| `prod` 프로파일로 `/swagger-ui.html` | 404 |
-| `git log -p`에서 `BEGIN PRIVATE KEY` 검색 | **없음** |
-| `git log -p`에서 키·비밀번호 검색 | 없음 |
+| `prod` 프로파일로 `/swagger-ui.html`·`/v3/api-docs` | **404.** 같은 경로가 `test` 프로파일에서는 열린다 — 그 대조가 404의 출처를 가린다 |
+| `prod` 프로파일의 SQL 로그 | `show-sql`과 `logging.level.*` **속성값**이 꺼짐으로 설정되어 있다 |
 
 ## 6. board-service 작업 항목
 
@@ -1439,7 +1444,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
 - [ ] **테스트 DataSource URL이 [../tech-stack.md §5.3](../tech-stack.md)의 정본과 일치한다** — `DATABASE_TO_LOWER`·`CASE_INSENSITIVE_IDENTIFIERS`·`DB_CLOSE_DELAY=-1` 포함
 - [ ] **테스트가 그 URL로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
-- [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있고 마이그레이션에 없는 컬럼을 넣으면 테스트가 실패해야 한다
+- [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있는 컬럼을 넣는 변이에서 `SchemaManagementException`으로 기동이 실패하는 것으로 확인한다 — **검증표에 넣지 않는다**(테스트가 자기 엔티티를 바꿀 수 없다, [../process/review-policy.md §5.3](../process/review-policy.md))
 
 **검증** — `PostRepositoryTest`, `CommentRepositoryTest` (`@DataJpaTest`)
 
@@ -1456,8 +1461,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `softDeleteByPostId()` | 해당 게시글의 댓글 전부 `deleted = true` |
 | `PostReader`로 없는 id 조회 | `BusinessException(P001)` |
 | 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
-| 저장된 테이블명 | **소문자** (`account`·`member`·`post`). `DATABASE_TO_LOWER` 효과 |
-| 엔티티에만 있는 컬럼 추가 후 실행 | **실패** — `SchemaManagementException`. 초록이면 `validate`가 안 걸린 것 |
+| 저장된 테이블명 | **소문자** `post`·`comment`. `DATABASE_TO_LOWER` 효과 |
 
 ---
 
