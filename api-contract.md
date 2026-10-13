@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v12
-updated: 2026-10-12
+version: v13
+updated: 2026-10-13
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -73,6 +73,26 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | GET | `/api/v1/accounts/me` | 내 계정 조회 (이메일·가입일) | O | 200 |
 | PATCH | `/api/v1/accounts/me/password` | 비밀번호 변경 | O | 204 |
 | DELETE | `/api/v1/accounts/me` | **계정 탈퇴 (탈퇴 1단계)** | O | 204 |
+
+`GET /api/v1/accounts/me`는 **이메일과 가입일 둘만 반환한다**([requirements/member.md §5](requirements/member.md) MR-07).
+
+```json
+// GET /api/v1/accounts/me  -> 200
+{
+  "success": true,
+  "data": { "email": "user@example.com", "createdAt": "2026-09-11T10:00:00" },
+  "error": null
+}
+```
+
+| 필드 | |
+| --- | --- |
+| `email` | `account.email` |
+| `createdAt` | `account.created_at`. 오프셋을 표기하지 않는다([tech-stack.md §5](tech-stack.md)) |
+
+**`accountId`를 넣지 않는다.** MR-07이 정하는 값은 둘이고, 식별자가 필요한 클라이언트는 `POST /api/v1/accounts`의 응답이나 `GET /api/v1/members/me`에서 이미 받는다(§3). 필드를 **나중에 더하는 것은 호환되지만 빼는 것은 아니므로**, 요구가 생길 때 더한다.
+
+**`password`·`nickname`을 넣지 않는다.** 전자는 [security.md §7](security.md)이 금지하고, 후자는 **auth가 소유하지 않는 값**이다([adr/0012](adr/0012-auth-as-separate-service.md) §1). 닉네임이 필요한 화면은 `GET /api/v1/members/me`를 함께 호출한다.
 
 `DELETE /api/v1/accounts/me`는 **본문에 현재 비밀번호를 받아 재확인한다.** `account.deleted = true`와 해당 계정의 RefreshToken 삭제를 한 로컬 트랜잭션으로 처리한다.
 

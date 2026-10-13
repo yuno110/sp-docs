@@ -787,6 +787,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 **완료 기준**
 - [ ] `GET /api/v1/accounts/me`가 200과 이메일·가입일을 반환한다
+- [ ] 응답 필드가 `email`·`createdAt` **둘뿐이다.** `accountId`를 넣지 않는다 ([../api-contract.md §2.2](../api-contract.md))
+- [ ] **읽기 전용이다.** `@Transactional(readOnly = true)`
 - [ ] **응답에 `password`가 없다**
 - [ ] **응답에 `nickname`이 없다.** auth는 닉네임을 모른다
 - [ ] 토큰 없이 접근하면 401 `A001`
@@ -802,6 +804,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 타인의 accountId를 본문·파라미터로 전달 | 무시됨. 자기 정보만 반환 |
 | **탈퇴한 계정의 토큰으로 조회** | **404 `AU001`** ([../api-contract.md §2.2](../api-contract.md)) |
 | **`sub`가 가리키는 행 부재** | **404 `AU001`.** 탈퇴와 같은 코드다 |
+| **응답 키 집합** | `email`·`createdAt` **정확히 둘.** `accountId`도 없다 |
+| `createdAt` 형식 | 오프셋 표기 없음 ([../tech-stack.md §5](../tech-stack.md)) |
 
 ---
 
