@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v8
-updated: 2026-10-12
+version: v9
+updated: 2026-10-13
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -48,7 +48,9 @@ related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 | member | 공개키 (`jwt-public.pem`) | 검증만 |
 | board | 공개키 (`jwt-public.pem`) | 검증만 |
 
-**member·board에는 서명 의존성(`spring-security-oauth2-jose`)을 넣지 않는다**([tech-stack.md §3.2](tech-stack.md)). 넣으면 키만 있으면 토큰을 만들 수 있게 되어 이 경계가 흐려진다.
+**member·board는 서명 의존성(`spring-security-oauth2-jose`)을 직접 선언하지 않는다**([tech-stack.md §3.2](tech-stack.md)).
+
+**다만 그것이 서명을 막지는 못한다.** 검증 스타터가 `oauth2-jose`를 추이로 끌고 오므로 **세 서비스 모두 클래스패스에 서명 클래스를 갖는다**([tech-stack.md §2.2](tech-stack.md)의 측정값). 직접 선언을 금지하는 것은 **의도를 선언하지 않게 하는 것**이고, **이 경계를 실제로 지키는 것은 위 표다 — member·board에 개인키가 없다.**
 
 HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있다.
 

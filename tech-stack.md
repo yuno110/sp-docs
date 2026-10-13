@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v9
+version: v10
 updated: 2026-10-13
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -104,10 +104,14 @@ implementation 'org.springframework.security:spring-security-oauth2-jose'
 
 ```
 spring-boot-starter-oauth2-resource-server
- \--- spring-security-oauth2-resource-server
-      \--- spring-security-oauth2-jose
-           \--- com.nimbusds:nimbus-jose-jwt
+ +--- spring-security-oauth2-resource-server
+ |     +--- spring-security-oauth2-core
+ |     \--- spring-security-web
+ \--- spring-security-oauth2-jose          <- 스타터의 직접 의존이다
+       \--- com.nimbusds:nimbus-jose-jwt
 ```
+
+**`oauth2-jose`는 `spring-security-oauth2-resource-server`의 자식이 아니라 형제다.** 후자는 jose에 의존하지 않는다 — 스타터가 둘을 나란히 가져온다.
 
 `exclude`로 뺄 수도 없다 — 같은 jar 안에 `NimbusJwtEncoder`(서명)와 `NimbusJwtDecoder`(검증)가 **함께** 들어 있다.
 
