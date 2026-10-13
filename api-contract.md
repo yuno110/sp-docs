@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v14
+version: v15
 updated: 2026-10-13
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -404,10 +404,23 @@ public record FieldError(String field, String message) { }
 | `C003` | 405 | 지원하지 않는 HTTP 메서드입니다. |
 | `C004` | 404 | 요청한 리소스를 찾을 수 없습니다. |
 | `C005` | 500 | 서버 내부 오류가 발생했습니다. |
+| `C006` | 415 | 지원하지 않는 미디어 타입입니다. |
+| `C007` | 406 | 응답할 수 있는 형식이 없습니다. |
 | `A001` | 401 | 인증이 필요합니다. |
 | `A002` | 401 | 유효하지 않은 토큰입니다. |
 | `A003` | 401 | 만료된 토큰입니다. |
 | `A004` | 403 | 권한이 없습니다. |
+
+**`C006`·`C007`이 없으면 클라이언트 실수가 500이 된다.** `GlobalExceptionHandler`가 `ResponseEntityExceptionHandler`를 상속하지 않으므로, 처리하지 않은 MVC 예외는 마지막 그물(`Exception.class`)로 떨어진다.
+
+| 요청 | 예외 | 다루지 않으면 |
+| --- | --- | --- |
+| 본문이 있는데 `Content-Type`이 없거나 JSON이 아니다 | `HttpMediaTypeNotSupportedException` | **500 `C005`** |
+| `Accept`로 JSON을 받을 수 없다 | `HttpMediaTypeNotAcceptableException` | **500 `C005`** |
+
+**상태 코드보다 로그가 더 문제다.** 마지막 그물은 `log.error`로 스택트레이스를 남기므로, **흔한 클라이언트 실수가 ERROR 경보를 만든다.** 원인이 서버에 있는 500과 구별되지 않으면 경보가 쓸모를 잃는다([../AGENTS.md](../AGENTS.md) 불변식 9).
+
+세 서비스가 `GlobalExceptionHandler`를 각자 복제하므로([adr/0007](adr/0007-shared-code-policy.md)) **셋 다 이 둘을 다룬다.** 형식 일치는 [plan/integration.md](plan/integration.md) I-04의 3자 비교에서 확인한다.
 
 ### 8.2 member-service
 

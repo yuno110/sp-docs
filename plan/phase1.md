@@ -332,6 +332,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `@Valid` 실패 | 400, `C001`, `fieldErrors` 비어있지 않음 |
 | 성공 응답 | `success = true`, `error = null` |
 | 예상치 못한 `RuntimeException` | 500, `C005`, 스택트레이스 없음 |
+| **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500 이 아니고 `log.error` 를 남기지 않는다 |
+| **`Accept: application/xml`** | **406 `C007`** |
 
 ---
 
@@ -820,6 +822,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **산출물**
 - `README.md` 갱신 (실행 절차, 환경변수 목록, **키 배치 절차**)
 - `JwtConfig`의 claim 검증기 집합을 고정하는 테스트 — AU-07에서 넘어온 것
+- `GlobalExceptionHandler`에 **미디어 타입 예외 둘** (`C006` 415 · `C007` 406), `ErrorCode` 확장
 - Actuator 설정 (`/actuator/health`만 노출)
 - `application-prod.yml` (Swagger·SQL 로그 비활성화)
 
@@ -831,6 +834,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `prod` 프로파일에서 SQL 로그가 꺼진다
 - [ ] 전체 테스트가 통과한다 (`./gradlew test`)
 - [ ] **커밋된 파일에 개인키·비밀 값이 없다**
+- [ ] **미디어 타입 예외 둘을 다룬다.** `Content-Type` 누락이 500이 아니라 **415 `C006`**, `Accept` 불일치가 **406 `C007`**이다 ([../api-contract.md §8.1](../api-contract.md))
+- [ ] **그 둘이 `log.error`를 남기지 않는다.** 클라이언트 실수가 ERROR 경보를 만들면 안 된다
 - [ ] **`JwtConfig`가 쓰는 claim 검증기 집합이 테스트로 고정되어 있다.** AU-07의 `failureCode`가 예외 타입만 보고 `A002`·`A003`을 가르는데, 그 판정은 `JwtValidators.createDefault()`가 `JwtTimestampValidator`와 `X509CertificateThumbprintValidator` 둘뿐이라는 데 걸려 있다. 검증기를 하나 더 붙이면 **`iss` 불일치가 조용히 `A003`(만료)로 나간다**
 
 **검증**
@@ -843,6 +848,18 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `git log -p`에서 `BEGIN PRIVATE KEY` 검색 | **없음** |
 | `git log -p`에서 비밀번호 검색 | 없음 |
 | **`JwtConfig`의 검증기 집합** | **`JwtTimestampValidator`·`X509CertificateThumbprintValidator` 둘뿐.** 늘면 테스트가 깨져 `failureCode`를 함께 보게 한다 |
+| **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500이 아니다 |
+| `Content-Type: text/plain` + JSON 본문 | 415 `C006` |
+| **`Accept: application/xml`** | **406 `C007`** |
+
+#### 하지 않기로 한 것 둘
+
+리뷰에서 후속으로 올라왔으나 AU-11에서 하지 않는다. **근거를 적어 두는 것이 결론이다** — 적지 않으면 다음 사람이 같은 것을 다시 검토한다.
+
+| | 왜 하지 않나 |
+| --- | --- |
+| `AccountControllerTest`·`AccountServiceTest` 분리 | 불변식 6은 줄 수가 아니라 **책임 단위**로 나누라고 한다. 두 파일은 **컨트롤러 하나·서비스 하나**의 계약이고 `@Nested`가 이미 구조를 준다. 1차에서 더 늘지 않는다(auth의 마지막 항목이다). 반면 1100줄 규모의 이동은 **diff가 전부 삭제·추가로 보여 단언 유실을 리뷰로 잡기 어렵다** — 기능 이득이 0인데 위험만 지는 교환이다 |
+| 재발급의 RSA 검증을 트랜잭션 밖으로 | `reissue`가 `@Transactional`이므로 서명 검증이 트랜잭션 안에서 돈다. **비용을 측정하지 않았고**, 밖으로 빼려면 빈을 하나 더 두거나 프록시를 우회해야 한다. "조회·확인·회전이 한 트랜잭션"은 어느 쪽이든 성립한다 |
 
 ## 5. member-service 작업 항목
 
@@ -899,7 +916,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **산출물**
 - `global/common/ApiResponse.java`, `ErrorResponse.java`, `PageResponse.java`
 - `global/common/BaseTimeEntity.java`
-- `global/error/ErrorCode.java` (C001~C005, A001~A004, **M001·M003·M006·M007**)
+- `global/error/ErrorCode.java` (C001~**C007**, A001~A004, **M001·M003·M006·M007**)
 - `global/error/BusinessException.java`, `GlobalExceptionHandler.java`
 - `global/config/JpaConfig.java` (`@EnableJpaAuditing`), `SwaggerConfig.java`
 
@@ -926,6 +943,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `@Valid` 실패 | 400, `C001`, `fieldErrors` 비어있지 않음 |
 | 성공 응답 | `success = true`, `error = null` |
 | 예상치 못한 `RuntimeException` | 500, `C005`, 스택트레이스 없음 |
+| **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500 이 아니고 `log.error` 를 남기지 않는다 |
+| **`Accept: application/xml`** | **406 `C007`** |
 
 ---
 
@@ -1331,7 +1350,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **산출물**
 - `global/common/ApiResponse.java`, `ErrorResponse.java`, `PageResponse.java`
 - `global/common/BaseTimeEntity.java`
-- `global/error/ErrorCode.java` (C001~C005, A001~A004, **P001, P002, CM001, CM002, S001, S002**)
+- `global/error/ErrorCode.java` (C001~**C007**, A001~A004, **P001, P002, CM001, CM002, S001, S002**)
 - `global/error/BusinessException.java`, `GlobalExceptionHandler.java`
 - `global/config/JpaConfig.java`, `SwaggerConfig.java`
 
