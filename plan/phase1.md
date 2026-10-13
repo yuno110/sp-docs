@@ -832,7 +832,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `/actuator/health`가 200 `{"status":"UP"}`이고 **그 외 엔드포인트는 노출되지 않는다.** 무토큰은 401 `A001`, 유효 토큰은 403 `A004`다 (실측) — 404가 아니다. **AU-01·AU-04가 만든 동작이고 `SecurityConfigTest`가 그 기준("노출되지 않는다")을 덮는다.** 여기서는 관측으로 확인한다
 - [ ] `prod` 프로파일에서 Swagger UI가 비활성화된다
 - [ ] **`springdoc.api-docs.enabled`도 끈다.** UI만 끄면 `/v3/api-docs`가 전체 엔드포인트 목록을 그대로 낸다
-- [ ] `prod` 프로파일에서 SQL 로그가 꺼진다
+- [ ] `prod` 프로파일에서 SQL 로그가 꺼진다 — **`show-sql`과 `logging.level` 둘 다**. 후자가 보안 쪽이다: **바인드 파라미터 로그에는 비밀번호가 평문으로 실린다**([../nfr.md §5](../nfr.md), [../conventions.md §8](../conventions.md))
+- [ ] **그 `logging.level` 블록을 지우면 테스트가 깨진다.** 루트 수준 기본이 `INFO`라 **설정이 없어도 로거는 이미 조용하다** — 효과를 보는 단언은 블록 삭제를 잡지 못한다. **속성값을 단언한다**
 - [ ] 전체 테스트가 통과한다 (`./gradlew test`)
 - [ ] **커밋된 파일에 개인키·비밀 값이 없다.** 아래 셋을 실행해 확인한다
 
@@ -850,7 +851,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 케이스 | 기대 결과 |
 | --- | --- |
 | `prod` 프로파일로 `/swagger-ui.html`·`/v3/api-docs` | **404.** 같은 경로가 `test` 프로파일에서는 열린다 — 그 대조가 404의 출처를 가린다 |
-| `prod` 프로파일의 SQL 로그 | 꺼져 있다 |
+| `prod` 프로파일의 SQL 로그 | `show-sql`과 `logging.level.*` **속성값**이 꺼짐으로 설정되어 있다 |
+| **미디어 타입 둘의 로그 수준** | **`WARN`.** `log.error`가 아니다 — 클라이언트 실수가 ERROR 경보를 만들면 안 된다 |
 | **`JwtConfig`의 검증기 집합** | **`JwtTimestampValidator`·`X509CertificateThumbprintValidator` 둘뿐.** 늘면 테스트가 깨져 `failureCode`를 함께 보게 한다 |
 | **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500이 아니다 |
 | `Content-Type: text/plain` + JSON 본문 | 415 `C006` |
