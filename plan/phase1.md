@@ -829,12 +829,18 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **완료 기준**
 - [ ] `README.md`에 로컬 실행 절차와 필요한 환경변수가 모두 적혀 있다
 - [ ] `README.md`에 **개인키 배치 절차**가 적혀 있다
-- [ ] `/actuator/health`가 동작하고 그 외 엔드포인트는 노출되지 않는다
+- [ ] `/actuator/health`가 200 `{"status":"UP"}`이고 **그 외 엔드포인트는 노출되지 않는다.** 무토큰은 401 `A001`, 유효 토큰은 403 `A004`다 (실측) — 404가 아니다. **AU-01·AU-04가 만든 동작이고 `SecurityConfigTest`가 그 기준("노출되지 않는다")을 덮는다.** 여기서는 관측으로 확인한다
 - [ ] `prod` 프로파일에서 Swagger UI가 비활성화된다
 - [ ] **`springdoc.api-docs.enabled`도 끈다.** UI만 끄면 `/v3/api-docs`가 전체 엔드포인트 목록을 그대로 낸다
 - [ ] `prod` 프로파일에서 SQL 로그가 꺼진다
 - [ ] 전체 테스트가 통과한다 (`./gradlew test`)
-- [ ] **커밋된 파일에 개인키·비밀 값이 없다**
+- [ ] **커밋된 파일에 개인키·비밀 값이 없다.** 아래 셋을 실행해 확인한다
+
+| 검사 | 기대 |
+| --- | --- |
+| `git grep`으로 **현재 트리**의 비밀번호·BCrypt 모양 | **없음** |
+| `git log -p`의 `BEGIN PRIVATE KEY` | **1건.** `TestRsaKeys`의 **PEM 헤더 문자열 리터럴**이다(`221f48a`, AU-04) — 실행 시점에 만든 키를 임시 파일로 쓸 때 붙이는 것이고 **키 자료가 아니다** |
+| `git log -p`의 BCrypt 모양 | **3줄.** 아래 "이력에 남은 BCrypt 모양"을 본다 |
 - [ ] **미디어 타입 예외 둘을 다룬다.** `Content-Type` 누락이 500이 아니라 **415 `C006`**, `Accept` 불일치가 **406 `C007`**이다 ([../api-contract.md §8.1](../api-contract.md))
 - [ ] **그 둘이 `log.error`를 남기지 않는다.** 클라이언트 실수가 ERROR 경보를 만들면 안 된다
 - [ ] **`JwtConfig`가 쓰는 claim 검증기 집합이 테스트로 고정되어 있다.** AU-07의 `failureCode`가 예외 타입만 보고 `A002`·`A003`을 가르는데, 그 판정은 `JwtValidators.createDefault()`가 `JwtTimestampValidator`와 `X509CertificateThumbprintValidator` 둘뿐이라는 데 걸려 있다. 검증기를 하나 더 붙이면 **`iss` 불일치가 조용히 `A003`(만료)로 나간다**
@@ -843,12 +849,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | 케이스 | 기대 결과 |
 | --- | --- |
-| `/actuator/health` | 200, `{"status":"UP"}` |
-| `/actuator/env` | **무토큰 401 `A001`, 유효 토큰 403 `A004`** (실측). 404가 아니다 — 익명 요청을 entry point로 보내는 것이 AU-04가 정한 동작이다 |
-| `prod` 프로파일로 `/swagger-ui.html` | 404 |
-| `git log -p`에서 `BEGIN PRIVATE KEY` 검색 | **없음** |
-| **현재 트리**에서 비밀번호·BCrypt 모양 검색 | **없음** (`git grep`) |
-| `git log -p`에서 비밀번호 검색 | **BCrypt 모양 3줄이 이력에 남아 있다.** 아래를 본다 |
+| `prod` 프로파일로 `/swagger-ui.html`·`/v3/api-docs` | **404.** 같은 경로가 `test` 프로파일에서는 열린다 — 그 대조가 404의 출처를 가린다 |
+| `prod` 프로파일의 SQL 로그 | 꺼져 있다 |
 | **`JwtConfig`의 검증기 집합** | **`JwtTimestampValidator`·`X509CertificateThumbprintValidator` 둘뿐.** 늘면 테스트가 깨져 `failureCode`를 함께 보게 한다 |
 | **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500이 아니다 |
 | `Content-Type: text/plain` + JSON 본문 | 415 `C006` |
