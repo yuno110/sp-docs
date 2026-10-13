@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v7
-updated: 2026-10-12
+version: v8
+updated: 2026-10-13
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -83,7 +83,7 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-au
 | 2 | 비밀번호는 어떤 응답에도 포함하지 않는다. 내부 API 응답도 마찬가지다 | auth |
 | 3 | **"계정만 있고 프로필이 없는 상태"는 정상이다.** 그 상태에서 로그인·재발급·로그아웃·계정 탈퇴가 모두 가능하다. 글·댓글 작성만 막힌다 | 공통 |
 | 4 | 비밀번호 변경·계정 탈퇴 시 Refresh Token을 삭제한다. **두 연산은 한 로컬 트랜잭션이다** | auth |
-| 5 | 로그인·재발급은 `account.deleted = false`를 검사한다. 검사하지 않으면 탈퇴 계정이 토큰을 계속 갱신한다 | auth |
+| 5 | **`account.deleted` 검사는 기능별로 한다.** 로그인·재발급은 **거부**한다 — 검사하지 않으면 탈퇴 계정이 토큰을 계속 갱신한다. `GET`·`PATCH /accounts/me*`는 **404 `AU001`**, `DELETE /accounts/me`는 멱등이므로 **204**다. 결론이 기능마다 다르므로 **한곳에 모아 일괄 거부할 수 없다**([../api-contract.md §2.2](../api-contract.md)의 표) | auth |
 | 6 | 프로필의 세 상태(미등록 / 활성 / 탈퇴)를 구분한다. 미등록과 탈퇴를 같은 "없음"으로 처리하면 탈퇴한 프로필이 재생성된다 | member |
 | 7 | 프로필 등록은 `accountId` 기준 멱등이다. `account_id`는 **검증된 JWT의 `sub`에서만** 가져온다. 요청 본문의 식별자를 신뢰하지 않는다 | member |
 | 8 | 프로필 soft delete 시 `nickname`을 NULL로 비운다. `"탈퇴한 회원"`은 **응답 시 변환이지 저장이 아니다** | member |
