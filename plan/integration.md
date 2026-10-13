@@ -2,8 +2,8 @@
 title: 통합 검증
 type: plan
 status: living
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-10-13
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
 ---
@@ -185,14 +185,14 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | --- | --- |
 | 세 서비스 성공 응답의 최상위 키 | 동일 집합 |
 | 세 서비스 `C001` 응답 | HTTP 400, 같은 메시지, `fieldErrors` 존재 |
-| 세 서비스 `A001` 응답 | HTTP 401, 같은 메시지 |
+| **세 서비스 `C002`~`C007`** | **상태·메시지 일치.** [../conventions.md §6.1](../conventions.md) 의 예외 11종이 같은 코드로 변환된다 |
+| 세 서비스 `A001`~`A004` | 상태·메시지 일치 |
+| 세 서비스 `fieldErrors` 빈 배열 케이스 | 필수 파라미터 누락·본문 파싱 실패에서 **셋 다 빈 배열** ([../api-contract.md §2.3](../api-contract.md)) |
 | 각 서비스의 `ErrorCode` 열거 | 타 서비스 전용 접두어 없음 |
-| 양쪽 `A001` 응답 | HTTP 401, 같은 메시지 |
-| 양쪽 `A002`·`A003`·`A004` | 상태·메시지 일치 |
-| 양쪽 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last` |
-| 500 응답 본문 | 양쪽 모두 스택트레이스 없음 |
+| 세 서비스 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last` |
+| 500 응답 본문 | **세 서비스 모두** 스택트레이스 없음 |
 
-불일치가 발견되면 [../api-contract.md](../api-contract.md)를 정본으로 삼아 양쪽을 맞춘다.
+불일치가 발견되면 [../api-contract.md](../api-contract.md)를 정본으로 삼아 세 서비스를 맞춘다.
 
 ---
 

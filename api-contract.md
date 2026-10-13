@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v17
+version: v18
 updated: 2026-10-13
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -470,7 +470,7 @@ public record FieldError(String field, String message) { }
 | `M001` | 404 | 프로필을 찾을 수 없습니다. |
 | `M003` | 409 | 이미 사용 중인 닉네임입니다. |
 | `M006` | 409 | 이미 프로필이 등록된 계정입니다. |
-| `M007` | 409 | 탈퇴한 계정입니다. |
+| `M007` | 409 | 탈퇴한 프로필입니다. |
 
 `M002`·`M004`·`M005`는 auth로 이동했다(§8.4). **번호는 재사용하지 않는다.**
 
