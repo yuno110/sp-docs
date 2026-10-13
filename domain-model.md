@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v7
+version: v8
 updated: 2026-10-13
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -180,7 +180,7 @@ InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바�
 
 `account_id` UNIQUE가 탈퇴 계정의 프로필 재생성을 막는다. 별도 묘비 테이블을 두지 않는다.
 
-**soft delete 시 `nickname`을 NULL로 비운다.** 그대로 두면 `uk_member_nickname` 때문에 그 닉네임이 영구 소각되고, `"탈퇴한 회원"`으로 마스킹해 **저장**하는 구현에서는 두 번째 탈퇴가 UNIQUE 위반으로 500이 난다. `"탈퇴한 회원"`은 **응답 시 변환이지 저장이 아니다**([api-contract.md §4](api-contract.md)).
+**soft delete 시 `nickname`을 NULL로 비운다.** 그대로 두면 `uk_member_nickname` 때문에 그 닉네임이 영구 소각되고, `"탈퇴한 회원"`으로 마스킹해 **저장**하는 구현에서는 두 번째 탈퇴가 UNIQUE 위반으로 500이 난다. `"탈퇴한 회원"`은 **응답 시 변환이지 저장이 아니다**([api-contract.md §3.1 §5](api-contract.md)).
 
 ### 3.2 인덱스
 

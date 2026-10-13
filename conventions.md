@@ -2,7 +2,7 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v14
+version: v15
 updated: 2026-10-13
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
@@ -89,7 +89,7 @@ com.example.board
 - 생성은 `@Builder`
 - **`@Data`, `@Setter`, 연관관계를 포함한 `@ToString` 금지.** 무한 루프와 의도치 않은 변경을 막기 위해서다
 - `equals`/`hashCode`는 `id` 기준으로 직접 구현한다
-- 도메인 로직은 Entity 메서드로 둔다 (`post.update(...)`, `member.changePassword(...)`)
+- 도메인 로직은 Entity 메서드로 둔다 (`post.update(...)`, `member.updateNickname(...)`)
 - Enum은 `@Enumerated(EnumType.STRING)`
 
 ## 3. DTO
@@ -221,9 +221,16 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 
 후자를 발급 경로로 만들려고 `Thread.sleep(1000)`을 넣지 않는다. 테스트가 느려지고, 초 경계에 걸리면 여전히 같아진다.
 
-### 9.3 `@DataJpaTest`는 두 애노테이션이 함께 필요하다
+### 9.3 `@DataJpaTest`의 두 애노테이션
 
 `@AutoConfigureTestDatabase(replace = NONE)`와 `@Import(JpaConfig.class)`다. 전자가 없으면 DataSource URL이 덮이고([tech-stack.md §5.2](tech-stack.md)), 후자가 없으면 감사 컬럼이 NULL로 들어간다([domain-model.md §1.1](domain-model.md)).
+
+| 애노테이션 | 필요한 범위 |
+| --- | --- |
+| `@AutoConfigureTestDatabase(replace = NONE)` | **모든 `@DataJpaTest`** — URL 덮임은 엔티티를 저장하지 않아도 일어난다 |
+| `@Import(JpaConfig.class)` | **엔티티를 저장하는** `@DataJpaTest` — `@EnableJpaAuditing`이 거기 있다 |
+
+**후자를 조건 없이 요구하지 않는다.** DataSource·메타데이터만 읽는 테스트에는 감사가 쓰이지 않으므로, 이유가 적용되지 않는 규칙을 붙이는 것이 된다. 저장하는 테스트에서 빠뜨리면 `created_at NOT NULL`이 깨져 **시끄럽게 실패한다** — 조용히 지나가지 않는다.
 
 ### 9.4 코드 주석에 정본의 **버전**을 적지 않는다
 

@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v11
+version: v12
 updated: 2026-10-13
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -219,7 +219,7 @@ related: [dev-workflow.md, orchestration.md]
 | --- | --- |
 | 링크 대상 파일이 있는가 | `[...](other.md)` |
 | 라벨의 절 번호가 대상에 있는가 | `[tech-stack.md §5.3](tech-stack.md)` |
-| **개정 대상을 고쳤으면 `version` 도 올랐는가** | `HEAD` 와 보므로 **촜밋 전에** 돌려야 의미가 있다 |
+| **개정 대상을 고쳤으면 `version` 도 올랐는가** | `HEAD` 와 비교하므로 **커밋 전에** 돌려야 의미가 있다 |
 
 절을 지우거나 번호를 바꾸면 **다른 문서가 가리키던 주소가 조용히 죽는다.** 32편이 서로를 참조하므로 손으로 좇을 수 없다.
 
