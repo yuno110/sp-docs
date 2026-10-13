@@ -1019,7 +1019,9 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **테스트가 그 URL로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
 - [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있는 컬럼을 넣는 변이에서 `SchemaManagementException`으로 기동이 실패하는 것으로 확인한다 — **검증표에 넣지 않는다**(테스트가 자기 엔티티를 바꿀 수 없다, [../process/review-policy.md §5.3](../process/review-policy.md))
 
-**검증** — `MemberRepositoryTest` (`@DataJpaTest`)
+**검증** — `MemberRepositoryTest` (`@DataJpaTest`), 그리고 **테스트 환경 클래스**(이름은 구현이 정한다)
+
+> **환경 클래스에는 `@ActiveProfiles` 를 붙이지 않는다.** 전부 붙어 있으면 `build.gradle` 의 `systemProperty` 한 줄을 지워도 스위트가 초록이어서, [../tech-stack.md §5.1](../tech-stack.md)의 opt-in 제거가 일하는지 확인할 길이 없다. 실행 중 DataSource URL·테이블명·**스키마 출처**가 그 클래스의 몫이다 ([../tech-stack.md §5.2](../tech-stack.md)).
 
 | 케이스 | 기대 결과 |
 | --- | --- |
@@ -1027,13 +1029,14 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 중복 `account_id` 저장 | `DataIntegrityViolationException` |
 | 중복 nickname 저장 | `DataIntegrityViolationException` |
 | 저장 시 | `createdAt`, `updatedAt` null 아님 |
-| `deleted` 미지정 저장 | `false` |
+| `deleted` 미지정 저장 | `false`. **엔티티 생성자를 증명한다** — JPA 는 INSERT 에 컬럼을 항상 보내므로 `V1` 의 `DEFAULT FALSE` 는 이 경로에서 발동하지 않는다. 그쪽이 일하는 자리는 M-05 의 seed 같은 순수 SQL 경로다 |
 | `updateNickname()` 호출 | 닉네임만 변경, `createdAt` 불변 |
 | `withdraw()` 호출 | `deleted = true`, **`nickname = null`**, 행 존재 |
 | **두 회원을 연달아 `withdraw()`** | **둘 다 성공.** UNIQUE 위반 없음 |
 | `MemberReader`로 없는 `accountId` 조회 | `BusinessException(M001)` |
 | 테이블 메타데이터 | `email`·`password`·`role` 컬럼 없음 |
-| **`information_schema` 의 `nickname` 폭** | **30.** 엔티티의 `@Column(length)` 와 일치한다 — **`validate` 는 길이를 보지 않으므로** 이 비교가 유일한 가드다 ([../tech-stack.md §5.2](../tech-stack.md)) |
+| **`information_schema` 의 `nickname` 폭** | **30.** 엔티티의 `@Column(length)` 와 일치한다 — **`validate` 는 길이를 보지 않는다.** 다만 이 비교는 **Flyway 가 스키마를 소유할 때만 뜻이 있다**([../tech-stack.md §5.2](../tech-stack.md)) |
+| **`information_schema` 의 FK 제약** | **`member` 에 `FOREIGN KEY` 0건.** `V1` 을 한 번 읽는 것으로는 **나중 마이그레이션이 FK 를 추가하는 것**을 막지 못한다 |
 | 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
 | 저장된 테이블명 | **소문자** `member`. `DATABASE_TO_LOWER` 효과 |
 
@@ -1120,6 +1123,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `member/service/MemberService.java` (생성)
 - `member/controller/MemberController.java` (생성)
 - `db/migration/V2__seed_admin_profile.sql` — `account_id = 1`, `nickname = 관리자`. 값은 [../requirements/member.md §10.1](../requirements/member.md)이 정본. **비밀번호가 없으므로 placeholder가 필요 없다**
+
+> **이 seed 가 기존 테스트 픽스처와 충돌할 수 있다.** `(1, '관리자')` 가 들어가는 순간 같은 `account_id` 나 닉네임을 쓰는 픽스처가 UNIQUE 위반으로 깨진다. auth 가 `admin@example.com` 에서 같은 것을 겪었다. M-03 의 픽스처는 `accountId` 101~ 과 `관리자` 아닌 닉네임을 쓰도록 미리 피해 뒀다 — **그 회피를 깨뜨리지 말고, 새 픽스처도 같은 규칙을 따른다.**
 
 **⚠ `POST /api/v1/members`는 인증이 필요하다.** `account_id`는 **검증된 JWT의 `sub`에서만** 가져온다. 요청 본문의 식별자를 신뢰하지 않는다.
 

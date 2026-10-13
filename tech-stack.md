@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v10
+version: v11
 updated: 2026-10-13
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -381,6 +381,19 @@ class MemberRepositoryTest { ... }
 - 실제로 들어갈 최대 길이의 값으로 저장을 확인하는 테스트 ([conventions.md §9.2](conventions.md))
 
 `validate`에 기대지 않는다.
+
+#### 그 폭 비교는 Flyway 가 스키마를 소유할 때만 뜻이 있다
+
+**`ddl-auto` 가 `create-drop` 으로 드리프트하면 `information_schema` 가 엔티티의 길이를 돌려준다** — 스키마를 엔티티가 만들었으므로. 그러면 **폭 비교가 엔티티를 자기 자신과 견주는 것**이 되어 공허하게 통과한다. §5.1 의 표가 말한 "마이그레이션이 깨져도 초록"이 **길이 가드에도 그대로 적용된다.**
+
+그래서 길이 테스트만으로는 부족하다. **스키마 출처를 함께 고정한다.**
+
+| 확인 | 무엇을 막나 |
+| --- | --- |
+| 해석된 `spring.jpa.hibernate.ddl-auto` 가 `validate` 다 | 프로파일이 안 실려 `create-drop` 으로 도는 것 |
+| `flyway_schema_history` 에 그 마이그레이션이 **성공**으로 있다 | 스키마가 Flyway 에서 오지 않은 것 |
+
+**`@ActiveProfiles` 를 붙이지 않은 테스트 클래스가 하나는 있어야 한다.** 전부 붙어 있으면 `build.gradle` 의 `systemProperty` 한 줄을 지워도 스위트가 그대로 초록이고, §5.1 의 opt-in 제거가 실제로 일하는지 확인할 길이 없다.
 
 ### 5.3 테스트 DataSource URL — 정본
 
