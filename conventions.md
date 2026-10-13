@@ -2,7 +2,7 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v10
+version: v11
 updated: 2026-10-13
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
@@ -124,6 +124,30 @@ public class PostService {
 - `@RestControllerAdvice`의 `GlobalExceptionHandler`에서 일괄 변환한다
 - 에러 코드는 [api-contract.md §8](api-contract.md)이 정본이다. 코드를 추가하려면 그 문서를 먼저 개정한다
 - 응답에 스택트레이스·SQL·내부 호스트명을 넣지 않는다
+
+### 6.1 어느 예외가 어느 코드가 되는지
+
+**`ResponseEntityExceptionHandler`를 상속하지 않는다.** 상속하면 응답 본문이 Spring의 `ProblemDetail` 모양이 되어 [api-contract.md §7](api-contract.md)의 `ApiResponse`와 달라진다. 대신 **다룰 예외를 전부 명시한다** — 빠뜨린 것은 마지막 그물(`Exception`)로 떨어져 **500이 되고 `log.error`를 남긴다.**
+
+| 예외 | 코드 | |
+| --- | --- | --- |
+| `BusinessException` | 그 코드 그대로 | |
+| `MethodArgumentNotValidException` | `C001` | `fieldErrors` 1건 이상 |
+| `HandlerMethodValidationException` | `C001` | `fieldErrors` 1건 이상 |
+| `MissingServletRequestParameterException` | `C001` | **`fieldErrors` 빈 배열** — 바인딩이 일어나지 않았다([api-contract.md §2.3](api-contract.md)) |
+| `HttpMessageNotReadableException` | `C001` | 같음 |
+| `MethodArgumentTypeMismatchException` | `C002` | |
+| `HttpRequestMethodNotSupportedException` | `C003` | |
+| `NoResourceFoundException` | `C004` | |
+| `HttpMediaTypeNotSupportedException` | `C006` | |
+| `HttpMediaTypeNotAcceptableException` | `C007` | **응답의 `Content-Type`을 `application/json`으로 못박는다** — 안 하면 핸들러 자신의 응답이 같은 협상에 걸려 본문이 빈다 |
+| `Exception` | `C005` | 마지막 그물 |
+
+**세 서비스가 이 표를 똑같이 구현한다.** `GlobalExceptionHandler`는 복제 대상이고([adr/0007](adr/0007-shared-code-policy.md)) 일치 여부는 [plan/integration.md](plan/integration.md) I-04에서 3자 비교한다. **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
+
+**로그 수준을 가른다.** 클라이언트 오류는 `warn`, 마지막 그물만 `error`다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](../AGENTS.md) 불변식 9).
+
+> **`A001`·`A002`·`A003`은 이 표에 없다.** 인증 실패는 `GlobalExceptionHandler`에 닿기 전에 Security 필터 체인이 처리하므로, `AuthenticationEntryPoint`·`AccessDeniedHandler`가 낸다([api-contract.md §8.5](api-contract.md)의 경계). 보안 기반 항목(AU-04·M-04·B-04)의 몫이다.
 
 ## 7. 공통 코드 정책
 

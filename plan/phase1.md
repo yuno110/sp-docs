@@ -332,8 +332,6 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `@Valid` 실패 | 400, `C001`, `fieldErrors` 비어있지 않음 |
 | 성공 응답 | `success = true`, `error = null` |
 | 예상치 못한 `RuntimeException` | 500, `C005`, 스택트레이스 없음 |
-| **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500 이 아니고 `log.error` 를 남기지 않는다 |
-| **`Accept: application/xml`** | **406 `C007`** |
 
 ---
 
@@ -932,7 +930,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-member` |
 | 의존 | M-01R |
-| 참조 | [../api-contract.md §7 §8.1 §8.2](../api-contract.md), [../domain-model.md §1.1](../domain-model.md), [../conventions.md §6 §7 §9](../conventions.md) |
+| 참조 | [../api-contract.md §7 §8.1 §8.2](../api-contract.md), [../domain-model.md §1.1](../domain-model.md), [../conventions.md §6 §6.1 §7 §9](../conventions.md) |
 
 **산출물**
 - `global/common/ApiResponse.java`, `ErrorResponse.java`, `PageResponse.java`
@@ -964,6 +962,10 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `@Valid` 실패 | 400, `C001`, `fieldErrors` 비어있지 않음 |
 | 성공 응답 | `success = true`, `error = null` |
 | 예상치 못한 `RuntimeException` | 500, `C005`, 스택트레이스 없음 |
+| **타입 불일치 파라미터** | 400 `C002` |
+| **없는 HTTP 메서드** | 405 `C003` |
+| **매핑 없는 경로** | 404 `C004` |
+| **필수 파라미터 누락** | 400 `C001`, `fieldErrors` **빈 배열** |
 | **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500 이 아니고 `log.error` 를 남기지 않는다 |
 | **`Accept: application/xml`** | **406 `C007`** |
 
@@ -1375,7 +1377,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | 저장소 | `yuno110/sp-board` |
 | 의존 | B-01 |
-| 참조 | [../api-contract.md §7 §8.1 §8.3](../api-contract.md), [../domain-model.md §1.1](../domain-model.md), [../conventions.md §6 §7](../conventions.md) |
+| 참조 | [../api-contract.md §7 §8.1 §8.3](../api-contract.md), [../domain-model.md §1.1](../domain-model.md), [../conventions.md §6 §6.1 §7 §9](../conventions.md) |
 
 **산출물**
 - `global/common/ApiResponse.java`, `ErrorResponse.java`, `PageResponse.java`
@@ -1406,6 +1408,12 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `@Valid` 실패 | 400 `C001`, `fieldErrors` 존재 |
 | 성공 응답 | `success = true`, `error = null` |
 | 예상치 못한 예외 | 500 `C005`, 스택트레이스 없음 |
+| **타입 불일치 파라미터** | 400 `C002` |
+| **없는 HTTP 메서드** | 405 `C003` |
+| **매핑 없는 경로** | 404 `C004` |
+| **필수 파라미터 누락** | 400 `C001`, `fieldErrors` **빈 배열** |
+| **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500 이 아니고 `log.error` 를 남기지 않는다 |
+| **`Accept: application/xml`** | **406 `C007`** |
 
 ---
 
