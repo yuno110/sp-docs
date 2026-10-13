@@ -143,9 +143,13 @@ public class PostService {
 | `HttpMediaTypeNotAcceptableException` | `C007` | **응답의 `Content-Type`을 `application/json`으로 못박는다** — 안 하면 핸들러 자신의 응답이 같은 협상에 걸려 본문이 빈다 |
 | `Exception` | `C005` | 마지막 그물 |
 
-**세 서비스가 이 표를 똑같이 구현한다.** `GlobalExceptionHandler`는 복제 대상이고([adr/0007](adr/0007-shared-code-policy.md)) 일치 여부는 [plan/integration.md](plan/integration.md) I-04에서 3자 비교한다. **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
+**세 서비스가 이 표를 똑같이 구현한다.** 다만 **클래스 자체는 복제 대상이 아니다**(§7.2) — 서비스별 `ErrorCode`에 의존하므로 각자 쓴다. 같아야 하는 것은 **핸들러 집합·코드·로그 수준·응답 본문**이고, 그 일치를 [plan/integration.md](plan/integration.md) I-04가 3자 비교한다. **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
 
-**로그 수준을 가른다.** 클라이언트 오류는 `warn`, 마지막 그물만 `error`다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](../AGENTS.md) 불변식 9).
+**로그 수준을 가른다.** 클라이언트 오류는 `warn`, **마지막 그물만 `error`**다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](../AGENTS.md) 불변식 9).
+
+**양쪽을 다 단언한다.** 클라이언트 오류가 `error`가 아닌 것만 보면 **반대 방향이 열린다** — 마지막 그물을 `warn`으로 낮추면 500이 ERROR 경보를 전혀 만들지 않게 되고, 그것이 더 나쁘다. M-02 리뷰에서 그 변이가 잡히지 않는 것이 측정됐다.
+
+> **auth는 동작은 맞지만 그 단언이 없다.** `log.error`를 쓰고 있으나 `log.warn`으로 바꾸는 변이를 잡는 테스트가 없다. auth의 1차 항목이 모두 끝났으므로 지금 고치지 않는다 — **`GlobalExceptionHandler`를 다음에 손대는 사람이 단언을 더한다.**
 
 > **`A001`·`A002`·`A003`은 이 표에 없다.** 인증 실패는 `GlobalExceptionHandler`에 닿기 전에 Security 필터 체인이 처리하므로, `AuthenticationEntryPoint`·`AccessDeniedHandler`가 낸다([api-contract.md §8.5](api-contract.md)의 경계). 보안 기반 항목(AU-04·M-04·B-04)의 몫이다.
 
@@ -175,7 +179,7 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 ### 7.2 복제하지 않는 것
 
 - `ErrorCode` enum — 서비스마다 코드가 다르다. 공유하면 board 코드가 member에 들어간다
-- `GlobalExceptionHandler` — 서비스별 `ErrorCode`에 의존한다
+- `GlobalExceptionHandler` — 서비스별 `ErrorCode`에 의존한다. **다루는 예외 집합과 코드 매핑은 §6.1이 고정한다** — 파일은 각자 쓰지만 동작은 같아야 한다
 - **JWT 검증·발급 코드** — 직접 만들지 않고 Spring 표준을 쓴다([tech-stack.md §2](tech-stack.md))
 
 ## 8. 로깅

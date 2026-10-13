@@ -968,6 +968,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **필수 파라미터 누락** | 400 `C001`, `fieldErrors` **빈 배열** |
 | **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500 이 아니고 `log.error` 를 남기지 않는다 |
 | **`Accept: application/xml`** | **406 `C007`** |
+| **마지막 그물의 로그 수준** | **`ERROR`.** `warn` 으로 낮추면 500 이 ERROR 경보를 전혀 만들지 않는다 ([../conventions.md §6.1](../conventions.md)) |
 
 ---
 
@@ -1414,6 +1415,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | **필수 파라미터 누락** | 400 `C001`, `fieldErrors` **빈 배열** |
 | **본문이 있는데 `Content-Type` 없음** | **415 `C006`.** 500 이 아니고 `log.error` 를 남기지 않는다 |
 | **`Accept: application/xml`** | **406 `C007`** |
+| **마지막 그물의 로그 수준** | **`ERROR`.** `warn` 으로 낮추면 500 이 ERROR 경보를 전혀 만들지 않는다 ([../conventions.md §6.1](../conventions.md)) |
 
 ---
 
