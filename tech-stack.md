@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v13
+version: v14
 updated: 2026-10-14
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -285,10 +285,12 @@ member-service:
 > | 주입 | 환경변수가 없을 때 |
 > | --- | --- |
 > | `@Value("${...}")` | **`BeanCreationException` 으로 기동이 실패한다** (M-04 의 `cors.allowed-origins` 실측) |
-> | `@ConfigurationProperties` 의 **맵** 값 | **리터럴 `${...}` 가 그대로 통과한다** (auth 의 `spring.flyway.placeholders` 실측) |
+> | **`@ConfigurationProperties`** | **리터럴 `${...}` 가 그대로 통과한다.** 맵이든 타입 있는 필드든 같다 — `spring.flyway.placeholders`(맵, auth 실측)와 `spring.datasource.password`(String, 위 `Access denied`)가 둘 다 그렇다 |
 > | **아무도 읽지 않음** | **해석 자체가 일어나지 않는다** — 기동이 성공한다 (M-01R 의 `INTERNAL_API_KEY` 실측) |
 >
-> `DB_PASSWORD` 가 `Access denied` 로 드러나는 것은 **DataSource 가 연결을 시도하기** 때문이고 세 경우 중 어디에도 속하지 않는다. "기본값을 두지 않으면 기동이 실패한다" 를 쓰기 전에 **그 값을 누가 어떻게 읽는지 확인한다** — 이 프로젝트에서 그 전제 없이 적힌 기준이 두 번 옮겨졌다(`ADMIN_PASSWORD_HASH` 는 가드를 추가, `INTERNAL_API_KEY` 는 M-10 으로).
+> **둘째 줄은 "기동이 실패한다" 를 보장하지 않는다.** 리터럴이 그대로 쓰이므로, 실패하느냐는 **그 값을 받는 쪽**에 달렸다 — DataSource 는 연결을 시도해 실패하고(`DB_PASSWORD`), Flyway placeholder 는 그냥 치환돼 넘어간다(`ADMIN_PASSWORD_HASH` 가 가드를 따로 필요로 한 이유).
+>
+> **"기본값을 두지 않으면 기동이 실패한다" 를 쓰기 전에 그 값을 누가 어떻게 읽는지 확인한다.** 그 전제 없이 적힌 기준이 이 프로젝트에서 두 번 옮겨졌다 — `ADMIN_PASSWORD_HASH` 는 가드를 추가했고 `INTERNAL_API_KEY` 는 M-10 으로 넘겼다.
 
 #### 4.3.1 로컬 비밀번호 — `application-local.yml`
 
