@@ -2,8 +2,8 @@
 title: simple 프로젝트 문서
 type: index
 status: rule
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-10-14
 read_when: "이 프로젝트에서 어떤 작업이든 시작하기 전. 어떤 문서를 읽어야 하는지 정할 때"
 related: [plan/README.md, process/dev-workflow.md]
 ---
@@ -60,7 +60,7 @@ related: [plan/README.md, process/dev-workflow.md]
 | 구현·테스트·커밋 절차 | [process/dev-workflow.md](process/dev-workflow.md) |
 | 프로젝트 범위·용어 확인 | [overview.md](overview.md) |
 | 서비스 경계·통신·데이터 일관성 | [architecture.md](architecture.md) |
-| **왜 서비스가 셋인가, 가입·탈퇴가 왜 2단계인가** | [adr/0012](adr/0012-auth-as-separate-service.md) |
+| **왜 서비스가 셋인가, 가입이 왜 3단계, 탈퇴가 왜 2단계인가** | [adr/0012](adr/0012-auth-as-separate-service.md) |
 | 버전·의존성·로컬 환경 구성 | [tech-stack.md](tech-stack.md) |
 | 엔티티·컬럼·인덱스 | [domain-model.md](domain-model.md) |
 | 엔드포인트·요청/응답·에러 코드·토큰 Claim | [api-contract.md](api-contract.md) |

@@ -2,7 +2,7 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v9
+version: v10
 updated: 2026-10-14
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
@@ -100,9 +100,9 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-au
 3. POST /api/v1/members      (member, 인증)    nickname
 ```
 
-**가입은 3단계, 탈퇴는 2단계다.** 로그인이 가입에만 끼기 때문이다 — 탈퇴는 이미 인증된 상태에서 시작한다(§8). 단계 번호는 위 블록의 1·2·3이며 [../api-contract.md §3](../api-contract.md)·[../security.md §2](../security.md)가 같은 번호를 쓴다.
+**가입은 3단계, 탈퇴는 2단계다.** 로그인이 가입에만 끼기 때문이다 — 탈퇴는 이미 인증된 상태에서 시작한다(§8). 단계 번호는 위 블록의 1·2·3이며 [../api-contract.md §9.1](../api-contract.md)이 1·2·3을 열거하고 [../security.md §4](../security.md)의 흐름도가 "가입 1단계"·"가입 3단계"를 붙인다.
 
-**원자성 논의에서 중요한 것은 단계 수가 아니라 쓰기가 둘이라는 점이다.** 2단계(로그인)는 계정도 프로필도 만들지 않는다.
+**원자성 논의에서 중요한 것은 단계 수가 아니라 두 DB에 걸친 쓰기가 둘이라는 점이다.** 2단계(로그인)도 쓰기는 한다 — `sp_auth`에 RefreshToken을 남긴다([../security.md §4](../security.md)). 다만 계정도 프로필도 만들지 않으므로 가입의 원자성에는 걸리지 않는다.
 
 **원자적 가입을 요구하지 않는다.** 분산 트랜잭션을 피하는 대신 "계정만 있는 상태"를 정상 상태로 받아들인다(규칙 3).
 

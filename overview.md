@@ -2,7 +2,7 @@
 title: 프로젝트 개요
 type: explanation
 status: living
-version: v3
+version: v4
 updated: 2026-10-14
 read_when: "프로젝트의 목표·범위·용어를 확인할 때. 처음 합류했을 때 가장 먼저"
 related: [architecture.md, plan/phase1.md, plan/phase2.md]
@@ -21,7 +21,7 @@ related: [architecture.md, plan/phase1.md, plan/phase2.md]
 | member-service | `yuno110/sp-member` | 프로필(닉네임), 내부 API 제공 | 8081 | `sp_member` |
 | board-service | `yuno110/sp-board` | 게시글, 댓글 | 8082 | `sp_board` |
 
-**계정과 프로필이 갈라져 있다.** 그래서 가입과 탈퇴가 각각 2단계다([adr/0012](adr/0012-auth-as-separate-service.md)).
+**계정과 프로필이 갈라져 있다.** 그래서 가입은 3단계, 탈퇴는 2단계다([adr/0012](adr/0012-auth-as-separate-service.md)).
 
 서비스 경계와 통신 방식은 [architecture.md](architecture.md)를 본다.
 
