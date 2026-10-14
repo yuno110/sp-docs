@@ -2,8 +2,8 @@
 title: 개발 워크플로
 type: process
 status: rule
-version: v2
-updated: 2026-09-11
+version: v3
+updated: 2026-10-14
 read_when: "작업 항목을 시작·진행·완료할 때. 매 작업 단위마다"
 related: [review-policy.md, orchestration.md, ../plan/README.md, ../conventions.md]
 ---
@@ -178,6 +178,34 @@ git diff --cached   # 리뷰 대상이 이것이다. 직접 확인한다
 - **체크리스트 갱신을 커밋에 포함한다.** 별도 커밋으로 내지 않는다. 작업 항목 하나가 커밋 하나다
 
 **상태를 갱신하지 않은 채 다음 항목으로 넘어가지 않는다.**
+
+#### 커밋 신원 — 저장소별 로컬 설정이다
+
+**전역·시스템 `user.email`을 설정하지 않는다.** 이 PC는 회사 업무(빗버킷 커밋)와 같이 쓰므로, 전역에 개인 계정을 박으면 회사 커밋에도 그 신원이 붙는다.
+
+네 저장소 모두 **로컬 설정**으로 아래를 쓴다.
+
+| 항목 | 값 |
+| --- | --- |
+| `user.name` | `yuno110` |
+| `user.email` | `97426420+yuno110@users.noreply.github.com` |
+
+**새로 클론하거나 새 저장소를 만들면 로컬 설정이 비어 있다.** 전역도 비어 있으므로 git이 신원을 추론할 수 없다 — **커밋이 만들어지지 않는다.** 측정값: 신원 없는 빈 저장소에서 `git commit` 은 `Author identity unknown` 으로 거부되고 커밋 0건이 남는다. 클론 직후 한 번 돌린다.
+
+```bash
+git config --local user.name yuno110
+git config --local user.email 97426420+yuno110@users.noreply.github.com
+```
+
+**이메일이 GitHub 계정에 연결되어 있지 않으면 커밋이 기여 그래프에 나타나지 않는다.** 그런데도 푸시는 성공하고 커밋은 웹에서 그대로 보이므로 **징후가 없다.** 판정 기준은 GitHub API의 `author` 필드다.
+
+```bash
+curl -s "https://api.github.com/repos/yuno110/sp-docs/commits?per_page=3" | grep -o '"login": "[^"]*"'
+```
+
+귀속된 커밋은 커밋마다 `author`·`committer` 두 줄을 낸다. **귀속되지 않은 커밋은 `author`가 `null`이므로 줄이 나오지 않는다** — 없는 것이 신호다.
+
+2026-10-14에 이 상태를 발견했다. 네 저장소를 조회했을 때 **확인한 커밋 전부가 `author: null`**이었고, 로컬 설정이 둘로 갈려 있었으며(`solution6@ibizsoftware.net` 110건, `bazzflay@gmail.com` 10건) 둘 다 계정에 연결되어 있지 않았다. `git filter-branch --env-filter`로 이력 전체를 재작성해 **120건 전부를 귀속시켰다**(재작성 후 측정값). 그 재작성이 치른 값은 [../plan/phase1.md §4](../plan/phase1.md)의 "이력에 남은 BCrypt 모양"에 적어 둔다.
 
 ## 4. 금지 사항
 

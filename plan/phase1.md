@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v5
-updated: 2026-10-01
+version: v6
+updated: 2026-10-14
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -837,7 +837,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 검사 | 기대 |
 | --- | --- |
 | `git grep`으로 **현재 트리**의 비밀번호·BCrypt 모양 | **없음** |
-| `git log -p`의 `BEGIN PRIVATE KEY` | **1건.** `TestRsaKeys`의 **PEM 헤더 문자열 리터럴**이다(`221f48a`, AU-04) — 실행 시점에 만든 키를 임시 파일로 쓸 때 붙이는 것이고 **키 자료가 아니다** |
+| `git log -p`의 `BEGIN PRIVATE KEY` | **1건.** `TestRsaKeys`의 **PEM 헤더 문자열 리터럴**이다(`157741a`, AU-04) — 실행 시점에 만든 키를 임시 파일로 쓸 때 붙이는 것이고 **키 자료가 아니다** |
 | `git log -p`의 BCrypt 모양 | **3줄.** 아래 "이력에 남은 BCrypt 모양"을 본다 |
 - [ ] **미디어 타입 예외 둘을 다룬다.** `Content-Type` 누락이 500이 아니라 **415 `C006`**, `Accept` 불일치가 **406 `C007`**이다 ([../api-contract.md §8.1](../api-contract.md))
 - [ ] **그 둘이 `log.error`를 남기지 않는다.** 클라이언트 실수가 ERROR 경보를 만들면 안 된다
@@ -857,11 +857,15 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 #### 이력에 남은 BCrypt 모양 — 감수한다
 
-**현재 트리는 0건이지만 이력에는 3줄이 있다.** `c10ae9e`(AU-03)가 넣고 `f199186`(AU-05)가 뺐다. 값은 `$2a$10$abcdefghijklmnop…`처럼 순차 문자열로 조립한 것이라 **실제 자격증명이 아니다.**
+**현재 트리는 0건이지만 이력에는 3줄이 있다.** `0043308`(AU-03)가 넣고 `a678606`(AU-05)가 뺐다. 값은 `$2a$10$abcdefghijklmnop…`처럼 순차 문자열로 조립한 것이라 **실제 자격증명이 아니다.**
 
 [../requirements/member.md §10.2](../requirements/member.md)의 근거 둘 중 하나는 이력에도 적용된다 — **이력을 훑는 시크릿 스캐너는 이 3줄을 집어낸다.** 다른 하나(읽는 사람이 진짜와 구분할 수 없다)는 현재 트리가 깨끗하므로 해당되지 않는다.
 
-**이력 재작성을 하지 않는다.** 비가역이고 force push 가 필요하며, `c10ae9e` 이후 모든 커밋 해시가 바뀐다 — `sp-docs`의 커밋 메시지들이 `sp-auth`의 해시를 인용하고 있어 그 참조가 전부 끊긴다. 실제 자격증명이 아니므로 비용이 이득을 넘는다. **필요해지면 명시적 결정으로 한다.**
+**BCrypt 3줄을 지우기 위한 이력 재작성은 하지 않는다.** 실제 자격증명이 아니므로 비용이 이득을 넘는다. **필요해지면 명시적 결정으로 한다.**
+
+> **이 문단이 들던 비용 근거 하나는 이미 지불됐다.** 2026-10-14에 네 저장소의 이력 전체를 재작성했다 — 사유는 BCrypt가 아니라 **커밋 author 이메일**이었다([../process/dev-workflow.md §3.10](../process/dev-workflow.md)). 그래서 **모든 커밋 해시가 이미 바뀌었다.** 커밋 메시지가 인용한 해시 17개는 전부 끊겼다(측정값 — 현재 `main`에서 도달 불가). 문서 본문의 해시 참조 넷은 새 해시로 고쳤으나 **커밋 메시지는 고칠 수 없다.** 그러므로 그 비용을 BCrypt 재작성의 억지력으로 다시 인용하지 않는다.
+>
+> 한편 그 재작성은 author·committer 신원만 바꿨다. **트리가 동일하므로 BCrypt 3줄은 이력에 그대로 있다** — 위 결론은 유효하다. 다시 재작성하면 해시가 또 바뀐다는 비용은 남아 있다.
 
 #### 하지 않기로 한 것 둘
 
@@ -1083,7 +1087,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] 세션이 생성되지 않는다
 - [ ] **CORS 허용 오리진이 비었거나 `*`가 섞이면 기동이 실패한다** ([../security.md §1.1](../security.md)). "설정에 `*`가 없다" 는 그 절반이다 — **값이 환경에서 오므로 금지를 지키는 지점은 `SecurityConfig` 안의 가드뿐이다.** AU-04 가 같은 가드를 갖는다
 - [ ] 허용 메서드·헤더·`allowCredentials` 가 §1.1 의 정본 값과 일치한다. **CORS 는 `SecurityConfig` 에 둔다** — MVC 쪽에만 두면 preflight 가 401 로 막힌다
-- [ ] **공개키 설정 키가 `spring.security.oauth2.resourceserver.jwt.public-key-location`이다** ([../tech-stack.md §2.1](../tech-stack.md)). 현재 `application.yml`에 들어 있는 `jwt.public-key-location`은 **정본 키가 아니고 읽는 코드도 없다** — 내 설정 커밋(`5807372`)이 넣은 것이고 이 항목에서 교체한다. 표준 키를 쓰면 스타터가 `JwtDecoder`를 자동구성하므로 컨버터 외에 직접 만들 것이 없다
+- [ ] **공개키 설정 키가 `spring.security.oauth2.resourceserver.jwt.public-key-location`이다** ([../tech-stack.md §2.1](../tech-stack.md)). 현재 `application.yml`에 들어 있는 `jwt.public-key-location`은 **정본 키가 아니고 읽는 코드도 없다** — 내 설정 커밋(`8b3a4f8`)이 넣은 것이고 이 항목에서 교체한다. 표준 키를 쓰면 스타터가 `JwtDecoder`를 자동구성하므로 컨버터 외에 직접 만들 것이 없다
 - [ ] 공개키가 없으면 **기동이 실패한다.** **측정해서 확인한다** — 자동구성이 기동 시점에 키 파일을 읽는지가 전제다. `INTERNAL_API_KEY`가 그 전제 없이 적혀 있다가 M-10으로 옮겨졌다(M-01R 참조). **추측하지 말고 파일을 치우고 띄워 본다.** **검증표에 넣지 않는다** — 컨텍스트 기동 실패를 테스트로 만드는 것은 무겁고, 실패시키는 주체가 우리 코드가 아니라 스타터다([../process/review-policy.md §5.3](../process/review-policy.md), [../AGENTS.md](../AGENTS.md) 불변식 11)
 
 **검증** — `SecurityConfigTest` (`@SpringBootTest` + MockMvc)
