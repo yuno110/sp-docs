@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v11
-updated: 2026-10-13
+version: v12
+updated: 2026-10-14
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -310,7 +310,7 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 
 > `DB_PASSWORD`가 어디에도 없으면 `Access denied for user 'root'@'localhost' (using password: YES)`로 기동이 실패한다. **비밀번호가 틀린 게 아니라 값이 없는 것이다.** Spring이 해석되지 않은 placeholder를 리터럴로 남기기 때문이다.
 
-`JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`(auth만)와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다.
+`JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다.
 
 ### 4.4 실행
 

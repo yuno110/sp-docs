@@ -1323,6 +1323,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `README.md` 갱신 (실행 절차, 환경변수 목록, **공개키 배치 절차**)
 - Actuator 설정 (`/actuator/health`만 노출)
 - `application-prod.yml` (Swagger·SQL 로그 비활성화)
+- **claim 검증기 집합을 고정하는 테스트** — M-04 에서 넘어온 것
 
 **완료 기준**
 - [ ] `README.md`에 로컬 실행 절차와 필요한 환경변수가 모두 적혀 있다
@@ -1332,6 +1333,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **`springdoc.api-docs.enabled`도 끈다.** UI만 끄면 `/v3/api-docs`가 전체 엔드포인트 목록을 그대로 낸다
 - [ ] `prod` 프로파일에서 SQL 로그가 꺼진다 — **`show-sql`과 `logging.level` 둘 다**. 후자가 보안 쪽이다: **바인드 파라미터 로그에는 비밀번호가 평문으로 실린다**. member는 비밀번호를 갖지 않지만 `logging.level`을 같은 모양으로 둔다(세 서비스가 같은 운영 설정을 쓴다)
 - [ ] **그 `logging.level` 블록을 지우면 테스트가 깨진다.** 루트 기본이 `INFO`라 설정이 없어도 로거는 이미 조용하다 — **효과가 아니라 속성값을 단언한다**
+- [ ] **`JwtValidators.createDefault()` 가 거는 검증기 집합이 테스트로 고정되어 있다.** M-04 의 `A002`·`A003` 판정이 그 집합에 걸려 있다 — `iss` 불일치를 `A002` 로 내보내려고 `ClaimContractValidator` 가 `BadJwtException` 을 **직접 던지고**, 그래서 `JwtValidationException` 이 남으면 **만료**라고 읽는다. 검증기가 하나 더 붙으면 그 실패도 `JwtValidationException` 이 되어 **`iss` 불일치가 조용히 `A003`(만료)로 나간다.** AU-11 이 auth 에서 같은 것을 못박았다(`JwtConfigTest`) — 같은 모양으로 한다
 - [ ] 전체 테스트가 통과한다 (`./gradlew test`)
 - [ ] 커밋된 파일에 비밀 값이 없다. `git grep`으로 **현재 트리**를 확인한다
 - [ ] **개인키가 저장소에 없다.** `git log -p`의 `BEGIN PRIVATE KEY`를 확인한다 — **검증표에 넣지 않는다**(이력 조회는 테스트가 아니다, [../process/review-policy.md §5.3](../process/review-policy.md))
@@ -1341,6 +1343,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 케이스 | 기대 결과 |
 | --- | --- |
 | `prod` 프로파일로 `/swagger-ui.html`·`/v3/api-docs` | **404.** 같은 경로가 `test` 프로파일에서는 열린다 — 그 대조가 404의 출처를 가린다 |
+| **claim 검증기 집합** | **`JwtTimestampValidator`·`X509CertificateThumbprintValidator` 둘뿐.** 늘면 테스트가 깨져 `iss` 판정을 함께 보게 한다 |
 | `prod` 프로파일의 SQL 로그 | `show-sql`과 `logging.level.*` **속성값**이 꺼짐으로 설정되어 있다 |
 
 ## 6. board-service 작업 항목
