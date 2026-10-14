@@ -2,7 +2,7 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v13
+version: v14
 updated: 2026-10-14
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
@@ -208,14 +208,20 @@ JWT Claim에 `jti`가 없고 `iat`가 초 단위이므로([../api-contract.md §
 ```
 PATCH /api/v1/members/me   { "nickname": "새닉네임" }
 
-1. 닉네임 중복 검사 — **자기 행은 제외한다** (M003)
+1. 닉네임 중복 검사 — **자기 행은 제외한다. 기준은 `accountId`다** (M003)
 2. member.nickname 갱신
 3. 갱신된 프로필 반환
 ```
 
 **토큰을 반환하지 않는다.** 일반적인 수정 API와 같다.
 
-**중복 검사는 자기 행을 제외한다.** 현재 닉네임과 같은 값으로 변경하면 200이다. 제외하지 않으면 사전 검사가 자기 행을 찾아 409 `M003`을 낸다 — 자기가 쓰고 있는 값을 "이미 사용 중"이라고 거부하는 셈이고, 바꾸지 않은 필드를 함께 보내는 평범한 수정 화면이 막힌다. `uk_member_nickname`은 이 경우 깨지지 않는다(같은 행을 같은 값으로 쓴다). 막는 것은 사전 검사뿐이므로 **제외는 사전 검사 쪽에서 해야 한다.**
+**중복 검사는 자기 행을 제외한다.** 현재 닉네임을 그대로 보내도 200이다. 제외하지 않으면 사전 검사가 자기 행을 찾아 409 `M003`을 낸다 — 자기가 쓰고 있는 값을 "이미 사용 중"이라고 거부하는 셈이고, 바꾸지 않은 필드를 함께 보내는 평범한 수정 화면이 막힌다. `uk_member_nickname`은 이 경우 깨지지 않는다(같은 행을 같은 값으로 쓴다). 막는 것은 사전 검사뿐이므로 **제외는 사전 검사 쪽에서 해야 한다.**
+
+**제외 기준은 `accountId`다. 값 동일성이 아니다.** 세 스키마의 콜레이션이 `utf8mb4_general_ci`여서([../tech-stack.md §4.1](../tech-stack.md)) **대소문자를 구분하지 않는다.** `abc`를 쥔 사람이 `ABC`로 바꾸면 값은 다른데 조회는 자기 행을 찾는다. `uk_member_nickname`은 같은 행이므로 그 UPDATE를 허용하는데 사전 검사만 409 `M003`을 낸다 — 위 문단이 금지한 것의 변종이다. `accountId`로 제외하면 콜레이션과 무관해진다.
+
+> **이 입력은 테스트로 잡히지 않는다.** H2는 데이터 비교가 대소문자를 구분하고(`IGNORECASE`를 켜지 않았다), [../tech-stack.md §5.3](../tech-stack.md)의 `CASE_INSENSITIVE_IDENTIFIERS`는 **식별자(테이블명)** 에만 적용된다. 운영에서만 드러나는 차이이고, 그래서 기준을 정본이 정한다.
+
+**사전 검사와 UPDATE 사이에 타인이 그 닉네임을 등록하면 409 `M003`이다.** [../api-contract.md §2.3](../api-contract.md)이 생성 경로에 정한 것과 같다 — 최종 판정은 UNIQUE 제약이다. **500으로 내보내지 않는다.** 클라이언트가 잘못한 것이 없는데 마지막 그물이 `log.error`를 남겨 흔한 경합이 경보가 된다([../conventions.md §6.1](../conventions.md)의 로그 수준 분리). 다만 **`uk_member_nickname` 위반만 `M003`이고 그 밖의 무결성 위반은 다시 던진다** — M-05에서 전부 `M003`으로 돌린 구현이 서버 결함을 업무 오류로 위장했다.
 
 **탈퇴한 프로필은 수정할 수 없다. 404 `M001`이다**([../api-contract.md §3.1](../api-contract.md)). 조회와 같은 결론이다.
 
