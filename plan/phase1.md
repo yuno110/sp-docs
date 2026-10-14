@@ -1059,6 +1059,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - `global/security/RoleClaimConverter.java` (`role` claim → `GrantedAuthority`)
 - `global/security/LoginMember.java` (record), `@CurrentMember` ArgumentResolver
 - `src/main/resources/jwt-public.pem` (**공개키. 커밋 가능**)
+- `application.yml` 수정 — 공개키 설정 키를 **정본 키로 교체**하고 `cors.allowed-origins: ${CORS_ALLOWED_ORIGINS}` 를 **기본값 없이** 추가한다 ([../security.md §1.1](../security.md), [../tech-stack.md §4.3](../tech-stack.md))
 
 **⚠ `LoginMember`는 `(accountId, role)`이다.** `nickname`이 없다 — Claim에 없기 때문이다([../api-contract.md §6](../api-contract.md)).
 
@@ -1080,9 +1081,10 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] `/actuator/health` 외의 actuator 경로가 노출되지 않는다
 - [ ] `/internal/**`이 외부 인증 체인에서 분리되어 있다
 - [ ] 세션이 생성되지 않는다
-- [ ] CORS 설정에 `*`가 없다
+- [ ] **CORS 허용 오리진이 비었거나 `*`가 섞이면 기동이 실패한다** ([../security.md §1.1](../security.md)). "설정에 `*`가 없다" 는 그 절반이다 — **값이 환경에서 오므로 금지를 지키는 지점은 `SecurityConfig` 안의 가드뿐이다.** AU-04 가 같은 가드를 갖는다
+- [ ] 허용 메서드·헤더·`allowCredentials` 가 §1.1 의 정본 값과 일치한다. **CORS 는 `SecurityConfig` 에 둔다** — MVC 쪽에만 두면 preflight 가 401 로 막힌다
 - [ ] **공개키 설정 키가 `spring.security.oauth2.resourceserver.jwt.public-key-location`이다** ([../tech-stack.md §2.1](../tech-stack.md)). 현재 `application.yml`에 들어 있는 `jwt.public-key-location`은 **정본 키가 아니고 읽는 코드도 없다** — 내 설정 커밋(`5807372`)이 넣은 것이고 이 항목에서 교체한다. 표준 키를 쓰면 스타터가 `JwtDecoder`를 자동구성하므로 컨버터 외에 직접 만들 것이 없다
-- [ ] 공개키가 없으면 **기동이 실패한다.** **측정해서 확인한다** — 자동구성이 기동 시점에 키 파일을 읽는지가 전제다. `INTERNAL_API_KEY`가 그 전제 없이 적혀 있다가 M-10으로 옮겨졌다(M-01R 참조). **추측하지 말고 파일을 치우고 띄워 본다**
+- [ ] 공개키가 없으면 **기동이 실패한다.** **측정해서 확인한다** — 자동구성이 기동 시점에 키 파일을 읽는지가 전제다. `INTERNAL_API_KEY`가 그 전제 없이 적혀 있다가 M-10으로 옮겨졌다(M-01R 참조). **추측하지 말고 파일을 치우고 띄워 본다.** **검증표에 넣지 않는다** — 컨텍스트 기동 실패를 테스트로 만드는 것은 무겁고, 실패시키는 주체가 우리 코드가 아니라 스타터다([../process/review-policy.md §5.3](../process/review-policy.md), [../AGENTS.md](../AGENTS.md) 불변식 11)
 
 **검증** — `SecurityConfigTest` (`@SpringBootTest` + MockMvc)
 
@@ -1098,7 +1100,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **`iss` 불일치** | **401 `A002`** — 사유를 가르지 않는다 |
 | **토큰 없이 `GET /api/v1/members/me`** | **401 `A001`** |
 | **토큰 없이 `GET /api/v1/members/1`** | **401이 아님** |
-| 공개키 없이 기동 | 기동 실패 |
+| **허용 오리진에 `*` 가 섞임** | **기동 실패**(`IllegalStateException`). 메서드를 직접 호출해 단언한다 |
+| **허용 오리진이 빈 목록** | **기동 실패.** 둘을 함께 본다 — 하나만 보면 다른 쪽이 열린다 |
 | **토큰 없이 `/swagger-ui.html`** | **302 → `/swagger-ui/index.html`.** `/login` 으로 가면 실패 |
 | **토큰 없이 `/swagger-ui/index.html`** | **200** |
 | **토큰 없이 `/v3/api-docs`** | **200, OpenAPI 문서** |
