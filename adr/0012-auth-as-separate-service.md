@@ -2,9 +2,9 @@
 title: auth를 별도 서비스로 분리
 type: adr
 status: accepted
-version: v1
-updated: 2026-09-15
-read_when: "서비스가 3개인 이유, 계정과 프로필이 갈라진 이유, 가입·탈퇴가 2단계인 이유가 궁금할 때"
+version: v2
+updated: 2026-10-14
+read_when: "서비스가 3개인 이유, 계정과 프로필이 갈라진 이유, 가입이 3단계, 탈퇴가 2단계인 이유가 궁금할 때"
 related: [0006-auth-inside-member-service.md, 0001-msa-adoption.md, 0003-writer-snapshot.md, ../architecture.md, ../domain-model.md, ../api-contract.md]
 ---
 # 0012. auth를 별도 서비스로 분리
@@ -79,7 +79,7 @@ accepted — [0006](0006-auth-inside-member-service.md)을 대체한다
 
 auth는 닉네임을 소유하지 않으므로 넣을 수 없다. 이것이 [0003](0003-writer-snapshot.md)의 "Claim에서 스냅샷을 얻는다"는 취득 경로를 깬다. 대체 경로는 §6이다. **0003의 목적(조회 경로 원격 호출 0회)은 그대로 유지된다.**
 
-### 4. 가입 — 2단계, 멱등
+### 4. 가입 — 3단계, 멱등
 
 ```
 1. POST /api/v1/accounts        (auth,   무인증)   email, password  → accountId

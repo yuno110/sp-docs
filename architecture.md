@@ -2,8 +2,8 @@
 title: 아키텍처
 type: explanation
 status: living
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-10-14
 read_when: "서비스 경계, 서비스 간 통신, 데이터 일관성 설계를 확인할 때"
 related: [domain-model.md, api-contract.md, adr/0001-msa-adoption.md, adr/0003-writer-snapshot.md, adr/0012-auth-as-separate-service.md]
 ---
@@ -30,7 +30,7 @@ related: [domain-model.md, api-contract.md, adr/0001-msa-adoption.md, adr/0003-w
 
 1차에서는 API Gateway를 두지 않고 클라이언트가 세 서비스를 직접 호출한다([adr/0009](adr/0009-gateway-deferred.md)).
 
-**계정과 프로필이 갈라져 있으므로 가입과 탈퇴가 2단계다.** 클라이언트가 순서대로 호출한다([adr/0012](adr/0012-auth-as-separate-service.md) §4·§5).
+**계정과 프로필이 갈라져 있으므로 가입은 3단계, 탈퇴는 2단계다.** 클라이언트가 순서대로 호출한다([adr/0012](adr/0012-auth-as-separate-service.md) §4·§5).
 
 DB는 로컬에서 MySQL 1 인스턴스에 스키마 3개로 두고, 운영에서는 인스턴스를 분리한다. 스키마가 같은 인스턴스에 있어도 §5의 금지 사항은 그대로 적용한다.
 

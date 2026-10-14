@@ -2,8 +2,8 @@
 title: 통합 검증
 type: plan
 status: living
-version: v4
-updated: 2026-10-13
+version: v5
+updated: 2026-10-14
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
 ---
@@ -34,7 +34,7 @@ M-04·B-04에서 member·board는 **배치된 공개키**로 자체 검증만 �
 3. 세 서비스를 함께 기동 (`:8083`, `:8081`, `:8082`)
 4. 아래 시나리오를 수행
 
-**E2E 시나리오** — 가입이 2단계다
+**E2E 시나리오** — 가입이 3단계다
 
 ```
 1. POST :8083/api/v1/accounts              계정 생성 -> accountId

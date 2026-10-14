@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v8
-updated: 2026-10-13
+version: v9
+updated: 2026-10-14
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -19,7 +19,7 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-au
 
 | ID | 기능 | 담당 | 상세 | 차수 |
 | --- | --- | --- | --- | --- |
-| MR-01 | 회원가입 | **auth + member** | **2단계.** 계정 생성(이메일·비밀번호) → 로그인 → 프로필 등록(닉네임). §4 | 1차 |
+| MR-01 | 회원가입 | **auth + member** | **3단계.** 계정 생성(이메일·비밀번호) → 로그인 → 프로필 등록(닉네임). §4 | 1차 |
 | MR-02 | 이메일 중복 확인 | auth | 계정 생성 전 사용 가능 여부 조회 | 1차 |
 | MR-03 | 닉네임 중복 확인 | member | 프로필 등록 전 사용 가능 여부 조회 | 1차 |
 | MR-04 | 로그인 | auth | 이메일+비밀번호 검증 후 Access/Refresh 발급. **탈퇴 계정 거부** | 1차 |
@@ -92,13 +92,17 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-au
 
 **폐기된 규칙** — 이전 v2의 규칙 3 "닉네임 변경 시 새 Access Token을 함께 반환한다"는 폐기됐다. JWT Claim에 `nickname`이 없으므로([../api-contract.md §6](../api-contract.md)) 토큰이 낡을 이유가 사라졌다. 근거는 [../adr/0012](../adr/0012-auth-as-separate-service.md) §3이다.
 
-## 4. MR-01 상세 — 가입은 2단계다
+## 4. MR-01 상세 — 가입은 3단계다
 
 ```
 1. POST /api/v1/accounts     (auth,   무인증)  email, password  -> accountId
 2. POST /api/v1/auth/login   (auth,   무인증)  -> accessToken, refreshToken
 3. POST /api/v1/members      (member, 인증)    nickname
 ```
+
+**가입은 3단계, 탈퇴는 2단계다.** 로그인이 가입에만 끼기 때문이다 — 탈퇴는 이미 인증된 상태에서 시작한다(§8). 단계 번호는 위 블록의 1·2·3이며 [../api-contract.md §3](../api-contract.md)·[../security.md §2](../security.md)가 같은 번호를 쓴다.
+
+**원자성 논의에서 중요한 것은 단계 수가 아니라 쓰기가 둘이라는 점이다.** 2단계(로그인)는 계정도 프로필도 만들지 않는다.
 
 **원자적 가입을 요구하지 않는다.** 분산 트랜잭션을 피하는 대신 "계정만 있는 상태"를 정상 상태로 받아들인다(규칙 3).
 

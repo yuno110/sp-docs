@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v18
-updated: 2026-10-13
+version: v19
+updated: 2026-10-14
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -202,7 +202,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 **`duplicated`가 아니라 `available`이다.** 두 서비스가 각자 만들므로 여기서 고정한다. `duplicated: false`처럼 부정형을 쓰면 이중 부정이 생겨 호출 측이 뒤집어 읽는다.
 
-**탈퇴한 계정의 이메일과 탈퇴한 프로필의 닉네임은 `available: false`다.** 이메일은 재사용하지 않고([requirements/member.md §3](requirements/member.md) 규칙 1), 닉네임은 탈퇴 시 비워지므로 다시 쓸 수 있다 — **닉네임만 `true`가 될 수 있다**([domain-model.md §3.1](domain-model.md)).
+**탈퇴한 계정의 이메일은 `available: false`이고, 탈퇴한 프로필의 닉네임은 `available: true`다.** 이메일은 재사용하지 않지만([requirements/member.md §3](requirements/member.md) 규칙 1) 닉네임은 탈퇴 시 NULL로 비워지므로 다시 쓸 수 있다 — **둘 중 닉네임만 해방된다**([domain-model.md §3.1](domain-model.md)). 닉네임이 비워진 뒤에는 조회에 걸리는 행이 없으므로 `true`는 특별한 분기가 아니라 **자연한 결과**다. 거기에 "탈퇴한 프로필의 닉네임"을 따로 찾아 `false`로 돌리는 코드를 넣지 않는다.
 
 **파라미터를 검증한다.**
 
@@ -273,7 +273,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 `POST /api/v1/members`의 응답도 `GET /me`와 같은 모양이다(§9.1).
 
-**두 "가입일"이 다른 값이다.** MR-07의 가입일은 `account.created_at`(계정 생성)이고 `GET /api/v1/accounts/me`가 돌려준다. **MR-11의 가입일은 `member.created_at`(프로필 등록 시각)이다** — 가입이 2단계이므로 사이에 로그인이 끼고, 둘은 같지 않다([adr/0012](adr/0012-auth-as-separate-service.md) §4). 타인의 계정 생성 시각은 **읽을 수 없다** — `GET /accounts/me`는 자기 것만 돌려준다.
+**두 "가입일"이 다른 값이다.** MR-07의 가입일은 `account.created_at`(계정 생성)이고 `GET /api/v1/accounts/me`가 돌려준다. **MR-11의 가입일은 `member.created_at`(프로필 등록 시각)이다** — 가입이 3단계이므로 사이에 로그인이 끼고, 둘은 같지 않다([adr/0012](adr/0012-auth-as-separate-service.md) §4). 타인의 계정 생성 시각은 **읽을 수 없다** — `GET /accounts/me`는 자기 것만 돌려준다.
 
 #### 탈퇴한 프로필의 공개 조회
 

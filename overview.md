@@ -2,8 +2,8 @@
 title: 프로젝트 개요
 type: explanation
 status: living
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-10-14
 read_when: "프로젝트의 목표·범위·용어를 확인할 때. 처음 합류했을 때 가장 먼저"
 related: [architecture.md, plan/phase1.md, plan/phase2.md]
 ---
@@ -60,7 +60,7 @@ Kafka 도입(닉네임 즉시 반영), Docker 컨테이너화, API Gateway, 좋�
 | Access Token | API 호출용 단기 인증 토큰 (JWT) |
 | Refresh Token | Access Token 재발급용 장기 토큰 |
 | Soft Delete | 실제 삭제 대신 `deleted` 플래그로 처리하는 논리 삭제 |
-| 2단계 가입 | 계정 생성(auth) → 로그인 → 프로필 등록(member). 원자적이지 않다 |
+| 3단계 가입 | 계정 생성(auth) → 로그인 → 프로필 등록(member). 원자적이지 않다 |
 | 2단계 탈퇴 | 계정 탈퇴(auth, 비밀번호 재확인) → 프로필 탈퇴(member). **순서를 바꾸지 않는다** |
 | 스냅샷 | 타 서비스 소유 데이터를 기록 시점 값으로 복제 저장하는 것 |
 | 내부 API | 서비스 간 호출 전용 API. 외부에 노출하지 않음 (`/internal/**`) |
