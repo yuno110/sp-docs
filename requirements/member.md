@@ -2,7 +2,7 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v14
+version: v15
 updated: 2026-10-14
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
@@ -219,7 +219,11 @@ PATCH /api/v1/members/me   { "nickname": "새닉네임" }
 
 **제외 기준은 `accountId`다. 값 동일성이 아니다.** 세 스키마의 콜레이션이 `utf8mb4_general_ci`여서([../tech-stack.md §4.1](../tech-stack.md)) **대소문자를 구분하지 않는다.** `abc`를 쥔 사람이 `ABC`로 바꾸면 값은 다른데 조회는 자기 행을 찾는다. `uk_member_nickname`은 같은 행이므로 그 UPDATE를 허용하는데 사전 검사만 409 `M003`을 낸다 — 위 문단이 금지한 것의 변종이다. `accountId`로 제외하면 콜레이션과 무관해진다.
 
-> **이 입력은 테스트로 잡히지 않는다.** H2는 데이터 비교가 대소문자를 구분하고(`IGNORECASE`를 켜지 않았다), [../tech-stack.md §5.3](../tech-stack.md)의 `CASE_INSENSITIVE_IDENTIFIERS`는 **식별자(테이블명)** 에만 적용된다. 운영에서만 드러나는 차이이고, 그래서 기준을 정본이 정한다.
+> **이 입력은 정본 테스트 URL로는 만들 수 없다. 그러나 기준은 고정할 수 있다.** H2는 데이터 비교가 대소문자를 구분하고(`IGNORECASE`를 켜지 않았다), [../tech-stack.md §5.3](../tech-stack.md)의 `CASE_INSENSITIVE_IDENTIFIERS`는 **식별자(테이블명)** 에만 적용된다. 그래서 "`ABC`가 자기 행에 걸린다"는 상황 자체는 운영에서만 일어난다.
+>
+> **하지만 그 상황을 리포지터리 경계에서 주입할 수 있다.** 값 동일성 조회가 `true`를 돌려주게 해 두고 변경이 여전히 성공하는지 보면, `accountId` 기준 구현에서는 통과하고 값 비교 구현에서는 409 `M003`으로 실패한다 — M-08 리뷰가 그 테스트를 만들어 양쪽을 측정했다. **그러므로 이 기준을 지키는 것은 주석이 아니라 그 테스트다.** 다만 올바른 구현에서는 그 스텁이 호출되지 않으므로 **사실상 경계 관측**이고 한 방향으로만 반증 가능하다 — 그 한계는 테스트 자신이 적는다.
+>
+> 더 충실한 방법은 별도 인메모리 스키마에 `IGNORECASE=TRUE`를 더해 콜레이션을 실제로 비구분으로 만드는 것이다. M-08 리뷰가 만들어 돌려 보았고 동작했다. **그래도 지금 쓰지 않는다** — §5.3이 "이 URL을 그대로 쓴다. `<스키마>`만 서비스별로 바꾼다"로 정했으므로 두 번째 URL 형태를 쓰려면 그 절을 먼저 개정해야 한다. 필요해지면 명시적 결정으로 한다.
 
 **사전 검사와 UPDATE 사이에 타인이 그 닉네임을 등록하면 409 `M003`이다.** [../api-contract.md §2.3](../api-contract.md)이 생성 경로에 정한 것과 같다 — 최종 판정은 UNIQUE 제약이다. **500으로 내보내지 않는다.** 클라이언트가 잘못한 것이 없는데 마지막 그물이 `log.error`를 남겨 흔한 경합이 경보가 된다([../conventions.md §6.1](../conventions.md)의 로그 수준 분리). 다만 **`uk_member_nickname` 위반만 `M003`이고 그 밖의 무결성 위반은 다시 던진다** — M-05에서 전부 `M003`으로 돌린 구현이 서버 결함을 업무 오류로 위장했다.
 
