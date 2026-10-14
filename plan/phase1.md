@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v6
+version: v7
 updated: 2026-10-14
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1206,6 +1206,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | 자기 현재 닉네임으로 변경 | 200 |
 | 닉네임 1자 | 400 `C001` |
 | 탈퇴한 프로필로 조회 | 404 `M001` |
+| **탈퇴한 프로필로 수정** | **404 `M001`** |
 | 토큰 없이 `/me` 접근 | 401 `A001` |
 
 ---

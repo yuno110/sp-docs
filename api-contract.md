@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v19
+version: v20
 updated: 2026-10-14
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -271,7 +271,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | `GET /me` | `accountId`·`nickname` | [requirements/member.md §5](requirements/member.md) MR-07이 member에 배정한 것은 **닉네임뿐이다** |
 | `GET /{accountId}` | `accountId`·`nickname`·`createdAt`·`deleted` | MR-11이 "닉네임, 가입일"을 요구하고, 탈퇴 표기에 `deleted`가 필요하다 |
 
-`POST /api/v1/members`의 응답도 `GET /me`와 같은 모양이다(§9.1).
+`POST /api/v1/members`와 `PATCH /api/v1/members/me`의 응답도 `GET /me`와 같은 모양이다(§9.1, [requirements/member.md §7](requirements/member.md)의 "갱신된 프로필 반환").
 
 **두 "가입일"이 다른 값이다.** MR-07의 가입일은 `account.created_at`(계정 생성)이고 `GET /api/v1/accounts/me`가 돌려준다. **MR-11의 가입일은 `member.created_at`(프로필 등록 시각)이다** — 가입이 3단계이므로 사이에 로그인이 끼고, 둘은 같지 않다([adr/0012](adr/0012-auth-as-separate-service.md) §4). 타인의 계정 생성 시각은 **읽을 수 없다** — `GET /accounts/me`는 자기 것만 돌려준다.
 
@@ -280,10 +280,13 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | 요청 | 응답 |
 | --- | --- |
 | `GET /me`, 프로필 없음 **또는 탈퇴** | **404 `M001`** |
+| **`PATCH /me`, 탈퇴한 프로필** | **404 `M001`** |
 | **`GET /{accountId}`, 탈퇴한 프로필** | **200.** `nickname`은 `"탈퇴한 회원"`, `deleted: true` |
 | `GET /{accountId}`, 그 `accountId`의 프로필이 **없음** | **404 `M001`** |
 
 **`/me`가 404인데 `/{accountId}`가 200인 것이 의도다.** 앞은 "내 프로필을 고치러 왔다"이고 탈퇴했으면 고칠 것이 없다. 뒤는 **"이 글을 쓴 사람의 표시 이름"**이고, 글이 남아 있으므로 표시할 것이 있다 — 404를 주면 클라이언트가 정상적으로 존재하는 글에 오류를 띄운다.
+
+> **`PATCH /me`가 404인 이유는 위 산문과 같다** — 오히려 그쪽에 더 직접적으로 적용된다. 닫힌 행에 쓰기를 허용할 이유가 없다. auth가 §2.2에서 `PATCH /accounts/me/password`에 같은 결론을 냈다. **`DELETE /me`만 예외로 멱등이다**(§3의 목록) — auth의 `DELETE /accounts/me`와 같다. `/me*`를 가진 것은 auth와 member뿐이고(board에는 없다), 둘의 탈퇴 상태 결론을 맞추는 자리는 이 표와 §2.2다. [plan/integration.md](plan/integration.md) I-04는 **응답 형식**(`ApiResponse` 구조, 공통 코드)을 비교하므로 여기를 대신하지 않는다.
 
 **마스킹 규칙은 하나다.** `"탈퇴한 회원"`은 §5의 내부 API와 **같은 응답 시 변환**이며 저장값은 NULL이다([domain-model.md §3.1](domain-model.md)). 두 군데서 다르게 변환하지 않는다.
 

@@ -2,7 +2,7 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v12
+version: v13
 updated: 2026-10-14
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
@@ -208,12 +208,16 @@ JWT Claim에 `jti`가 없고 `iat`가 초 단위이므로([../api-contract.md §
 ```
 PATCH /api/v1/members/me   { "nickname": "새닉네임" }
 
-1. 닉네임 중복 검사 (M003)
+1. 닉네임 중복 검사 — **자기 행은 제외한다** (M003)
 2. member.nickname 갱신
 3. 갱신된 프로필 반환
 ```
 
 **토큰을 반환하지 않는다.** 일반적인 수정 API와 같다.
+
+**중복 검사는 자기 행을 제외한다.** 현재 닉네임과 같은 값으로 변경하면 200이다. 제외하지 않으면 사전 검사가 자기 행을 찾아 409 `M003`을 낸다 — 자기가 쓰고 있는 값을 "이미 사용 중"이라고 거부하는 셈이고, 바꾸지 않은 필드를 함께 보내는 평범한 수정 화면이 막힌다. `uk_member_nickname`은 이 경우 깨지지 않는다(같은 행을 같은 값으로 쓴다). 막는 것은 사전 검사뿐이므로 **제외는 사전 검사 쪽에서 해야 한다.**
+
+**탈퇴한 프로필은 수정할 수 없다. 404 `M001`이다**([../api-contract.md §3.1](../api-contract.md)). 조회와 같은 결론이다.
 
 이전 v2는 "새 Access Token을 함께 반환"하도록 요구했다. Claim에 `nickname`이 있어서 낡을 수 있었기 때문이다. 이제 Claim에 없으므로 **요구 자체가 소멸했다.** member는 개인키를 갖지 않으므로 토큰을 발급할 수도 없다.
 
