@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v9
-updated: 2026-10-13
+version: v10
+updated: 2026-10-14
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -36,7 +36,7 @@ related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 
 **기본값도 두지 않는다.** 비밀 값이 아니지만 **정책값**이다. 임의 기본값을 두면 그 값이 정해진 정책인지 임시값인지 구분할 수 없다. 환경변수는 [tech-stack.md §4.3](tech-stack.md)에 있다.
 
-**CORS 설정은 `SecurityConfig`에 둔다.** MVC(`WebConfig`) 쪽에만 두면 preflight(`OPTIONS`)가 인가 필터에 **401로 막힌다**([conventions.md §1.1](conventions.md)).
+**CORS 설정은 `SecurityConfig`에 둔다.** MVC(`WebConfig`) 쪽에만 두면 preflight(`OPTIONS`)가 인가 필터에 **401로 막힌다**([conventions.md §1](conventions.md)).
 
 ## 2. 서명 알고리즘 — RS256
 
