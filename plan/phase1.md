@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v7
-updated: 2026-10-14
+version: v8
+updated: 2026-10-15
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -1308,6 +1308,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **벌크 1건 요청** | **200, 1건 반환** |
 | **존재하지 않는 id 포함** | **200. 해당 id는 결과에서 제외. 404 아님** |
 | **전부 존재하지 않는 id** | **200, 빈 배열. 404 아님** |
+| **`accountIds` 누락 · `null`** | **400 `C001`** |
+| **`accountIds` 빈 배열** | **200, 빈 배열.** 400 이 아니다 — [../api-contract.md §5](../api-contract.md) |
 | 탈퇴 프로필 포함 | `deleted: true`, 닉네임 `"탈퇴한 회원"` |
 | 탈퇴 프로필의 DB 값 | `nickname IS NULL` |
 | 응답 본문 | `email`, `password` 키 없음 |

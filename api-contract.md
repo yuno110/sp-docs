@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v22
+version: v23
 updated: 2026-10-15
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -271,6 +271,8 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | `GET /me` | `accountId`·`nickname` | [requirements/member.md §5](requirements/member.md) MR-07이 member에 배정한 것은 **닉네임뿐이다** |
 | `GET /{accountId}` | `accountId`·`nickname`·`createdAt`·`deleted` | MR-11이 "닉네임, 가입일"을 요구하고, 탈퇴 표기에 `deleted`가 필요하다 |
 
+**`createdAt`은 오프셋을 표기하지 않고 소수부는 저장값에 따른다**([tech-stack.md §6](tech-stack.md)). 위 예시의 `2026-09-11T10:05:00`은 **운영(MySQL `DATETIME`, 초 단위)의 모양이고 테스트(H2, 마이크로초)에서는 다르다.** 그러므로 **시각 문자열을 단언하는 테스트는 소수부를 선택으로 둔다.** auth가 §2.2에서 `account.created_at`에 같은 주의를 적었다.
+
 `POST /api/v1/members`와 `PATCH /api/v1/members/me`의 응답도 `GET /me`와 같은 모양이다(§9.1, [requirements/member.md §7](requirements/member.md)의 "갱신된 프로필 반환").
 
 **두 "가입일"이 다른 값이다.** MR-07의 가입일은 `account.created_at`(계정 생성)이고 `GET /api/v1/accounts/me`가 돌려준다. **MR-11의 가입일은 `member.created_at`(프로필 등록 시각)이다** — 가입이 3단계이므로 사이에 로그인이 끼고, 둘은 같지 않다([adr/0012](adr/0012-auth-as-separate-service.md) §4). 타인의 계정 생성 시각은 **읽을 수 없다** — `GET /accounts/me`는 자기 것만 돌려준다.
@@ -364,6 +366,17 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 - **존재하지 않는 `accountId`는 결과에서 제외한다.** 404를 반환하지 않는다
 - 탈퇴한 프로필은 `deleted: true` + 닉네임 `"탈퇴한 회원"`으로 반환한다. **저장된 값이 아니라 응답 시 변환이다**(저장값은 NULL, [domain-model.md §3.1](domain-model.md))
 - 요청 순서와 응답 순서를 맞추지 않는다. 소비 측이 `accountId`로 매칭한다
+
+**`accountIds`의 검증은 이렇게 가른다.**
+
+| 요청 | 응답 |
+| --- | --- |
+| `accountIds` **누락 · `null`** | **400 `C001`** — 호출 측의 결함이다. §5.1이 이것을 503 `S001` 경보로 올리는 것이 맞다 |
+| **빈 배열** | **200, `members`는 빈 배열.** 400이 아니다 |
+
+**빈 배열을 400으로 만들지 않는다.** §5.1이 member의 **모든 4xx를 인프라 오류 경보**로 분류하므로, 해석할 `accountId`가 없는 정상 상황이 경보가 된다. `@NotEmpty`는 `null`과 빈 배열을 같게 보므로 쓰지 않는다 — **`@NotNull`이다.**
+
+**건수 상한을 두지 않는다.** 실질 상한은 호출 측에 있다 — board 목록의 한 페이지가 최대 50건이므로(§4.1) 한 번에 해석할 `accountId`도 그만큼이다. 여기에 상한을 두면 초과가 400이 되어 위와 같은 이유로 경보가 된다. 상한이 필요해지면 **그 초과를 400이 아닌 다른 방법으로 다뤄야 한다**(§4.1의 `size`처럼 절삭하거나, board 쪽에서 나눠 호출).
 
 ### 5.1 board의 실패 판정
 
