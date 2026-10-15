@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v14
-updated: 2026-10-14
+version: v15
+updated: 2026-10-15
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -291,6 +291,12 @@ member-service:
 > **둘째 줄은 "기동이 실패한다" 를 보장하지 않는다.** 리터럴이 그대로 쓰이므로, 실패하느냐는 **그 값을 받는 쪽**에 달렸다 — DataSource 는 연결을 시도해 실패하고(`DB_PASSWORD`), Flyway placeholder 는 그냥 치환돼 넘어간다(`ADMIN_PASSWORD_HASH` 가 가드를 따로 필요로 한 이유).
 >
 > **"기본값을 두지 않으면 기동이 실패한다" 를 쓰기 전에 그 값을 누가 어떻게 읽는지 확인한다.** 그 전제 없이 적힌 기준이 이 프로젝트에서 두 번 옮겨졌다 — `ADMIN_PASSWORD_HASH` 는 가드를 추가했고 `INTERNAL_API_KEY` 는 M-10 으로 넘겼다.
+>
+> **"없을 때" 와 "비어 있을 때" 는 다르다. 측정값이다.**
+>
+> 환경변수가 **빈 문자열로 설정되어 있으면** placeholder 해석은 **성공한다.** 값이 빈 문자열이 되고 `@Value` 도 예외를 던지지 않으며 **기동이 성공한다**(M-10 의 `INTERNAL_API_KEY` 실측). 위 표의 첫째 줄은 변수가 **없을 때**만 말한다.
+>
+> 그래서 **"기본값을 두지 않으면 기동이 실패한다" 는 빈 값까지 덮지 않는다.** 빈 값이 유효한 비밀이 되면 안 되는 자리에는 **가드가 따로 필요하다.** M-10 은 빈 `X-Internal-Api-Key` 헤더가 통과할 수 있는 상태였고 `hasText` 가드를 넣어 막았다 — `ADMIN_PASSWORD_HASH` 가 가드를 필요로 한 것과 같은 종류다.
 
 #### 4.3.1 로컬 비밀번호 — `application-local.yml`
 

@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v15
-updated: 2026-10-13
+version: v16
+updated: 2026-10-15
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -50,7 +50,7 @@ com.example.member
 ├── member
 │   ├── controller / service / repository / entity / dto / support
 └── internal
-    └── controller      # InternalMemberController (/internal/v1/**)
+    └── controller / service / dto   # InternalMemberController (/internal/v1/**)
 ```
 
 **`auth` 패키지가 없다.** 계정·인증은 auth-service로 옮겨갔다. member는 **공개키로 검증만** 한다 — 서명 의존성을 넣지 않는다([tech-stack.md §3.2](tech-stack.md)).
