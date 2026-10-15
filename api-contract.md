@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v21
+version: v22
 updated: 2026-10-15
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -282,6 +282,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | `GET /me`, 프로필 없음 **또는 탈퇴** | **404 `M001`** |
 | **`PATCH /me`, 탈퇴한 프로필** | **404 `M001`** |
 | **`DELETE /me`, 탈퇴한 프로필** | **204.** 멱등이 요구사항이다([requirements/member.md §8](requirements/member.md)) — **이 표에서 404가 아닌 유일한 `/me` 행이다** |
+| **`DELETE /me`, 프로필이 아예 없음** | **404 `M001`.** **멱등의 대상이 아니다** — auth 가 §2.2 의 `DELETE /accounts/me` 표에서 같은 결론을 냈다(`sub` 가 가리키는 행 부재는 404) |
 | **`GET /{accountId}`, 탈퇴한 프로필** | **200.** `nickname`은 `"탈퇴한 회원"`, `deleted: true` |
 | `GET /{accountId}`, 그 `accountId`의 프로필이 **없음** | **404 `M001`** |
 
