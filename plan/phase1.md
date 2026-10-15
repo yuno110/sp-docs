@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v8
+version: v9
 updated: 2026-10-15
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -841,7 +841,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | `git log -p`의 BCrypt 모양 | **3줄.** 아래 "이력에 남은 BCrypt 모양"을 본다 |
 - [ ] **미디어 타입 예외 둘을 다룬다.** `Content-Type` 누락이 500이 아니라 **415 `C006`**, `Accept` 불일치가 **406 `C007`**이다 ([../api-contract.md §8.1](../api-contract.md))
 - [ ] **그 둘이 `log.error`를 남기지 않는다.** 클라이언트 실수가 ERROR 경보를 만들면 안 된다
-- [ ] **`JwtConfig`가 쓰는 claim 검증기 집합이 테스트로 고정되어 있다.** AU-07의 `failureCode`가 예외 타입만 보고 `A002`·`A003`을 가르는데, 그 판정은 `JwtValidators.createDefault()`가 `JwtTimestampValidator`와 `X509CertificateThumbprintValidator` 둘뿐이라는 데 걸려 있다. 검증기를 하나 더 붙이면 **`iss` 불일치가 조용히 `A003`(만료)로 나간다**
+- [ ] **`JwtConfig`가 쓰는 claim 검증기 집합이 테스트로 고정되어 있다.** AU-07의 `failureCode`가 예외 타입만 보고 `A002`·`A003`을 가르는데, 그 판정은 `JwtValidators.createDefault()`가 `JwtTimestampValidator`와 `X509CertificateThumbprintValidator` 둘뿐이라는 데 걸려 있다. 둘 중 실제로 실패할 수 있는 것은 **만료 하나**이므로 `JwtValidationException`을 만료로 읽을 수 있다. **검증기를 하나 더 붙이면 그 검증기의 실패도 `JwtValidationException`이 되어 만료가 아닌 사유가 조용히 `A003`(만료)으로 나간다.** `JwtTokenProvider`의 javadoc이 그 전제를 적어 두었다
 
 **검증**
 
@@ -1340,7 +1340,11 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 - [ ] **`springdoc.api-docs.enabled`도 끈다.** UI만 끄면 `/v3/api-docs`가 전체 엔드포인트 목록을 그대로 낸다
 - [ ] `prod` 프로파일에서 SQL 로그가 꺼진다 — **`show-sql`과 `logging.level` 둘 다**. 후자가 보안 쪽이다: **바인드 파라미터 로그에는 비밀번호가 평문으로 실린다**. member는 비밀번호를 갖지 않지만 `logging.level`을 같은 모양으로 둔다(세 서비스가 같은 운영 설정을 쓴다)
 - [ ] **그 `logging.level` 블록을 지우면 테스트가 깨진다.** 루트 기본이 `INFO`라 설정이 없어도 로거는 이미 조용하다 — **효과가 아니라 속성값을 단언한다**
-- [ ] **`JwtValidators.createDefault()` 가 거는 검증기 집합이 테스트로 고정되어 있다.** M-04 의 `A002`·`A003` 판정이 그 집합에 걸려 있다 — `iss` 불일치를 `A002` 로 내보내려고 `ClaimContractValidator` 가 `BadJwtException` 을 **직접 던지고**, 그래서 `JwtValidationException` 이 남으면 **만료**라고 읽는다. 검증기가 하나 더 붙으면 그 실패도 `JwtValidationException` 이 되어 **`iss` 불일치가 조용히 `A003`(만료)로 나간다.** AU-11 이 auth 에서 같은 것을 못박았다(`JwtConfigTest`) — 같은 모양으로 한다
+- [ ] **`JwtValidators.createDefault()` 가 거는 검증기 집합이 테스트로 고정되어 있다.** M-04 의 `A002`·`A003` 판정이 그 집합에 걸려 있다 — Claim 계약 위반은 **검증기 결과가 아니라** `ClaimContractValidator` 가 던지는 `BadJwtException` 으로 오므로 `A002` 가 되고, 그래서 남은 `JwtValidationException` 을 **만료**라고 읽을 수 있다. 기본 둘 중 실제로 실패할 수 있는 것이 만료 하나이기 때문이다. **검증기가 하나 더 붙으면 그 검증기의 실패도 `JwtValidationException` 이 되어 만료가 아닌 사유가 조용히 `A003`(만료)으로 나간다.** `SecurityErrorResponder` 의 javadoc 이 그 전제를 적어 두었다. AU-11 이 auth 에서 같은 것을 못박았다 — 같은 모양으로 한다
+
+> **M-04 의 `A002`·`A003` 테스트는 검증기 추가를 잡지 못한다. 측정값이다.** M-11 에서 `JwtIssuerValidator` 를 더해 둔 채 `SecurityConfigTest` 전체를 돌려도 통과한다 — 이 집합 단언이 그 변화를 드러내는 **유일한 기계장치**다.
+>
+> **`iss` 불일치는 이 위험에 해당하지 않는다.** member 는 `ClaimContractValidator` 가 `BadJwtException` 을 직접 던지므로 검증기가 늘어도 `A002` 로 남고, auth 는 `iss` 검증기를 아예 붙이지 않았다(`JwtTokenProvider` javadoc). **두 완료 기준이 한때 `iss` 를 예로 들었는데 그 인과가 한 단계 넓었다** — M-11 구현 워커가 측정으로 바로잡았다.
 - [ ] 전체 테스트가 통과한다 (`./gradlew test`)
 - [ ] 커밋된 파일에 비밀 값이 없다. `git grep`으로 **현재 트리**를 확인한다
 - [ ] **개인키가 저장소에 없다.** `git log -p`의 `BEGIN PRIVATE KEY`를 확인한다 — **검증표에 넣지 않는다**(이력 조회는 테스트가 아니다, [../process/review-policy.md §5.3](../process/review-policy.md))
