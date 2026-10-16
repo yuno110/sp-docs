@@ -2,7 +2,7 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v16
+version: v17
 updated: 2026-10-15
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
@@ -74,6 +74,15 @@ com.example.board
 └── client
     └── MemberClient    # 내부 API 호출 (1차. 글·댓글 생성 경로)
 ```
+
+**`post`와 `comment` 사이에 단방향 제약을 두지 않는다.** §1.1이 `auth`와 `account`에 같은 면제를 둔 것과 같은 이유다 — **한 로컬 트랜잭션이 두 패키지를 걸친다.** [domain-model.md §5](domain-model.md)가 둘을 요구한다: 게시글 삭제는 `post.deleted`와 하위 댓글 `deleted`를, 댓글 작성은 댓글 INSERT와 `post.comment_count`를 각각 **한 트랜잭션**으로 묶는다. 방향을 끊으려면 그 원자성을 깨거나 두 패키지를 합쳐야 한다.
+
+| 쓰는 쪽 | 참조 | 쓰임 |
+| --- | --- | --- |
+| `post.service` | `comment.repository.CommentRepository` | 게시글 삭제의 댓글 연쇄 (B-07) |
+| `comment.*` | `post.entity.Post`, `post.support.PostReader` | 연관관계 매핑, 게시글 존재 판정과 `comment_count` 갱신 (B-03·B-08) |
+
+**면제는 이 두 줄까지다.** 서로의 **Service**를 참조하지 않는다 — 업무 규칙이 두 곳으로 갈리고 트랜잭션 경계가 어느 쪽 것인지 흐려진다. 게시글 존재 판정은 `PostReader` 한 곳이고([plan/phase1.md §2.5](plan/phase1.md)의 공유 지점), 댓글 연쇄 삭제는 `CommentRepository`의 벌크 UPDATE 한 곳이다.
 
 `LoginMember`는 `(accountId, role)`이다. **`nickname`은 없다.** 작성자 닉네임은 `MemberClient`로 얻는다.
 
