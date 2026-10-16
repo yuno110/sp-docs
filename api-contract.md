@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v30
+version: v31
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -369,6 +369,14 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 **`updatedAt` 을 넣지 않는다.** [domain-model.md §1.1](domain-model.md)이 "`updated_at` 을 감사 흔적으로 쓰지 않는다" 고 적었고 노출 요구가 없다.
 
 **댓글을 함께 싣지 않는다.** `GET /posts/{postId}/comments` 가 따로 있다(§4). 상세 응답에 댓글을 넣으면 그 엔드포인트가 두 벌이 된다.
+
+### 4.4 404 와 403 의 선후
+
+**없는 글이 먼저다.** 타인의 글이면서 **없는**(또는 삭제된) 글에 수정·삭제를 시도하면 **404 `P001`** 이고 403 `P002` 가 아니다. 조회를 권한 판정보다 앞에 둔다. 댓글도 같다.
+
+**정보 노출이 아니다.** `GET /posts/{id}` 가 비로그인에 열려 있으므로(§4.2) 게시글의 존재 여부는 **이미 공개 정보다.** 존재를 숨기려고 403 을 먼저 내보내면 공개 조회와 **어긋난 두 답**이 나가고, 클라이언트는 403 을 받은 글이 없는 글인지 남의 글인지 구별하지 못한 채 조회로 다시 물어봐야 한다.
+
+> **비공개 자원이면 반대가 맞다.** 존재 여부가 공개가 아닌 자원에서는 404 를 먼저 내는 것이 존재를 알려주는 누출이 된다. 1차의 board 에는 그런 자원이 없다 — §4.2 가 조회를 전부 공개로 두었다. 새로 생기면 이 절을 다시 본다.
 
 **`POST /api/v1/posts` 와 `PUT /api/v1/posts/{id}` 의 응답도 상세와 같은 모양이다.** 모양은 둘뿐이고 쓰기 응답이 세 번째를 만들지 않는다 — member 가 §3.1 에서 `POST /api/v1/members`·`PATCH /api/v1/members/me` 를 `GET /me` 와 같은 모양으로 못박은 것과 같다. 방금 만들거나 고친 글은 본문까지 돌려주는 것이 자연스럽다.
 
