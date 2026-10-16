@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v8
+version: v9
 updated: 2026-10-14
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -149,6 +149,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 - [ ] API 응답의 시각에 **오프셋이 없다.** 고정 패턴을 단언하지 않는다 — 소수부는 컬럼 타입이 정하고 코드가 보장하지 않는다([../tech-stack.md §6](../tech-stack.md))
 - [ ] **세 서비스**의 JDBC URL에 `serverTimezone=Asia/Seoul`이 있다
 - [ ] **세 서비스**에 `hibernate.jdbc.time_zone: Asia/Seoul`이 있다
+- [ ] **MySQL `DATETIME`이 소수부를 버리는 것을 확인한다.** [../api-contract.md §7.1](../api-contract.md)의 동률 정렬 규칙이 그 전제에 걸려 있다
 
 **검증**
 
@@ -157,6 +158,8 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | 계정 생성·프로필 등록·게시글 작성을 1분 내 수행 | 세 `createdAt` 차이가 1분 이내 |
 | DB에서 직접 조회한 `created_at` | 현재 KST 시각과 일치 |
 | API 응답의 시각 문자열 | `Z`·`+09:00` 등 오프셋 없음 |
+| **같은 초에 게시글·댓글 여러 건 작성** | DB의 `created_at`이 **서로 같다**(소수부가 없다). H2는 마이크로초를 유지하므로 **단위 테스트로는 재현되지 않는다** |
+| **그 동률 상태에서 목록 1·2페이지** | 중복·누락 **없음**([../api-contract.md §7.1](../api-contract.md)의 `id` 마지막 정렬 키). **이 조건을 실제로 만들 수 있는 곳은 여기뿐이다** |
 
 > **JVM 기본 시간대는 검증 대상이 아니다.** 개발 머신이 KST라 항상 통과하므로 아무것도 증명하지 못한다. 배포 시 `TZ=Asia/Seoul`을 거는 것은 2차 컨테이너화의 확인 항목이다([../plan/phase2.md](../plan/phase2.md)).
 
@@ -223,7 +226,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 - [ ] 기존 Access Token으로는 토큰 만료까지 접근이 가능하다 (알려진 잔여 노출)
 - [ ] 프로필 행이 아직 `deleted = false`다
 - [ ] **기존 토큰으로 2단계를 재시도할 수 있다** (복구 경로가 살아 있다)
-- [ ] 과거 게시글의 `writer_nickname`이 그대로 남아 있다
+- [ ] 과거 게시글·**댓글**의 `writer_nickname`이 그대로 남아 있다
 
 **완료 기준 — 2단계까지 수행**
 - [ ] 프로필이 `deleted = true`, `nickname = null`이다
@@ -245,6 +248,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | 2단계 후 같은 이메일로 계정 생성 | 409 `AU002` |
 | 2단계 후 해방된 닉네임으로 타인 등록 | 201 |
 | 2단계 후 과거 게시글 조회 | 200, 닉네임 그대로 |
+| **2단계 후 과거 댓글 목록 조회** | **200, 닉네임 그대로.** 댓글도 스냅샷이다([../domain-model.md §4.2](../domain-model.md)) |
 | 1·2단계 중 서비스 간 호출 | **0회.** 클라이언트가 순서대로 호출한다 |
 
 > **2단계를 수행하지 않으면 프로필이 남고 닉네임이 선점된다.** 1차에는 이를 관측·정리할 수단이 없다. 알려진 제약이며 2차 이벤트 범위다([../adr/0010](../adr/0010-kafka-for-nickname-sync.md)).
