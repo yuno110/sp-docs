@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v16
+version: v17
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1684,6 +1684,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `searchType`만 있고 `keyword`가 없으면 400 `C001`
 - [ ] **목록 조회 시 member-service를 호출하지 않는다**
 - [ ] 정렬 파라미터로 임의 컬럼명을 넣을 수 없다 (Enum 화이트리스트)
+- [ ] **동률이 있어도 페이지 경계가 안정적이다.** `id`가 마지막 정렬 키다 ([../api-contract.md §4.1 §7.1](../api-contract.md))
 
 **검증** — `PostQueryRepositoryTest` (`@DataJpaTest`), `PostControllerTest`
 
@@ -1699,6 +1700,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `keyword` 없이 조회 | 전체 |
 | `searchType=TITLE`만 전달 | 400 `C001` |
 | `sort=password` | 400 |
+| `created_at`이 **같은** 글 다수를 1·2페이지로 조회 | 중복·누락 **없음**. 시각을 직접 박아 동률을 만든다 |
+| `view_count`가 **전부 0**인 목록을 1·2페이지로 조회 | 중복·누락 **없음** |
 
 ---
 
@@ -1775,7 +1778,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] **원격 호출이 DB 트랜잭션 밖에서 일어난다.** `comment_count`도 증가하지 않는다
 - [ ] 댓글 수정·삭제는 `MemberClient`를 호출하지 않는다
 - [ ] 없는 게시글에 댓글 작성 시 404 `P001`
-- [ ] 댓글 목록이 등록순 페이징(기본 20)으로 반환된다
+- [ ] 댓글 목록이 등록순 페이징(기본 20)으로 반환된다. **`created_at ASC, id ASC`다** ([../api-contract.md §7.1](../api-contract.md))
 
 **검증** — `CommentServiceTest`, `CommentControllerTest`
 
@@ -1793,6 +1796,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 댓글 3개 작성 후 1개 삭제 | `comment_count = 2` |
 | 같은 댓글 2회 삭제 시도 | `comment_count` 음수 안 됨 |
 | 목록 조회 | 등록순, 기본 20건 |
+| `created_at`이 **같은** 댓글 다수 | 등록순이 `id`로 결정된다. 중복·누락 없음 |
 | 본인 댓글 수정 | 200 |
 | 타인 댓글 수정 | 403 `CM002` |
 | ADMIN이 타인 댓글 수정 | 403 `CM002` |
@@ -1816,7 +1820,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - `README.md` 갱신, Actuator·`application-prod.yml`
 
 **완료 기준**
-- [ ] 내가 쓴 글 목록이 `writer_id` 기준으로 페이징 조회된다
+- [ ] 내가 쓴 글 목록이 `writer_id` 기준으로 페이징 조회된다. **마지막 정렬 키가 `id`다** ([../api-contract.md §7.1](../api-contract.md))
 - [ ] 삭제된 글은 제외된다
 - [ ] `README.md`에 실행 절차와 환경변수가 적혀 있다
 - [ ] `/actuator/health`만 노출된다

@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v27
+version: v28
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -327,7 +327,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | `searchType` | enum | - | `TITLE`, `CONTENT`, `TITLE_CONTENT`, `WRITER` |
 | `keyword` | string | - | `searchType`과 함께 전달 |
 
-`sort`는 화이트리스트 Enum으로 받는다. 임의 컬럼명을 직접 노출하지 않는다.
+`sort`는 화이트리스트 Enum으로 받는다. 임의 컬럼명을 직접 노출하지 않는다. **`latest`는 `created_at DESC, id DESC`이고 `views`는 `view_count DESC, id DESC`다** — 2차 키의 근거는 §7.1에 있다.
 
 **`keyword` 는 부분 일치다.** `LIKE '%키워드%'` 이고 전방 일치가 아니다 — 그래서 `idx_post_title` 이 쓰이지 않는다([domain-model.md §4.3](domain-model.md)). 이 의미론은 외부에서 관측되므로 여기서 고정한다. 대소문자는 스키마 콜레이션이 `utf8mb4_general_ci` 라 구분하지 않는다([tech-stack.md §4.1](tech-stack.md)).
 
@@ -475,6 +475,12 @@ public record FieldError(String field, String message) { }
   "error": null
 }
 ```
+
+**정렬에 동률이 있으면 유일 키를 마지막 정렬 키로 덧붙인다.** `OFFSET` 페이징은 정렬이 전순서가 아니면 페이지마다 다른 순서를 받을 수 있고, 그러면 **같은 행이 두 페이지에 나오거나 어느 페이지에도 나오지 않는다.** 1차의 모든 목록은 `id`를 마지막 정렬 키로 둔다 — 내림차순 목록은 `id DESC`, 등록순 목록은 `id ASC`다.
+
+> **동률은 드문 경우가 아니다.** MySQL `DATETIME`은 초 단위라 같은 초에 생성된 행의 `created_at`이 **같다**([tech-stack.md §6](tech-stack.md)). `views` 정렬은 더 심하다 — `view_count` 기본값이 0이므로 **조회가 한 번도 없는 목록은 전체가 동률이다.**
+>
+> **H2는 마이크로초를 유지하므로 `created_at` 동률이 테스트에서 저절로 재현되지 않는다**(B-06 실측: 연속 저장 15건의 `created_at`이 15개 전부 달랐다). 동률을 검증하려면 **시각을 직접 박아야 한다.** 저장 순서에만 기댄 정렬 단언은 H2에서만 녹색이다.
 
 ## 8. 에러 코드
 
