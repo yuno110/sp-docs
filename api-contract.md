@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v36
+version: v37
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -311,7 +311,13 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | PUT | `/api/v1/comments/{id}` | 댓글 수정 | O (본인) | 200 |
 | DELETE | `/api/v1/comments/{id}` | 댓글 삭제 | O (본인/ADMIN) | 204 |
 
-**`GET /posts/me` 의 인가 규칙을 `GET /posts/{id}` 보다 먼저 선언한다.** MVC 라우팅은 리터럴 세그먼트를 경로 변수보다 구체적으로 보므로 선언 순서와 무관하지만(M-10 리뷰 측정값), **`SecurityConfig` 의 `authorizeHttpRequests` 는 선언 순서대로 평가한다.** `{id}` 를 먼저 선언하면 `permitAll` 이 `/posts/me` 를 먼저 잡아 **인증 없이 열린다.** member 가 `/members/me` 를 `/members/{accountId}` 앞에 둔 것과 같은 이유다([plan/phase1.md](plan/phase1.md) M-04).
+**`GET /posts/me` 의 인가 규칙을 `GET /posts/{id}` 보다 먼저 선언한다.** MVC 라우팅은 리터럴 세그먼트를 경로 변수보다 구체적으로 보므로 선언 순서와 무관하지만(M-10 리뷰 측정값), **`SecurityConfig` 의 `authorizeHttpRequests` 는 선언 순서대로 평가한다.** `{id}` 를 먼저 선언하면 `permitAll` 이 `/posts/me` 를 먼저 잡아 **요청이 인증 없이 디스패치된다.**
+
+> **그 결함은 상태 코드로 관측되지 않는다. B-09 실측이다.** 뒤집어도 핸들러의 `@CurrentMember` 가 익명 principal 을 보고 던지므로 **응답이 똑같이 401 `A001`** 이다 — 뒤집은 변이에서 board 의 테스트 **262개가 전부 통과했다.** 바뀌는 것은 응답이 아니라 **거부한 계층**이다: 필터 체인이 막으면 요청이 `DispatcherServlet` 에 닿지 않고, `permitAll` 이 먼저 잡으면 핸들러까지 간 뒤 인수 리졸버가 막는다.
+>
+> **그래서 선택된 핸들러와 해석된 예외가 둘 다 비어 있는지를 본다**(`MvcResult.getHandler()`·`getResolvedException()`). 상태 코드 단언만으로는 부족하다.
+>
+> **핸들러가 생기기 전에는 상태 코드가 그 순서를 잡았다.** 규칙이 열려도 매핑이 없어 404 였기 때문이다 — B-09 가 핸들러를 만든 뒤로 그 관측이 사라졌다. **엔드포인트를 늦게 추가하는 항목이 앞선 항목의 게이트를 조용히 무력화할 수 있다**는 예다. `/members/me` 를 같은 이유로 먼저 선언한 member 도 같은 성질을 갖는다([plan/phase1.md](plan/phase1.md) M-04·M-10). member 가 `/members/me` 를 `/members/{accountId}` 앞에 둔 것과 같은 이유다([plan/phase1.md](plan/phase1.md) M-04).
 
 > **`/me` 가 단수 리소스가 아니라 목록인 것은 `/accounts/me`·`/members/me` 와 다르다.** 그 둘은 "나" 라는 한 리소스이고 이것은 "내가 쓴 글들" 이다. 그래도 같은 접미사를 쓴 이유는 (a) 쿼리 파라미터(`?writer=me`)로 가르면 **Security 가 경로만 보므로 인가를 필터 체인에 선언할 수 없고**(§4 의 "모든 경로에 인가 규칙" 과 어긋난다), (b) 이 프로젝트가 "자기 것" 을 두 번 `/me` 로 표기했기 때문이다. **다른 접미사가 필요해지면 명시적 결정으로 바꾼다.**
 
