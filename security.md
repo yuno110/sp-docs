@@ -2,7 +2,7 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v11
+version: v12
 updated: 2026-10-16
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
@@ -28,9 +28,15 @@ related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 | 항목 | 누가 정하는가 | 값 |
 | --- | --- | --- |
 | 허용 오리진 | **환경** | `cors.allowed-origins`로 **기본값 없이** 주입한다. 비었거나 `*`가 섞이면 **기동을 실패시킨다** |
-| 허용 메서드 | **정본** | `GET`, `POST`, `PATCH`, `DELETE` ([api-contract.md §2~§4](api-contract.md)에서 도출) |
+| 허용 메서드 | **정본** | `GET`, `POST`, `PUT`, `PATCH`, `DELETE` ([api-contract.md §2~§4](api-contract.md)의 합집합) |
 | 허용 헤더 | **정본** | `Authorization`, `Content-Type` |
 | `allowCredentials` | **정본** | `false`. 토큰을 `Authorization` 헤더로 보내므로 쿠키가 필요 없다 |
+
+> **`PUT` 이 빠져 있었다. B-04 구현 워커가 찾았다.** 목록이 "§2~§4 에서 도출" 이라고 적혀 있었지만 auth·member 만 보고 만들어졌다 — 수정 경로가 member 는 `PATCH`(§3)인데 **board 는 `PUT`**(§4 의 `PUT /api/v1/posts/{id}`·`PUT /api/v1/comments/{id}`)이다. 그대로였다면 브라우저 클라이언트의 게시글·댓글 수정 preflight 가 막혔다. 1차에 프론트엔드가 없어 당장 드러나지 않는 종류다.
+>
+> **auth·member 는 넷을 단언한 상태로 완료됐다.** 둘에는 `PUT` 엔드포인트가 없으므로 실질 피해가 없어 다시 열지 않는다. **board 는 이 다섯을 쓴다.**
+>
+> **세 서비스의 CORS 를 비교하는 통합 항목이 없다.** [plan/integration.md](plan/integration.md) I-04 는 **응답 형식**(`ApiResponse` 구조·공통 코드)만 보고 I-01·I-02·I-03·I-05 도 CORS 를 다루지 않는다. 그래서 이 값의 어긋남을 지키는 것은 **각 서비스의 보안 기반 항목(AU-04·M-04·B-04) 테스트뿐**이다 — 한 서비스만 고치면 아무것도 깨지지 않는다는 뜻이고, 이 결함이 그렇게 살아남았다.
 
 **오리진 목록을 정본에 박지 않는다.** 이 프로젝트는 프론트엔드가 없는 JSON API이므로([overview.md §1](overview.md)) 지금 값을 정하면 없는 클라이언트를 상상해 만드는 것이 된다.
 
