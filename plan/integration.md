@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v5
+version: v6
 updated: 2026-10-14
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -174,6 +174,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 **완료 기준**
 - [ ] **세 서비스**의 성공 응답 구조가 동일하다 (`success`, `data`, `error` 키)
 - [ ] **세 서비스**의 에러 응답 구조가 동일하다 (`error.code`, `error.message`, `error.fieldErrors`)
+- [ ] **`fieldErrors` 의 요청 수준·바인딩 수준 구분이 세 서비스에서 같다** ([../api-contract.md §2.3](../api-contract.md)) — 누락은 빈 배열, 바인딩된 필드의 오류는 1건
 - [ ] 공통 에러 코드(`C001`, `A001`~`A004`)의 HTTP 상태와 메시지가 **세 서비스에서** 같다
 - [ ] **세 서비스**의 페이징 응답 구조가 동일하다
 - [ ] 어느 응답에도 스택트레이스·SQL·내부 호스트명이 없다
@@ -188,6 +189,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | **세 서비스 `C002`~`C007`** | **상태·메시지 일치.** [../conventions.md §6.1](../conventions.md) 의 예외 11종이 같은 코드로 변환된다 |
 | 세 서비스 `A001`~`A004` | 상태·메시지 일치 |
 | 세 서비스 `fieldErrors` 빈 배열 케이스 | 필수 파라미터 누락·본문 파싱 실패에서 **셋 다 빈 배열** ([../api-contract.md §2.3](../api-contract.md)) |
+| **세 서비스 `fieldErrors` 1건 케이스** | **바인딩 수준** 오류에서 **셋 다 1건**이고 `field` 가 파라미터명이다 ([../api-contract.md §2.3 §4.1](../api-contract.md)). 경로는 auth `check-email` 의 형식 오류, member `check-nickname` 의 형식·길이, board 의 목록 `size=0`·`page=-1` 이다 — 셋 다 `HandlerMethodValidationException` 을 지난다 |
 | 각 서비스의 `ErrorCode` 열거 | 타 서비스 전용 접두어 없음 |
 | 세 서비스 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last` |
 | 500 응답 본문 | **세 서비스 모두** 스택트레이스 없음 |
