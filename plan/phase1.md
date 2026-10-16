@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v13
+version: v14
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1818,6 +1818,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `prod` 프로파일에서 Swagger·SQL 로그가 꺼진다
 - [ ] 전체 테스트가 통과한다
 - [ ] 목록 조회 쿼리에 N+1이 없다
+- [ ] **`JwtValidators.createDefault()` 가 거는 검증기 집합이 테스트로 고정되어 있다.** B-04 의 `A002`·`A003` 판정이 그 집합에 걸려 있다 — 기본 둘 중 실제로 실패할 수 있는 것이 만료 하나라서 `JwtValidationException` 을 만료로 읽을 수 있다. **검증기가 하나 더 붙으면 그 검증기의 실패도 `JwtValidationException` 이 되어 만료가 아닌 사유가 조용히 `A003`(만료)으로 나간다.** `SecurityErrorResponder` 의 javadoc 이 그 전제를 적어 두었다. AU-11·M-11 이 같은 것을 못박았다 — 같은 모양으로 한다
 
 **검증**
 

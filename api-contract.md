@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v24
+version: v25
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -303,12 +303,17 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | POST | `/api/v1/posts` | 게시글 작성 | O | 201 |
 | GET | `/api/v1/posts` | 목록·검색 | - | 200 |
 | GET | `/api/v1/posts/{id}` | 상세 조회 | - | 200 |
+| GET | `/api/v1/posts/me` | **내가 쓴 글 목록** (P-08) | O | 200 |
 | PUT | `/api/v1/posts/{id}` | 수정 | O (본인) | 200 |
 | DELETE | `/api/v1/posts/{id}` | 삭제 | O (본인/ADMIN) | 204 |
 | POST | `/api/v1/posts/{postId}/comments` | 댓글 작성 | O | 201 |
 | GET | `/api/v1/posts/{postId}/comments` | 댓글 목록 | - | 200 |
 | PUT | `/api/v1/comments/{id}` | 댓글 수정 | O (본인) | 200 |
 | DELETE | `/api/v1/comments/{id}` | 댓글 삭제 | O (본인/ADMIN) | 204 |
+
+**`GET /posts/me` 의 인가 규칙을 `GET /posts/{id}` 보다 먼저 선언한다.** MVC 라우팅은 리터럴 세그먼트를 경로 변수보다 구체적으로 보므로 선언 순서와 무관하지만(M-10 리뷰 측정값), **`SecurityConfig` 의 `authorizeHttpRequests` 는 선언 순서대로 평가한다.** `{id}` 를 먼저 선언하면 `permitAll` 이 `/posts/me` 를 먼저 잡아 **인증 없이 열린다.** member 가 `/members/me` 를 `/members/{accountId}` 앞에 둔 것과 같은 이유다([plan/phase1.md](plan/phase1.md) M-04).
+
+> **`/me` 가 단수 리소스가 아니라 목록인 것은 `/accounts/me`·`/members/me` 와 다르다.** 그 둘은 "나" 라는 한 리소스이고 이것은 "내가 쓴 글들" 이다. 그래도 같은 접미사를 쓴 이유는 (a) 쿼리 파라미터(`?writer=me`)로 가르면 **Security 가 경로만 보므로 인가를 필터 체인에 선언할 수 없고**(§4 의 "모든 경로에 인가 규칙" 과 어긋난다), (b) 이 프로젝트가 "자기 것" 을 두 번 `/me` 로 표기했기 때문이다. **다른 접미사가 필요해지면 명시적 결정으로 바꾼다.**
 
 ### 4.1 목록 조회 파라미터
 
