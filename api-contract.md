@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v23
-updated: 2026-10-15
+version: v24
+updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -323,6 +323,8 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | `keyword` | string | - | `searchType`과 함께 전달 |
 
 `sort`는 화이트리스트 Enum으로 받는다. 임의 컬럼명을 직접 노출하지 않는다.
+
+**`keyword` 는 부분 일치다.** `LIKE '%키워드%'` 이고 전방 일치가 아니다 — 그래서 `idx_post_title` 이 쓰이지 않는다([domain-model.md §4.3](domain-model.md)). 이 의미론은 외부에서 관측되므로 여기서 고정한다. 대소문자는 스키마 콜레이션이 `utf8mb4_general_ci` 라 구분하지 않는다([tech-stack.md §4.1](tech-stack.md)).
 
 ### 4.2 프로필 보유가 필요한 동작
 

@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v10
-updated: 2026-10-15
+version: v11
+updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -1448,7 +1448,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | --- | --- |
 | 저장소 | `yuno110/sp-board` |
 | 의존 | B-02 |
-| 참조 | [../domain-model.md §3 §4](../domain-model.md), [../conventions.md §2](../conventions.md), [../requirements/board.md §3 §5](../requirements/board.md) |
+| 참조 | [../domain-model.md §4 §5](../domain-model.md), [../conventions.md §2](../conventions.md), [../requirements/board.md §3 §4 §5](../requirements/board.md) |
 
 **두 엔티티와 도메인 메서드를 여기서 전부 만든다.** 기능 단계에 남겨두면 여러 항목이 같은 엔티티 파일을 고치게 된다.
 
@@ -1489,6 +1489,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] **테스트 DataSource URL이 [../tech-stack.md §5.3](../tech-stack.md)의 정본과 일치한다** — `DATABASE_TO_LOWER`·`CASE_INSENSITIVE_IDENTIFIERS`·`DB_CLOSE_DELAY=-1` 포함
 - [ ] **테스트가 그 URL로 돈다.** `jdbc:h2:mem:<uuid>`가 아니다
 - [ ] **`ddl-auto: validate`가 실제로 적용된다.** 엔티티에만 있는 컬럼을 넣는 변이에서 `SchemaManagementException`으로 기동이 실패하는 것으로 확인한다 — **검증표에 넣지 않는다**(테스트가 자기 엔티티를 바꿀 수 없다, [../process/review-policy.md §5.3](../process/review-policy.md))
+- [ ] **엔티티와 마이그레이션의 컬럼 폭이 일치한다.** `information_schema` 의 실제 폭을 읽어 비교하는 테스트로 고정한다 — **`ddl-auto: validate` 는 폭을 보지 않는다**([../domain-model.md §4](../domain-model.md)의 주의, [../tech-stack.md §5.2](../tech-stack.md)). board 는 입력 규칙과 컬럼 폭이 같아 여유가 없다
 
 **검증** — `PostRepositoryTest`, `CommentRepositoryTest` (`@DataJpaTest`)
 
@@ -1506,6 +1507,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `PostReader`로 없는 id 조회 | `BusinessException(P001)` |
 | 테스트 실행 중 DataSource URL | [../tech-stack.md §5.3](../tech-stack.md)의 정본과 문자열 일치 |
 | 저장된 테이블명 | **소문자** `post`·`comment`. `DATABASE_TO_LOWER` 효과 |
+| **`information_schema` 의 실제 폭** | `post.title` **200**, `comment.content` **500**, 양쪽 `writer_nickname` **30**. 엔티티 선언과 일치 |
 
 ---
 

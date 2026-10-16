@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v8
-updated: 2026-10-13
+version: v9
+updated: 2026-10-16
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -234,16 +234,24 @@ InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바�
 
 2차에 `parent`(대댓글, `@ManyToOne(LAZY)`, NULL 허용)를 추가한다.
 
+> **컬럼 폭에 여유가 없다. member 와 다르다.** `title` 은 입력 규칙이 1~200자인데 컬럼이 `VARCHAR(200)`, 댓글 `content` 는 1~500자인데 `VARCHAR(500)` 이다([requirements/board.md §4](requirements/board.md)). §3.1 의 `nickname` 은 규칙 2~10자에 컬럼 30으로 **의도된 여유**를 뒀지만 여기는 규칙과 폭이 같다. 규칙이 넓어지면 **마이그레이션이 반드시 따라와야 한다.**
+>
+> **`ddl-auto: validate` 는 이 폭을 보지 않는다**([tech-stack.md §5.2](tech-stack.md)). 엔티티와 마이그레이션이 어긋나도 기동하고, 넘치는 입력이 들어올 때 비로소 `DataIntegrityViolationException` 으로 터진다. auth 에서 그 때문에 `refresh_token.token` 의 512자 결함이 **세 항목을 통과했다.** 여유가 없는 board 는 어긋남의 대가가 더 직접적이다 — **`information_schema` 의 실제 폭을 읽어 비교하는 테스트로 고정한다.** 그 비교는 Flyway 가 스키마를 소유할 때만 뜻이 있다(§5.1).
+>
+> **`content` 는 `TEXT` 라 폭 비교의 대상이 아니다.** `TEXT` 는 65,535 **바이트**이고 10,000자는 utf8mb4 최악 4바이트로도 40,000바이트이므로 들어간다. 규칙이 16,000자를 넘기면 그 전제가 깨진다.
+
 ### 4.3 인덱스
 
 | 이름 | 대상 | 용도 |
 | --- | --- | --- |
 | `idx_post_created_at` | `post(created_at DESC)` | 최신순 목록 |
 | `idx_post_writer_id` | `post(writer_id)` | 내가 쓴 글, 2차 이벤트 일괄 갱신 |
-| `idx_post_title` | `post(title)` | 제목 검색 |
+| `idx_post_title` | `post(title)` | 제목 **앞부분** 검색. 아래 주의 |
 | `idx_comment_post_id` | `comment(post_id, created_at)` | 게시글별 댓글 목록 |
 
 `idx_post_writer_id`는 2차 Kafka 이벤트의 `UPDATE post SET writer_nickname=? WHERE writer_id=?`를 뒷받침한다.
+
+**`idx_post_title` 은 `LIKE '%키워드%'` 를 돕지 않는다.** B-트리 인덱스는 선행 와일드카드가 붙으면 쓰이지 않고, [api-contract.md §4.1](api-contract.md)이 `keyword` 를 부분 일치로 고정한다. `searchType=CONTENT` 는 `TEXT` 컬럼이라 인덱스 자체가 없고 `WRITER` 가 보는 `writer_nickname` 에도 인덱스가 없다. **1차는 이 상태로 둔다** — [nfr.md §1](nfr.md)의 기준이 1만 건 p95 300ms 이고 그 규모에서는 전체 스캔으로 충분하다. 인덱스는 **키워드 없는 목록**(`idx_post_created_at`)과 **내가 쓴 글**(`idx_post_writer_id`)을 위한 것이다. 전문 검색이 필요해지면 `FULLTEXT` 를 **명시적 결정으로** 추가한다.
 
 ## 5. commentCount 동기화
 
