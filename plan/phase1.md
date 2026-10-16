@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v30
+version: v31
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1846,8 +1846,14 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `/actuator/health`만 노출된다
 - [ ] `prod` 프로파일에서 Swagger·SQL 로그가 꺼진다
 - [ ] 전체 테스트가 통과한다
-- [ ] 목록 조회 쿼리에 N+1이 없다
+- [ ] 목록 조회 쿼리에 N+1이 없다. **관측 수단을 갖춘다** — 아래 블록인용의 형태다
 - [ ] **`JwtValidators.createDefault()` 가 거는 검증기 집합이 테스트로 고정되어 있다.** B-04 의 `A002`·`A003` 판정이 그 집합에 걸려 있다 — 기본 둘 중 실제로 실패할 수 있는 것이 만료 하나라서 `JwtValidationException` 을 만료로 읽을 수 있다. **검증기가 하나 더 붙으면 그 검증기의 실패도 `JwtValidationException` 이 되어 만료가 아닌 사유가 조용히 `A003`(만료)으로 나간다.** `SecurityErrorResponder` 의 javadoc 이 그 전제를 적어 두었다. AU-11·M-11 이 같은 것을 못박았다 — 같은 모양으로 한다
+
+> **쿼리 수를 예측값으로 쓰지 않는다.** "2회" 같은 상수를 단언하면 페이징 구현이 바뀔 때마다 숫자가 낡고, 그 숫자가 맞는지는 아무것도 증명하지 않는다([../process/review-policy.md §4.1](../process/review-policy.md)의 같은 금지다). **같은 조건에서 행 수만 바꾼 두 측정이 같은지** 본다 — 예를 들어 3건과 30건으로 각각 세어 두 값이 **같음**을 단언한다. N+1 이 생기면 행 수에 비례해 갈라진다.
+>
+> **관측 수단이 저장소에 없다.** Hibernate `Statistics`(`hibernate.generate_statistics` 를 **테스트 프로파일에만** 켜고 `getPrepareStatementCount()` 를 읽는 것)가 한 방법이다. 수단을 고르는 것은 구현의 몫이고, **고른 수단이 실제로 N+1 을 잡는지 측정해서 보고한다** — 일부러 지연 로딩 반복을 넣어 두 값이 갈라지는 것을 본다.
+>
+> **`Post` 에는 컬렉션이 없다.** `comment_count` 가 비정규화되어 있어([../domain-model.md §4.1](../domain-model.md)) 지금은 N+1 이 날 자리가 없다. 그래서 이 항목은 **회귀 가드**다 — 나중에 연관관계를 더하는 사람이 목록을 깨뜨리는 것을 잡는다.
 
 **검증**
 
@@ -1857,7 +1863,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 내 글 중 삭제분 포함 | 삭제분 제외 |
 | 토큰 없이 호출 | 401 `A001` |
 | 내 글 목록에 `size=0` / `page=-1` | **400 `C001`**, `fieldErrors` **1건**(파라미터명). 500이 아니다 |
-| 목록 조회 쿼리 수 | 게시글 수와 무관하게 일정 |
+| 목록 조회 쿼리 수 | **게시글 수와 무관하게 일정.** 아래 방식으로 관측한다 |
 | `/actuator/env` | **무토큰 401 `A001`, 유효 토큰 403 `A004`.** 404 가 아니다 |
 
 ## 7. 다음 단계

@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v35
+version: v36
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -338,6 +338,8 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 **하한 위반은 `fieldErrors` 에 그 파라미터를 담는다.** `page`·`size` 는 **바인딩이 성공한 뒤** 범위 규칙을 어긴 것이므로 §2.3 이 말한 "바인딩된 필드의 오류" 다 — 400 `C001` 에 `fieldErrors` **1건**이고 `field` 는 파라미터명이다. member 의 `GET /members/check-nickname` 이 같은 모양이다([conventions.md §6.1](conventions.md) 의 `HandlerMethodValidationException` 행). **같은 종류의 오류에 세 서비스가 같은 본문을 돌려주는지를 [plan/integration.md](plan/integration.md) I-04 가 비교하므로 한 서비스만 다르게 두지 않는다.**
 
 **반면 `searchType`·`keyword` 조합 위반은 `fieldErrors` 가 빈 배열이다.** 한 필드의 오류가 아니라 **요청 수준** 규칙이어서 담을 필드가 하나로 정해지지 않는다. §2.3 이 가른 요청 수준과 바인딩 수준의 구분이 여기서 갈린다.
+
+**`GET /posts/me` 는 `page`·`size`·`sort` 만 받는다.** `searchType`·`keyword` 는 **없다** — [requirements/board.md §1](requirements/board.md) 의 P-08 이 "`writer_id` 기준 페이징" 만 요구한다. 기본값·상한·하한과 `fieldErrors` 판정은 위와 같고, 응답 모양도 목록과 같다(§4.3). **조회 키는 JWT 의 `sub` 다** — 쿼리 파라미터로 `writerId` 를 받지 않는다([requirements/board.md §3](requirements/board.md) 규칙 3).
 
 > **`size` 의 규칙이 코드에서 갈리는 것은 결함이 아니다.** 하한(1 미달)은 400 이고 상한(50 초과)은 절삭이라 정본([requirements/board.md §4](requirements/board.md))에서 이미 갈려 있다. 하한을 파라미터 제약으로 두고 절삭을 정규화로 두는 구현은 그 갈림을 그대로 비춘 것이다. **하나로 합치려고 절삭을 400 으로 바꾸거나 하한을 절삭으로 바꾸지 않는다.**
 
