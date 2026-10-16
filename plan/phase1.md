@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v14
+version: v15
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1632,7 +1632,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] **member 호출이 실패하면 503 `S001`이고 글이 저장되지 않는다**
 - [ ] **원격 호출이 DB 트랜잭션 밖에서 일어난다**
 - [ ] 수정 경로는 `MemberClient`를 호출하지 않는다 (B-07)
-- [ ] `GET /api/v1/posts/{id}`가 상세를 반환한다 (비로그인 허용)
+- [ ] `GET /api/v1/posts/{id}`가 [../api-contract.md §4.3](../api-contract.md)의 상세 모양을 반환한다 (비로그인 허용)
 - [ ] 상세 조회 시 `view_count`가 1 증가한다 (`Post.increaseViewCount()` 사용)
 - [ ] 삭제된 게시글·없는 id 조회 시 404 `P001`
 - [ ] 제목 201자·내용 10,001자는 400 `C001`
@@ -1655,6 +1655,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 상세 조회 (비로그인) | 200. **`MemberClient` 호출 0회** |
 | 상세 조회 2회 | `viewCount = 2` |
 | 없는 id / 삭제된 게시글 | 404 `P001` |
+| **상세 응답 키 집합** | `id`·`title`·`content`·`writerId`·`writerNickname`·`viewCount`·`commentCount`·`createdAt` **정확히 여덟.** `deleted`·`updatedAt` 없음 |
 | 제목 201자 / 공백만 | 400 `C001` |
 
 ---

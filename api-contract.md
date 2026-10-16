@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v25
+version: v26
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -342,6 +342,23 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | 관리자 삭제 | 아니오 | 없음 |
 
 수정·삭제가 member에 의존하지 않는 것은 "수정 시 스냅샷을 갱신하지 않는다"에서 따라온다. **member 장애 시 새 글만 막히고 기존 글의 수정·삭제는 계속 된다.**
+
+### 4.3 게시글 응답의 두 모양
+
+**목록 항목과 상세가 다른 모양이다.** 목록은 §9.3 의 예시가 정본이고, 상세는 거기에 `content` 를 더한 것이다.
+
+| | 반환 | 근거 |
+| --- | --- | --- |
+| 목록 항목 (`GET /posts`, `GET /posts/me`) | `id`·`title`·`writerId`·`writerNickname`·`viewCount`·`commentCount`·`createdAt` | §9.3 |
+| 상세 (`GET /posts/{id}`) | 위 일곱 + **`content`** | 본문은 상세에서만 필요하다 |
+
+**`content` 를 목록에서 빼는 이유는 크기다.** 본문은 10,000자까지 허용되므로([requirements/board.md §4](requirements/board.md)) 한 페이지 50건이면 500,000자가 된다.
+
+**`deleted` 를 넣지 않는다.** 삭제된 게시글은 404 `P001` 이므로 돌아온 글은 항상 활성이다 — member 의 `GET /members/{accountId}` 가 `deleted` 를 넣는 것과 다르다(§3.1). 거기서는 탈퇴한 프로필이 200 이고 표시할 것이 있다.
+
+**`updatedAt` 을 넣지 않는다.** [domain-model.md §1.1](domain-model.md)이 "`updated_at` 을 감사 흔적으로 쓰지 않는다" 고 적었고 노출 요구가 없다.
+
+**댓글을 함께 싣지 않는다.** `GET /posts/{postId}/comments` 가 따로 있다(§4). 상세 응답에 댓글을 넣으면 그 엔드포인트가 두 벌이 된다.
 
 ## 5. 내부 API (외부 미노출)
 
