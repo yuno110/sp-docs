@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v21
+version: v22
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1827,6 +1827,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **완료 기준**
 - [ ] 내가 쓴 글 목록이 `writer_id` 기준으로 페이징 조회된다. **마지막 정렬 키가 `id`다** ([../api-contract.md §7.1](../api-contract.md))
+- [ ] **`page`·`size` 하한 위반이 400 `C001`이고 `fieldErrors`에 파라미터명이 담긴다** ([../api-contract.md §4.1](../api-contract.md), [../requirements/board.md §4](../requirements/board.md)). **500 `C005`가 아니다** — B-06은 하한을 `PostController.getList`의 `@Min` **한 자리**에서 집행한다. `PostSearchCondition.of`를 쓰면서 그 제약을 빠뜨리면 `size=0`이 `PageRequest.of`를 거쳐 500이 된다
 - [ ] 삭제된 글은 제외된다
 - [ ] `README.md`에 실행 절차와 환경변수가 적혀 있다
 - [ ] `/actuator/health`만 노출된다
@@ -1842,6 +1843,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 내 글 5건 + 타인 글 3건 | 5건만 반환 |
 | 내 글 중 삭제분 포함 | 삭제분 제외 |
 | 토큰 없이 호출 | 401 `A001` |
+| 내 글 목록에 `size=0` / `page=-1` | **400 `C001`**, `fieldErrors` **1건**(파라미터명). 500이 아니다 |
 | 목록 조회 쿼리 수 | 게시글 수와 무관하게 일정 |
 | `/actuator/env` | **무토큰 401 `A001`, 유효 토큰 403 `A004`.** 404 가 아니다 |
 
