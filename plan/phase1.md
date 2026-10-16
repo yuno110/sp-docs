@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v20
+version: v21
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1676,7 +1676,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **완료 기준**
 - [ ] `GET /api/v1/posts`가 페이징 응답을 반환한다 ([../api-contract.md §7.1](../api-contract.md) 형식)
-- [ ] 기본 `size` 10, 51 요청 시 50으로 절삭
+- [ ] 기본 `size` 10, 51 요청 시 50으로 절삭. **기본 `sort`는 `latest`다** ([../api-contract.md §4.1](../api-contract.md))
 - [ ] `sort=latest`, `sort=views`가 동작한다
 - [ ] 삭제된 게시글이 목록에서 제외된다
 - [ ] 4가지 `searchType`이 모두 동작한다
@@ -1695,6 +1695,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 15건 저장 후 목록 조회 | 10건, `totalElements = 15` |
 | `size=51` | 50건 이하 |
 | `sort=latest` / `sort=views` | 각각 내림차순 |
+| `sort` 미전달 | `latest`와 같은 순서. 기본값을 `views`로 바꾸면 깨진다 |
 | 삭제 게시글 포함 상태 | 삭제분 제외 |
 | `searchType=TITLE&keyword=공지` | 제목 포함분만 |
 | `searchType=CONTENT` / `TITLE_CONTENT` | 각 기준 |
