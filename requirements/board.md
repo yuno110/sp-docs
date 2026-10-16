@@ -2,7 +2,7 @@
 title: 게시판 기능 요구사항
 type: requirements
 status: frozen
-version: v2
+version: v3
 updated: 2026-09-15
 read_when: "board-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0003-writer-snapshot.md]
@@ -118,6 +118,8 @@ QueryDSL `BooleanExpression`으로 동적 조건을 조합한다.
 
 - `keyword`가 없으면 조건을 적용하지 않는다(전체 목록)
 - `searchType`만 있고 `keyword`가 없으면 검증 오류(`C001`)
+- **`keyword`만 있고 `searchType`이 없어도 같다** — 400 `C001`. 한쪽을 조용히 무시하지 않는다([../api-contract.md §4.1](../api-contract.md))
+- **공백만인 `keyword`는 "없음"으로 정규화한다.** 조합 검증보다 먼저다
 - 정렬은 `sort` 화이트리스트 Enum으로만 받는다. 컬럼명 직접 입력 금지
 
 ## 7. 권한

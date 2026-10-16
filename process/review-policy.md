@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v12
+version: v13
 updated: 2026-10-13
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -137,6 +137,10 @@ related: [dev-workflow.md, orchestration.md]
 > **잔여 한계 — 행 수는 보고 발행한 문장의 동등성은 보지 않는다.** `deleted == 1`은 "한 행이 지워졌다"일 뿐이고 "운영 코드가 지울 그 행"인지는 모른다 — **다른 키로 1행을 지우면 통과한다.** `callRealMethod()`가 불가능한 데서 나오는 구조적 한계이고 값싼 해결이 없다. **기계장치를 더 넣지 않고, 주입하는 SQL 옆에 그 문장의 짝이 어느 리포지터리 메서드인지를 주석으로 달아 다음 사람의 앵커로 삼는다.**
 
 > 변이 A가 예상 밖의 지점에서 터질 수 있다. Spring Data의 파생 삭제(`deleteBy…`)는 `em.remove`로 처리되고 그것이 활성 트랜잭션을 요구하므로, `SimpleJpaRepository`의 기본 `@Transactional`이 **파생 쿼리 메서드에는 적용되지 않아** 즉시 예외가 난다(`No EntityManager with actual transaction available`). 조용히 사라지지 않는다 — 그래서 A는 쉽게 잡히고 B·C는 안 잡힌다.
+
+> **`PageImpl` 은 마지막 페이지에서 `totalElements` 를 다시 계산한다.** `offset + pageSize > total` 이면 `offset + content.size()` 를 돌려준다. 그래서 **건수 쿼리의 조건을 제거해도 `totalElements` 단언이 통과한다** — 페이지가 꽉 차지 않았으면 반환값이 콘텐츠 크기에서 보정되어 건수 쿼리를 보지 않는다. B-06 실측: 삭제분 제외 테스트의 `totalElements` 단언이 건수 쿼리의 `deleted` 조건을 제거해도 **녹색이었다.** `size` 를 줄여 **페이지를 꽉 채운 뒤** 같은 변이가 빨개지는 것을 확인했다.
+>
+> **페이징 응답의 `totalElements` 를 단언하는 테스트는 페이지가 꽉 차는지 먼저 본다.** 꽉 차지 않으면 그 단언은 목록 쿼리를 두 번 보는 것이고 건수 쿼리는 관측되지 않는다.
 
 **테스트를 더하라는 규칙이 아니다.** 같은 결함을 두 번 보는 테스트를 넣지 않는다([../AGENTS.md](../AGENTS.md) 불변식 11). 경계 관측 하나가 A와 C를 함께 잡는다.
 

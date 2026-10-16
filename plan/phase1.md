@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v17
+version: v18
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1667,7 +1667,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 저장소 | `yuno110/sp-board` |
 | 의존 | B-05 |
 | 공유 파일 | `PostService`, `PostController` (B-05 생성) |
-| 참조 | [../requirements/board.md §1 §6](../requirements/board.md) (P-02, P-03), [../api-contract.md §4.1 §7.1](../api-contract.md), [../nfr.md §1](../nfr.md) |
+| 참조 | [../requirements/board.md §1 §4 §6](../requirements/board.md) (P-02, P-03), [../api-contract.md §4.1 §7.1](../api-contract.md), [../nfr.md §1](../nfr.md) |
 
 **산출물**
 - `post/dto/PostSearchCondition.java`, `SearchType.java`, `PostSortType.java`
@@ -1685,6 +1685,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] **목록 조회 시 member-service를 호출하지 않는다**
 - [ ] 정렬 파라미터로 임의 컬럼명을 넣을 수 없다 (Enum 화이트리스트)
 - [ ] **동률이 있어도 페이지 경계가 안정적이다.** `id`가 마지막 정렬 키다 ([../api-contract.md §4.1 §7.1](../api-contract.md))
+- [ ] **`keyword`만 있고 `searchType`이 없으면 400 `C001`이다.** 조용히 무시하지 않는다 ([../api-contract.md §4.1](../api-contract.md))
+- [ ] **`page`·`size` 하한 위반이 400 `C001`이다** ([../requirements/board.md §4](../requirements/board.md)). **500이 아니다**
 
 **검증** — `PostQueryRepositoryTest` (`@DataJpaTest`), `PostControllerTest`
 
@@ -1702,6 +1704,9 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `sort=password` | 400 |
 | `created_at`이 **같은** 글 다수를 1·2페이지로 조회 | 중복·누락 **없음**. 시각을 직접 박아 동률을 만든다 |
 | `view_count`가 **전부 0**인 목록을 1·2페이지로 조회 | 중복·누락 **없음** |
+| `keyword=공지`만 전달 | **400 `C001`** |
+| `searchType=TITLE&keyword=`(공백만) | **400 `C001`** |
+| `size=0` / `page=-1` | **400 `C001`.** 500 `C005`가 아니다 |
 
 ---
 

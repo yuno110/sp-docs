@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v28
+version: v29
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -330,6 +330,10 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 `sort`는 화이트리스트 Enum으로 받는다. 임의 컬럼명을 직접 노출하지 않는다. **`latest`는 `created_at DESC, id DESC`이고 `views`는 `view_count DESC, id DESC`다** — 2차 키의 근거는 §7.1에 있다.
 
 **`keyword` 는 부분 일치다.** `LIKE '%키워드%'` 이고 전방 일치가 아니다 — 그래서 `idx_post_title` 이 쓰이지 않는다([domain-model.md §4.3](domain-model.md)). 이 의미론은 외부에서 관측되므로 여기서 고정한다. 대소문자는 스키마 콜레이션이 `utf8mb4_general_ci` 라 구분하지 않는다([tech-stack.md §4.1](tech-stack.md)).
+
+**`keyword` 와 `searchType` 은 둘 다 있거나 둘 다 없어야 한다.** 한쪽만 오면 400 `C001` 이다 — `searchType` 만 온 경우와 `keyword` 만 온 경우가 **같은 판정이다.** 한쪽을 조용히 무시하면 사용자는 검색이 걸린 줄 알고 전체 목록을 받는다([../AGENTS.md](../AGENTS.md) 불변식 9의 silent degradation 이다).
+
+**공백만인 `keyword` 는 "없음" 으로 본다.** 정규화를 조합 검증보다 **먼저** 한다. 그래서 `keyword=` 만 오면 전체 목록(200)이고, `searchType=TITLE&keyword=` 는 400 `C001` 이다. **"없을 때" 와 "비어 있을 때" 가 같은 판정이 되도록 정규화로 합치는 것이고**, 두 경로에 각각 가드를 두는 것이 아니다([tech-stack.md §4.3](tech-stack.md) 이 설정값에서 같은 구분을 다룬다).
 
 ### 4.2 프로필 보유가 필요한 동작
 
