@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v19
+version: v20
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1700,7 +1700,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `searchType=CONTENT` / `TITLE_CONTENT` | 각 기준 |
 | `searchType=WRITER&keyword=홍길동` | `writer_nickname` 기준 |
 | `keyword` 없이 조회 | 전체 |
-| `searchType=TITLE`만 전달 | 400 `C001` |
+| `searchType=TITLE`만 전달 | 400 `C001`, `fieldErrors` **빈 배열**(요청 수준) |
 | `sort=password` | 400 |
 | `created_at`이 **같은** 글 다수를 1·2페이지로 조회 | 중복·누락 **없음**. 시각을 직접 박아 동률을 만든다 |
 | `view_count`가 **전부 0**인 목록을 1·2페이지로 조회 | 중복·누락 **없음** |
