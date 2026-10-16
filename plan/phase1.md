@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v25
+version: v26
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1754,6 +1754,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | **한 번의 삭제에 커밋이 정확히 한 번** | 변이 **셋**(A·B·C)을 돌린다. **C는 행위 단언으로 잡히지 않는다** ([../process/review-policy.md §4.1](../process/review-policy.md)) |
 | 없는 글 수정 | 404 `P001` |
 | **타인의 삭제된 글** 수정 | **404 `P001`.** 403 `P002`가 아니다 ([../api-contract.md §4.4](../api-contract.md)). **행이 없는 id로는 선후가 관측되지 않는다** |
+| **타인의 삭제된 글** 삭제 | **404 `P001`.** §4.4는 수정과 **삭제**를 함께 못박는다. **한 행이 변이 둘을 잡는다** — 권한 판정을 앞으로 옮기면 403이 되고, 조용히 204를 돌려주면 204가 된다 |
 | 토큰 없이 수정 | 401 `A001` |
 
 ---
@@ -1813,6 +1814,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | ADMIN이 타인 댓글 삭제 | 204 |
 | 없는 게시글에 댓글 | 404 `P001` |
 | **타인의 삭제된 댓글** 수정 | **404 `CM001`.** 403 `CM002`가 아니다 ([../api-contract.md §4.4](../api-contract.md)). **행이 없는 id로는 선후가 관측되지 않는다** |
+| **타인의 삭제된 댓글** 삭제 | **404 `CM001`.** 수정 경로의 테스트가 삭제 경로를 덮지 않는다 — B-07에서 변이 둘이 그 공백을 통과했다 |
 | 501자 댓글 | 400 `C001` |
 
 ---

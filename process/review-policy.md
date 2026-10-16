@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v14
+version: v15
 updated: 2026-10-13
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -96,13 +96,15 @@ related: [dev-workflow.md, orchestration.md]
 | **한 번의 호출에 커밋이 정확히 한 번** (`PlatformTransactionManager` 스파이) | **A** · **C** |
 | 실패 주입 시 두 효과가 **둘 다** 미반영 | **B** |
 
-**`status.isNewTransaction()`이 참인 `commit`만 센다.** 필터가 없으면 **올바른 구현도 1을 넘는다** — `SimpleJpaRepository`의 `readOnly` 조회가 매니저의 `commit`을 함께 지나기 때문이다. AU-08 실측값:
+**`status.isNewTransaction()`이 참인 `commit`만 센다.** 필터가 없으면 **올바른 구현도 1을 넘을 수 있다** — `SimpleJpaRepository`의 `readOnly` 조회가 매니저의 `commit`을 함께 지나기 때문이다. AU-08 실측값:
 
 | | 집계 |
 | --- | --- |
 | 올바른 구현 | **1** |
 | 변이 C (연산마다 자기 트랜잭션) | **3** |
 | 변이 A | 집계 전에 예외가 난다 (아래 블록인용) |
+
+> **"1을 넘는다"가 아니라 "넘을 수 있다"다.** 필터가 필요한 이유는 항목마다 성립하지 않는다 — B-07의 `delete`는 `SimpleJpaRepository` 상속 메서드를 하나도 부르지 않고 파생 쿼리와 `@Query`만 지나므로 **필터를 지워도 올바른 구현의 집계가 1 그대로다**(B-07 리뷰 실측). **그래도 필터는 둔다** — 이 절이 요구하는 형태이고, 조회가 상속 메서드로 바뀌는 순간 필터 없는 테스트는 올바른 구현에서 빨개진다. **다만 "필터가 없으면 1을 넘는다"를 그 자리의 근거로 적지 않는다** — 자기 항목에서 측정하지 않은 주장이 된다([../conventions.md §9.5](../conventions.md)).
 
 **숫자를 예측값으로 쓰지 않는다.** 이 절의 앞 판은 A를 0회, C를 2회로 적었고 **둘 다 틀렸다.** 단언은 "정확히 한 번"에 걸고, 그 외의 수치는 측정해서 적는다.
 
