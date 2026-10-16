@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v15
+version: v16
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1735,6 +1735,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 타인 글 수정 | 403 `P002` |
 | **ADMIN이 타인 글 수정** | **403 `P002`** |
 | 수정 후 `writer_id` | 변경 없음 |
+| 수정 후 `writer_nickname` | 변경 없음 |
 | 본인 글 삭제 | 204, `deleted = true`, 행 존재 |
 | ADMIN이 타인 글 삭제 | 204 |
 | 타인(일반)이 삭제 | 403 `P002` |
@@ -1763,6 +1764,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **완료 기준**
 - [ ] 댓글 작성 시 `post.comment_count`가 1 증가한다 (`Post.increaseCommentCount()` 사용)
+- [ ] **댓글 INSERT 와 `comment_count` 갱신이 한 로컬 트랜잭션이다** ([../domain-model.md §5](../domain-model.md))
 - [ ] 댓글 삭제 시 1 감소한다
 - [ ] **`comment_count`가 음수가 되지 않는다**
 - [ ] 작성자 본인만 수정, 본인·ADMIN이 삭제할 수 있다
@@ -1784,6 +1786,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | **프로필 미등록 계정으로 작성** | **403 `S002`. 댓글 0개, `comment_count` 불변** |
 | **member 타임아웃** | **503 `S001`. 댓글 0개, `comment_count` 불변** |
 | **member가 404 반환** | **503 `S001`** |
+| 댓글 저장 중 예외 발생 | 댓글과 `comment_count` **둘 다** 롤백. **두 단언이 각각 반증 가능해야 한다** |
+| **한 번의 작성에 커밋이 정확히 한 번** | 변이 **셋**(A·B·C)을 돌린다. **C는 행위 단언으로 잡히지 않는다** ([../process/review-policy.md §4.1](../process/review-policy.md)) |
 | 댓글 수정·삭제 시 `MemberClient` | **호출 0회** |
 | 댓글 목록 조회 시 `MemberClient` | **호출 0회** |
 | 댓글 3개 작성 후 1개 삭제 | `comment_count = 2` |
