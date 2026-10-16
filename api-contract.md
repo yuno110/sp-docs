@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v29
+version: v30
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -334,6 +334,12 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 **`keyword` 와 `searchType` 은 둘 다 있거나 둘 다 없어야 한다.** 한쪽만 오면 400 `C001` 이다 — `searchType` 만 온 경우와 `keyword` 만 온 경우가 **같은 판정이다.** 한쪽을 조용히 무시하면 사용자는 검색이 걸린 줄 알고 전체 목록을 받는다([../AGENTS.md](../AGENTS.md) 불변식 9의 silent degradation 이다).
 
 **공백만인 `keyword` 는 "없음" 으로 본다.** 정규화를 조합 검증보다 **먼저** 한다. 그래서 `keyword=` 만 오면 전체 목록(200)이고, `searchType=TITLE&keyword=` 는 400 `C001` 이다. **"없을 때" 와 "비어 있을 때" 가 같은 판정이 되도록 정규화로 합치는 것이고**, 두 경로에 각각 가드를 두는 것이 아니다([tech-stack.md §4.3](tech-stack.md) 이 설정값에서 같은 구분을 다룬다).
+
+**하한 위반은 `fieldErrors` 에 그 파라미터를 담는다.** `page`·`size` 는 **바인딩이 성공한 뒤** 범위 규칙을 어긴 것이므로 §2.3 이 말한 "바인딩된 필드의 오류" 다 — 400 `C001` 에 `fieldErrors` **1건**이고 `field` 는 파라미터명이다. member 의 `GET /members/check-nickname` 이 같은 모양이다([conventions.md §6.1](conventions.md) 의 `HandlerMethodValidationException` 행). **같은 종류의 오류에 세 서비스가 같은 본문을 돌려주는지를 [plan/integration.md](plan/integration.md) I-04 가 비교하므로 한 서비스만 다르게 두지 않는다.**
+
+**반면 `searchType`·`keyword` 조합 위반은 `fieldErrors` 가 빈 배열이다.** 한 필드의 오류가 아니라 **요청 수준** 규칙이어서 담을 필드가 하나로 정해지지 않는다. §2.3 이 가른 요청 수준과 바인딩 수준의 구분이 여기서 갈린다.
+
+> **`size` 의 규칙이 코드에서 갈리는 것은 결함이 아니다.** 하한(1 미달)은 400 이고 상한(50 초과)은 절삭이라 정본([requirements/board.md §4](requirements/board.md))에서 이미 갈려 있다. 하한을 파라미터 제약으로 두고 절삭을 정규화로 두는 구현은 그 갈림을 그대로 비춘 것이다. **하나로 합치려고 절삭을 400 으로 바꾸거나 하한을 절삭으로 바꾸지 않는다.**
 
 ### 4.2 프로필 보유가 필요한 동작
 
