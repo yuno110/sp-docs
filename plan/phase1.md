@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v28
+version: v29
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1811,6 +1811,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 목록 조회 | 등록순, 기본 20건 |
 | 삭제된 댓글 포함 상태 | **목록에서 제외**([../requirements/board.md §5](../requirements/board.md) 규칙 1). 건수 쿼리도 제외한다 |
 | 댓글 응답 키 집합 | **다섯 키 정확히**([../api-contract.md §4.5](../api-contract.md)). 리터럴 집합으로 대조한다 |
+| 목록 `size=0` / `page=-1` | **400 `C001`**, `fieldErrors` **1건**(파라미터명). 500 `C005`가 아니다 ([../api-contract.md §4.5 §4.1](../api-contract.md)) |
 | `created_at`이 **같은** 댓글 다수 | 등록순이 `id`로 결정된다. 중복·누락 없음 |
 | 본인 댓글 수정 | 200 |
 | 타인 댓글 수정 | 403 `CM002` |

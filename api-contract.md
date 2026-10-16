@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v33
+version: v34
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -401,6 +401,8 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 **`postId` 를 넣지 않는다.** 작성·목록은 `/posts/{postId}/comments` 경로가 그것을 이미 담고, 수정은 클라이언트가 목록에서 받은 댓글을 고치는 것이다. 게시글 응답이 작성자 외의 참조를 담지 않는 것과 같다.
 
 **`updatedAt` 을 넣지 않는다.** 게시글과 같은 이유다(§4.3).
+
+**목록 파라미터는 게시글과 같은 규칙에 기본값만 다르다.** `page`(기본 0)와 `size`(**기본 20**, 최대 50, 초과 시 절삭)뿐이다 — `sort`·`searchType`·`keyword` 는 없다. 정렬이 등록순 하나이기 때문이다(§7.1). 하한 위반은 §4.1 과 같은 판정이다 — 바인딩이 성공한 뒤의 범위 위반이므로 400 `C001` 에 `fieldErrors` **1건**이고 `field` 는 파라미터명이다(§2.3). 상한과 하한이 코드에서 갈리는 것이 결함이 아닌 이유도 §4.1 의 블록인용과 같다.
 
 ## 5. 내부 API (외부 미노출)
 
