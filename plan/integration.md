@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v9
+version: v10
 updated: 2026-10-14
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -198,6 +198,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | **세 서비스 `fieldErrors` 1건 케이스** | **바인딩 수준** 오류에서 **셋 다 1건**이고 `field` 가 파라미터명이다 ([../api-contract.md §2.3 §4.1](../api-contract.md)). 경로는 auth `check-email` 의 형식 오류, member `check-nickname` 의 형식·길이, board 의 목록 `size=0`·`page=-1` 이다 — 셋 다 `HandlerMethodValidationException` 을 지난다 |
 | 각 서비스의 `ErrorCode` 열거 | 타 서비스 전용 접두어 없음 |
 | 세 서비스 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last` |
+| **세 서비스의 작성 응답 대 조회 응답 시각 모양** | **소수부가 갈린다** — 작성은 flush 전 엔티티라 소수부가 있고 조회는 `DATETIME` 이라 없다([../tech-stack.md §6](../tech-stack.md) I-01 실측). **셋이 같은 방식으로 갈리는지** 본다. 고정 패턴을 단언하지 않는다 |
 | 500 응답 본문 | **세 서비스 모두** 스택트레이스 없음 |
 | **세 서비스의 로그 수준** | 클라이언트 오류는 `ERROR`가 **아니고** 마지막 그물은 `ERROR`다 ([../conventions.md §6.1](../conventions.md)). **auth 는 이 단언을 자기 테스트에 갖지 않으므로 여기가 유일한 게이트다** |
 
