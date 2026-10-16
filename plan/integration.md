@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v6
+version: v7
 updated: 2026-10-14
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -188,6 +188,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | 세 서비스 `C001` 응답 | HTTP 400, 같은 메시지, `fieldErrors` 존재 |
 | **세 서비스 `C002`~`C007`** | **상태·메시지 일치.** [../conventions.md §6.1](../conventions.md) 의 예외 11종이 같은 코드로 변환된다 |
 | 세 서비스 `A001`~`A004` | 상태·메시지 일치 |
+| **Claim 계약 위반 토큰** | `role` 누락·`sub` 누락 토큰(서명은 유효)에 **셋 다 401 `A002`** ([../tech-stack.md §2.1](../tech-stack.md)). 집행 층이 서비스마다 다르므로 **응답으로만 비교한다** |
 | 세 서비스 `fieldErrors` 빈 배열 케이스 | 필수 파라미터 누락·본문 파싱 실패에서 **셋 다 빈 배열** ([../api-contract.md §2.3](../api-contract.md)) |
 | **세 서비스 `fieldErrors` 1건 케이스** | **바인딩 수준** 오류에서 **셋 다 1건**이고 `field` 가 파라미터명이다 ([../api-contract.md §2.3 §4.1](../api-contract.md)). 경로는 auth `check-email` 의 형식 오류, member `check-nickname` 의 형식·길이, board 의 목록 `size=0`·`page=-1` 이다 — 셋 다 `HandlerMethodValidationException` 을 지난다 |
 | 각 서비스의 `ErrorCode` 열거 | 타 서비스 전용 접두어 없음 |

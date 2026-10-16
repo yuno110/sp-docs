@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v16
+version: v17
 updated: 2026-10-15
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -85,6 +85,17 @@ spring:
 **member·board뿐 아니라 auth도 이 의존성을 갖는다.** auth는 자기가 발급한 토큰을 보호 경로에서 검증해야 한다(§3.2).
 
 > 의존성 이름에 `oauth2`가 붙지만 OAuth2 인가 서버가 필요한 것이 아니다. 표준 JWT(RFC 7519) 검증기 부분만 사용한다.
+
+**Claim 계약 검증은 이 목록에 없다.** 스타터는 서명·만료만 보고 [api-contract.md §6](api-contract.md)의 `sub`·`role`·`iss` 가 계약대로인지는 보지 않는다. 그래서 **두 서비스가 서로 다른 층에서 집행하고, 외부로 나가는 답은 같다 — 둘 다 401 `A002` 다**(실측).
+
+| 서비스 | 집행 지점 | 어떻게 |
+| --- | --- | --- |
+| member | **디코더** | `ClaimContractValidator`(M-04)가 `BadJwtException` 을 던진다 |
+| board | **`@CurrentMember` 리졸버** | `accountId` 의 `NumberFormatException`·`NullPointerException` 과 `role` 의 `hasText` 가드 |
+
+> **board 쪽은 전제가 하나 붙는다.** 집행이 리졸버에 있으므로 보호는 **`@CurrentMember` 를 받는 핸들러에서만** 성립한다. B-09 시점에 인증이 필요한 경로 **일곱 개 전부가 그것을 받는다**(실측). `.authenticated()` 만 걸린 핸들러가 `@CurrentMember` 없이 생기면 **`role`·`sub` 가 빠진 토큰이 통과한다.**
+>
+> **그때도 권한이 올라가지는 않는다.** `RoleClaimConverter` 는 null 검사 없이 `ROLE_null` 을 조립하지만, board 에는 `hasRole`·`@PreAuthorize` 사용처가 없고 권한 판정을 서비스가 `LoginMember.role()` 문자열로 한다(실측). 그래서 지금의 비대칭은 **방어 깊이의 차이**이고 관측되는 계약의 차이가 아니다 — [plan/integration.md](plan/integration.md) I-04 가 그 동일성을 3자로 비교한다.
 
 ### 2.2 발급 — auth-service만
 
