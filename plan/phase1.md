@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v11
+version: v12
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1476,7 +1476,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **완료 기준**
 - [ ] Flyway가 `post`, `comment` 테이블을 생성한다
-- [ ] 컬럼이 [../domain-model.md §3](../domain-model.md)과 일치한다
+- [ ] 컬럼이 [../domain-model.md §4](../domain-model.md)과 일치한다
 - [ ] **`post.writer_id`, `comment.writer_id`에 FK 제약이 없다**
 - [ ] `post.content`가 `TEXT` 타입이다
 - [ ] `idx_post_created_at`, `idx_post_writer_id`, `idx_post_title`, `idx_comment_post_id`가 있다

@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v9
+version: v10
 updated: 2026-10-16
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -248,8 +248,11 @@ InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바�
 | `idx_post_writer_id` | `post(writer_id)` | 내가 쓴 글, 2차 이벤트 일괄 갱신 |
 | `idx_post_title` | `post(title)` | 제목 **앞부분** 검색. 아래 주의 |
 | `idx_comment_post_id` | `comment(post_id, created_at)` | 게시글별 댓글 목록 |
+| `fk_comment_post_id` | `comment(post_id)` → `post(id)` | 같은 서비스 안이므로 참조 무결성을 건다 |
 
 `idx_post_writer_id`는 2차 Kafka 이벤트의 `UPDATE post SET writer_nickname=? WHERE writer_id=?`를 뒷받침한다.
+
+**이 표가 제약 이름의 정본이다.** §4.2가 `post` 를 `@ManyToOne` 으로만 적은 것의 FK 이름이 `fk_comment_post_id` 다. **`writer_id` 에는 FK 가 없으므로 이 표에도 없다** — 그 부재가 의도다(§4.1).
 
 **`idx_post_title` 은 `LIKE '%키워드%'` 를 돕지 않는다.** B-트리 인덱스는 선행 와일드카드가 붙으면 쓰이지 않고, [api-contract.md §4.1](api-contract.md)이 `keyword` 를 부분 일치로 고정한다. `searchType=CONTENT` 는 `TEXT` 컬럼이라 인덱스 자체가 없고 `WRITER` 가 보는 `writer_nickname` 에도 인덱스가 없다. **1차는 이 상태로 둔다** — [nfr.md §1](nfr.md)의 기준이 1만 건 p95 300ms 이고 그 규모에서는 전체 스캔으로 충분하다. 인덱스는 **키워드 없는 목록**(`idx_post_created_at`)과 **내가 쓴 글**(`idx_post_writer_id`)을 위한 것이다. 전문 검색이 필요해지면 `FULLTEXT` 를 **명시적 결정으로** 추가한다.
 
