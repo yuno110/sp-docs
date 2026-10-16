@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v10
+version: v11
 updated: 2026-10-14
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -30,7 +30,7 @@ M-04·B-04에서 member·board는 **배치된 공개키**로 자체 검증만 �
 
 **작업**
 1. member와 board 두 곳의 `src/main/resources/jwt-public.pem`이 auth의 개인키와 짝인지 확인한다 (교체가 필요하면 교체)
-2. board에 `INTERNAL_API_KEY`를 member와 같은 값으로 설정
+2. board에 내부 API 키를 member와 같은 값으로 설정. **`application-local.yml`을 쓰면 이미 충족이다**(I-01 실측: member·board의 그 파일이 sha256까지 동일). **환경변수로 줄 때 이름이 갈린다** — 운영은 `INTERNAL_API_KEY`, 로컬에서 `application-local.yml`의 리터럴을 덮으려면 `MEMBER_SERVICE_INTERNAL_API_KEY`다([../tech-stack.md §4.3](../tech-stack.md))
 3. 세 서비스를 함께 기동 (`:8083`, `:8081`, `:8082`)
 4. 아래 시나리오를 수행
 
@@ -72,7 +72,7 @@ M-04·B-04에서 member·board는 **배치된 공개키**로 자체 검증만 �
 | member·board의 `jwt-public.pem` | 바이트 단위로 동일 |
 | member·board 저장소에서 `PRIVATE KEY` 검색 | 없음 |
 | 다른 키로 서명한 토큰 | member·board **둘 다** 401 거부 |
-| board에 잘못된 `INTERNAL_API_KEY` 설정 후 작성 | **503 `S001`.** `S002` 아님 |
+| board에 잘못된 내부 API 키를 주고 작성 | **503 `S001`.** `S002` 아님. 같은 상태에서 **조회는 200**이다(§4.2). **환경변수로 줄 때는 `MEMBER_SERVICE_INTERNAL_API_KEY`다** — `INTERNAL_API_KEY`로는 덮이지 않아 **작성이 201로 성공한다**(I-01 실측 두 번, [../tech-stack.md §4.3](../tech-stack.md)) |
 
 ---
 
