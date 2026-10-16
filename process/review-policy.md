@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v13
+version: v14
 updated: 2026-10-13
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -105,6 +105,10 @@ related: [dev-workflow.md, orchestration.md]
 | 변이 A | 집계 전에 예외가 난다 (아래 블록인용) |
 
 **숫자를 예측값으로 쓰지 않는다.** 이 절의 앞 판은 A를 0회, C를 2회로 적었고 **둘 다 틀렸다.** 단언은 "정확히 한 번"에 걸고, 그 외의 수치는 측정해서 적는다.
+
+> **같은 변이의 집계가 항목마다 다르다.** B-07의 변이 C는 **2**다(실측). AU-08과 하나 차이 나는 이유는 조회 경로다 — B-07이 쓰는 **파생 쿼리** `findByIdAndDeletedFalse`에는 `SimpleJpaRepository`의 기본 `@Transactional`이 적용되지 않아 그 조회가 트랜잭션을 **아예 열지 않는다**(아래 블록인용이 변이 A에 대해 같은 사실을 적는다).
+>
+> **앞 판이 AU-08의 C를 2라고 잘못 적었는데, 그 2가 B-07에서는 맞는 값이다.** 한 항목에서 틀린 숫자가 다른 항목에서는 맞을 수 있다 — 그래서 집계를 단언에 넣지 않고 "정확히 한 번"에만 건다. 조회가 파생 쿼리인지 `@Query`인지에 따라 바뀌므로 **구현을 보고 예측하지도 않는다.**
 
 **리뷰어는 A·B·C 셋을 돌린다.** C가 잡히지 않으면 `CHANGES_REQUESTED`다.
 
