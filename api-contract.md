@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v37
+version: v38
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -317,7 +317,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 >
 > **그래서 선택된 핸들러와 해석된 예외가 둘 다 비어 있는지를 본다**(`MvcResult.getHandler()`·`getResolvedException()`). 상태 코드 단언만으로는 부족하다.
 >
-> **핸들러가 생기기 전에는 상태 코드가 그 순서를 잡았다.** 규칙이 열려도 매핑이 없어 404 였기 때문이다 — B-09 가 핸들러를 만든 뒤로 그 관측이 사라졌다. **엔드포인트를 늦게 추가하는 항목이 앞선 항목의 게이트를 조용히 무력화할 수 있다**는 예다. `/members/me` 를 같은 이유로 먼저 선언한 member 도 같은 성질을 갖는다([plan/phase1.md](plan/phase1.md) M-04·M-10). member 가 `/members/me` 를 `/members/{accountId}` 앞에 둔 것과 같은 이유다([plan/phase1.md](plan/phase1.md) M-04).
+> **핸들러가 생기기 전에는 상태 코드가 그 순서를 잡았다 — 다만 이것은 측정값이 아니다.** 규칙이 열려도 매핑이 없어 404(`NoResourceFoundException` → `C004`, [conventions.md §6.1](conventions.md))가 되므로 기계적으로 따라오지만, **B-09 이전 상태를 실제로 돌려 본 사람은 없다**(B-09 리뷰어가 그렇게 표시했다). 측정된 것은 **지금** 뒤집으면 263개 중 하나만 빨개진다는 것이다. **엔드포인트를 늦게 추가하는 항목이 앞선 항목의 게이트를 조용히 무력화할 수 있다**는 예다. `/members/me` 를 같은 이유로 먼저 선언한 member 도 같은 성질을 갖는다([plan/phase1.md](plan/phase1.md) M-04·M-10). member 가 `/members/me` 를 `/members/{accountId}` 앞에 둔 것과 같은 이유다([plan/phase1.md](plan/phase1.md) M-04).
 
 > **`/me` 가 단수 리소스가 아니라 목록인 것은 `/accounts/me`·`/members/me` 와 다르다.** 그 둘은 "나" 라는 한 리소스이고 이것은 "내가 쓴 글들" 이다. 그래도 같은 접미사를 쓴 이유는 (a) 쿼리 파라미터(`?writer=me`)로 가르면 **Security 가 경로만 보므로 인가를 필터 체인에 선언할 수 없고**(§4 의 "모든 경로에 인가 규칙" 과 어긋난다), (b) 이 프로젝트가 "자기 것" 을 두 번 `/me` 로 표기했기 때문이다. **다른 접미사가 필요해지면 명시적 결정으로 바꾼다.**
 

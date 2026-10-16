@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v17
+version: v18
 updated: 2026-10-15
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -94,6 +94,8 @@ spring:
 | board | **`@CurrentMember` 리졸버** | `accountId` 의 `NumberFormatException`·`NullPointerException` 과 `role` 의 `hasText` 가드 |
 
 > **board 쪽은 전제가 하나 붙는다.** 집행이 리졸버에 있으므로 보호는 **`@CurrentMember` 를 받는 핸들러에서만** 성립한다. B-09 시점에 인증이 필요한 경로 **일곱 개 전부가 그것을 받는다**(실측). `.authenticated()` 만 걸린 핸들러가 `@CurrentMember` 없이 생기면 **`role`·`sub` 가 빠진 토큰이 통과한다.**
+>
+> **그 "전부" 를 기계로 묶는 것은 없다.** board 의 `JwtAuthenticationTest` 가 인증 필요 경로를 `@CsvSource` 로 **손으로 유지하는 목록**으로 들고 있어, 새 핸들러가 그 목록에 추가되지 않으면 아무것도 빨개지지 않는다(B-09 리뷰어 지적). 전제를 적어 두는 것으로 받고, 세 서비스가 같은 답을 내는지는 I-04 가 응답으로 비교한다.
 >
 > **그때도 권한이 올라가지는 않는다.** `RoleClaimConverter` 는 null 검사 없이 `ROLE_null` 을 조립하지만, board 에는 `hasRole`·`@PreAuthorize` 사용처가 없고 권한 판정을 서비스가 `LoginMember.role()` 문자열로 한다(실측). 그래서 지금의 비대칭은 **방어 깊이의 차이**이고 관측되는 계약의 차이가 아니다 — [plan/integration.md](plan/integration.md) I-04 가 그 동일성을 3자로 비교한다.
 
