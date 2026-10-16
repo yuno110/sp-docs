@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v10
+version: v11
 updated: 2026-10-16
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -265,5 +265,7 @@ InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바�
 | 댓글 작성 | `comment_count + 1` |
 | 댓글 삭제(Soft) | `comment_count - 1` |
 | 게시글 삭제(Soft) | 하위 댓글도 `deleted = true`. `comment_count`는 그대로 |
+
+**게시글 삭제의 두 효과도 한 트랜잭션이다.** 위 표 셋째 줄의 `post.deleted`와 하위 댓글의 `deleted`가 따로 커밋되면 **둘 중 하나만 반영된 상태가 남는다** — 게시글은 사라졌는데 댓글이 살아 있거나, 댓글만 지워지고 게시글이 목록에 남는다. 첫 문장의 "같은 트랜잭션"은 댓글 작성·삭제의 건수 갱신만 가리키므로 여기서 따로 못박는다.
 
 `comment_count`가 음수가 되지 않아야 한다. 회귀 테스트로 확인한다.

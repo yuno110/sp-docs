@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v22
+version: v23
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1733,6 +1733,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `DELETE /api/v1/posts/{id}`를 작성자 본인과 ADMIN이 삭제할 수 있다
 - [ ] 삭제는 Soft Delete다 (`Post.softDelete()`)
 - [ ] **게시글 삭제 시 하위 댓글도 `deleted = true`가 된다**
+- [ ] **그 두 효과가 한 로컬 트랜잭션이다** ([../domain-model.md §5](../domain-model.md))
 - [ ] 소유자 검증이 Service 계층에 있다
 - [ ] 수정 시 `writer_id`, `writer_nickname`이 바뀌지 않는다
 
@@ -1749,6 +1750,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | ADMIN이 타인 글 삭제 | 204 |
 | 타인(일반)이 삭제 | 403 `P002` |
 | **게시글 삭제 후 하위 댓글** | **전부 `deleted = true`** |
+| 삭제 중 예외 발생 | `post.deleted`와 댓글 `deleted` **둘 다** 롤백. **두 단언이 각각 반증 가능해야 한다** |
+| **한 번의 삭제에 커밋이 정확히 한 번** | 변이 **셋**(A·B·C)을 돌린다. **C는 행위 단언으로 잡히지 않는다** ([../process/review-policy.md §4.1](../process/review-policy.md)) |
 | 없는 글 수정 | 404 `P001` |
 | 토큰 없이 수정 | 401 `A001` |
 
