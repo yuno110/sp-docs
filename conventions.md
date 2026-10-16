@@ -2,7 +2,7 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v19
+version: v20
 updated: 2026-10-15
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
@@ -157,6 +157,10 @@ public class PostService {
 **로그 수준을 가른다.** 클라이언트 오류는 `warn`, **마지막 그물만 `error`**다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](../AGENTS.md) 불변식 9).
 
 **양쪽을 다 단언한다.** 클라이언트 오류가 `error`가 아닌 것만 보면 **반대 방향이 열린다** — 마지막 그물을 `warn`으로 낮추면 500이 ERROR 경보를 전혀 만들지 않게 되고, 그것이 더 나쁘다. M-02 리뷰에서 그 변이가 잡히지 않는 것이 측정됐다.
+
+> **`S001`의 경보는 이 두 극 **바깥**에 있고 어느 테스트도 묶지 않는다.** [api-contract.md §5.1](api-contract.md)이 member 호출 실패를 "인프라 오류. 경보 대상"으로 정했는데, `S001`은 **5xx인 `BusinessException`**이라 "클라이언트 오류는 `warn`"에도 "마지막 그물만 `error`"에도 속하지 않는다. 실제로 ERROR를 내는 것은 **호출 지점**(board의 `MemberClient`)이고 핸들러는 다른 `BusinessException`과 같이 `warn`을 남긴다 — **핸들러가 원인을 알 수 없으므로 그 설계가 맞다.** 코드별 분기를 핸들러에 넣으면 세 서비스를 같게 두라는 이 절과 반대 방향이 된다.
+>
+> **공백은 그 ERROR를 요구하는 완료 기준·검증표가 없다는 것이다**(I-02 리뷰 실측). 호출 지점의 `log.error`를 `warn`으로 낮추면 `S001`의 경보가 조용히 사라지는데 board 스위트에서 빨개지는 것이 **하나도 없다**. **I-04가 이것을 닫아 주지 않는다** — 세 서비스의 `handleBusinessException`이 로그 수준까지 동일하므로 3자 비교를 통과하고, I-04가 보는 것은 위 두 극뿐이다. 닫으려면 **호출 지점의 ERROR를 요구하는 줄이 board 쪽 항목에 있어야 한다.**
 
 > **auth는 동작은 맞지만 그 단언이 없다.** `log.error`를 쓰고 있으나 `log.warn`으로 바꾸는 변이를 잡는 테스트가 없다. auth의 1차 항목이 모두 끝났으므로 지금 고치지 않고, **[plan/integration.md](plan/integration.md) I-04가 세 서비스의 로그 수준을 비교하는 것으로 그 공백을 받는다** — 거기가 auth에 대한 유일한 게이트다. `GlobalExceptionHandler`를 다음에 손대는 사람이 단언을 더하면 그때 닫힌다.
 
