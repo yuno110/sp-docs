@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v19
+version: v20
 updated: 2026-10-15
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -342,6 +342,20 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 > `DB_PASSWORD`가 어디에도 없으면 `Access denied for user 'root'@'localhost' (using password: YES)`로 기동이 실패한다. **비밀번호가 틀린 게 아니라 값이 없는 것이다.** Spring이 해석되지 않은 placeholder를 리터럴로 남기기 때문이다.
 
 `JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다.
+
+#### 환경변수 이름은 속성 경로를 따른다 — 그리고 리터럴이 placeholder 를 덮으면 그 변수는 쓰이지 않는다
+
+**I-01 실측.** board 를 `INTERNAL_API_KEY=wrong` 으로 띄웠는데 **글 작성이 그대로 201 이었다.** 이유가 둘 겹쳐 있다.
+
+| | |
+| --- | --- |
+| `application.yml` | `member-service.internal-api-key: ${INTERNAL_API_KEY}` |
+| `application-local.yml` | 같은 키를 **리터럴로 덮는다** → 그 placeholder 가 **아예 쓰이지 않는다** |
+| relaxed binding | 환경변수 `INTERNAL_API_KEY` 는 `internal.api.key` 로 매핑된다 — `member-service.internal-api-key` 가 **아니다** |
+
+**로컬에서 그 값을 환경변수로 덮으려면 속성 경로에 맞춘 이름이 필요하다** — `MEMBER_SERVICE_INTERNAL_API_KEY`. OS 환경변수가 프로파일 yml 보다 우선하므로 그쪽은 먹는다(실측: 그 상태에서 503 `S001`).
+
+> **운영에서는 `INTERNAL_API_KEY` 가 맞다.** `application-local.yml` 이 없으므로 `application.yml` 의 placeholder 가 그 이름으로 환경변수를 읽는다. 두 이름이 상황에 따라 갈리는 것이고 어느 쪽도 결함이 아니다 — **로컬 설정을 환경변수로 비틀어 검증할 때 이 구분이 필요하다**([plan/integration.md](plan/integration.md) 의 장애 주입이 그렇다).
 
 ### 4.4 실행
 
