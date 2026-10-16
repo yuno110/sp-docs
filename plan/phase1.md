@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v12
+version: v13
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1561,7 +1561,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] 토큰 없이 보호 경로 → 401 `A001`
 - [ ] `role` claim이 `GrantedAuthority`로 변환된다
 - [ ] JWT 검증 필터를 직접 구현하지 않았다
-- [ ] [../api-contract.md §3](../api-contract.md)의 **모든 경로**에 인가 규칙이 선언되어 있다
+- [ ] [../api-contract.md §4](../api-contract.md)의 **모든 경로**에 인가 규칙이 선언되어 있다
 - [ ] 비로그인 허용 경로(`GET /posts`, `GET /posts/{id}`, 댓글 목록)가 토큰 없이 통과한다
 - [ ] **`/swagger-ui/**`·`/v3/api-docs/**`가 `permitAll`이고 인증 없이 열린다** ([../security.md §5.1.1](../security.md))
 - [ ] `/actuator/health` 외의 actuator 경로가 노출되지 않는다
@@ -1581,21 +1581,23 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | **토큰 없이 `/swagger-ui.html`** | **302 → `/swagger-ui/index.html`.** `/login` 으로 가면 실패 |
 | **토큰 없이 `/swagger-ui/index.html`** | **200** |
 | **토큰 없이 `/v3/api-docs`** | **200, OpenAPI 문서** |
-| `/actuator/env` | 404 또는 403 |
+| `/actuator/env` | **무토큰 401 `A001`, 유효 토큰 403 `A004`.** 404 가 아니다 |
 
 **`MemberClientTest`** — 스텁 서버로 응답을 흉내 낸다
 
 | 스텁 응답 | 기대 결과 |
 | --- | --- |
-| 200 + `[{accountId:3, nickname:"홍길동", deleted:false}]` | 닉네임 `"홍길동"` 반환 |
-| 200 + `{members: []}` (결과에서 제외됨) | `BusinessException(S002)` |
-| 200 + `[{accountId:3, deleted:true}]` | `BusinessException(S002)` |
+| 200 + `data.members` 에 `{accountId:3, nickname:"홍길동", deleted:false}` | 닉네임 `"홍길동"` 반환 |
+| 200 + `data.members` 가 빈 배열 (결과에서 제외됨) | `BusinessException(S002)` |
+| 200 + `data.members` 에 `{accountId:3, deleted:true}` | `BusinessException(S002)` |
 | **404 (경로 오설정)** | **`BusinessException(S001)`. `S002` 아님** |
 | **401 (API 키 거부)** | **`BusinessException(S001)`** |
 | 500 | `BusinessException(S001)` |
 | 응답 없음 (타임아웃) | `BusinessException(S001)` |
 | 본문 파싱 실패 | `BusinessException(S001)` |
 | 요청 헤더 | `X-Internal-Api-Key` 존재 |
+
+> **스텁 응답은 [../api-contract.md §5](../api-contract.md)의 봉투를 그대로 쓴다.** `{"success": true, "data": {"members": [...]}, "error": null}` 이고 **배열이 최상위가 아니다.** 봉투를 빼고 스텁을 쓰면 `MemberClientTest` 는 통과하지만 M-10 이 실제로 돌려주는 모양과 달라 I-01 에서 깨진다 — 그 어긋남은 §5.1 이 "본문 파싱 실패 → `S001`" 로 분류하므로 **board 가 전 사용자의 쓰기를 멈춘 뒤에야 드러난다.**
 
 > **404 케이스를 반드시 넣는다.** 이것을 `S002`로 처리하면 경로 오설정이 "프로필 없음"으로 위장되어, 경보 없이 전 사용자의 쓰기가 멈춘다.
 
@@ -1825,7 +1827,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 내 글 중 삭제분 포함 | 삭제분 제외 |
 | 토큰 없이 호출 | 401 `A001` |
 | 목록 조회 쿼리 수 | 게시글 수와 무관하게 일정 |
-| `/actuator/env` | 404 또는 403 |
+| `/actuator/env` | **무토큰 401 `A001`, 유효 토큰 403 `A004`.** 404 가 아니다 |
 
 ## 7. 다음 단계
 

@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v10
-updated: 2026-10-14
+version: v11
+updated: 2026-10-16
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -203,8 +203,10 @@ private void validateOwner(Post post, LoginMember member) {
 | `/swagger-ui/**`, `/swagger-ui.html` | `permitAll` | `prod` 프로파일에서는 **비활성화**한다 |
 | `/v3/api-docs/**` | `permitAll` | 같음 |
 | `/actuator/health` | `permitAll` | Boot 기본값이 이미 허용한다 |
-| `/actuator/**` (health 외) | 차단 | 404 또는 403. 노출 자체를 막는다 |
+| `/actuator/**` (health 외) | 차단 | **무토큰 401 `A001`, 유효 토큰 403 `A004`.** 404 가 아니다 — 측정값 |
 | `/internal/**` | 외부 인증 체인에서 분리 | `X-Internal-Api-Key` 필터가 담당한다(§6) |
+
+**404 를 기대하지 않는다. 측정값이다.** `management.endpoints.web.exposure.include: health` 가 그 엔드포인트를 등록조차 하지 않지만, **Security 필터 체인이 디스패치보다 먼저 거부하므로** 404 가 아니라 인증·인가 응답이 나간다. 무토큰은 401 `A001`, 유효 토큰은 403 `A004` 다 — auth(AU-11)·member(M-11)에서 각각 관측했다. 그 셋을 "노출되지 않는다" 로 묶어 적되 **404 를 단언하지 않는다.**
 
 **`permitAll`은 `prod`에서 열어 두라는 뜻이 아니다.** springdoc 자체를 `prod` 프로파일에서 끄므로 경로가 사라진다. 그 확인은 각 서비스의 마무리 항목(AU-11·M-11·B-09)에 있다.
 
