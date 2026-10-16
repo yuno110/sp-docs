@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v27
+version: v28
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1790,6 +1790,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] 댓글 수정·삭제는 `MemberClient`를 호출하지 않는다
 - [ ] 없는 게시글에 댓글 작성 시 404 `P001`
 - [ ] 댓글 목록이 등록순 페이징(기본 20)으로 반환된다. **`created_at ASC, id ASC`다** ([../api-contract.md §7.1](../api-contract.md))
+- [ ] **삭제된 댓글이 목록에서 제외된다** ([../requirements/board.md §5](../requirements/board.md) 규칙 1)
+- [ ] **응답이 §4.5 의 다섯 키다** ([../api-contract.md §4.5](../api-contract.md)). `deleted`·`postId`·`updatedAt`을 넣지 않는다
 
 **검증** — `CommentServiceTest`, `CommentControllerTest`
 
@@ -1807,6 +1809,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 댓글 3개 작성 후 1개 삭제 | `comment_count = 2` |
 | 같은 댓글 2회 삭제 시도 | `comment_count` 음수 안 됨 |
 | 목록 조회 | 등록순, 기본 20건 |
+| 삭제된 댓글 포함 상태 | **목록에서 제외**([../requirements/board.md §5](../requirements/board.md) 규칙 1). 건수 쿼리도 제외한다 |
+| 댓글 응답 키 집합 | **다섯 키 정확히**([../api-contract.md §4.5](../api-contract.md)). 리터럴 집합으로 대조한다 |
 | `created_at`이 **같은** 댓글 다수 | 등록순이 `id`로 결정된다. 중복·누락 없음 |
 | 본인 댓글 수정 | 200 |
 | 타인 댓글 수정 | 403 `CM002` |

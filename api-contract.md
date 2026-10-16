@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v32
+version: v33
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -382,7 +382,25 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 **`POST /api/v1/posts` 와 `PUT /api/v1/posts/{id}` 의 응답도 상세와 같은 모양이다.** 모양은 둘뿐이고 쓰기 응답이 세 번째를 만들지 않는다 — member 가 §3.1 에서 `POST /api/v1/members`·`PATCH /api/v1/members/me` 를 `GET /me` 와 같은 모양으로 못박은 것과 같다. 방금 만들거나 고친 글은 본문까지 돌려주는 것이 자연스럽다.
 
-> **댓글 응답의 모양은 아직 정해지지 않았다.** `POST /posts/{postId}/comments`·`GET /posts/{postId}/comments`·`PUT /comments/{id}` 가 돌려주는 모양이 정본에 없다 — B-08 착수 전에 여기에 정한다. 이 절이 게시글만 다루는 이유는 B-05 가 게시글만 만들었기 때문이고, 공백이 메워진 것이 아니다.
+> **댓글 응답의 모양은 §4.5 에 있다.** 이 절은 게시글만 다룬다.
+
+### 4.5 댓글 응답의 한 모양
+
+**세 엔드포인트가 같은 모양을 돌려준다.** `POST /posts/{postId}/comments`(201), `GET /posts/{postId}/comments` 의 각 항목, `PUT /comments/{id}`(200) 다.
+
+| | 반환 |
+| --- | --- |
+| 댓글 | `id`·`writerId`·`writerNickname`·`content`·`createdAt` — **다섯 키** |
+
+**게시글처럼 두 모양으로 가르지 않는다.** 게시글이 목록과 상세를 가른 이유는 `content` 의 크기였다(§4.3 — 본문 10,000자에 한 페이지 50건). 댓글 `content` 는 500자이므로 한 페이지 20건이 10,000자이고 가를 이유가 없다.
+
+**`deleted` 를 넣지 않는다.** [requirements/board.md §5](requirements/board.md) 규칙 1이 "삭제된 게시글·댓글은 목록·상세에서 제외한다" 로 정했으므로 **돌아온 댓글은 항상 활성이다.** 같은 절의 규칙 2("삭제된 댓글은 "삭제된 댓글입니다"로 표시할 수 있도록 행을 남긴다")는 **행을 남기는 이유**이고 1차의 응답 요구가 아니다 — 표시가 필요해지는 것은 대댓글이 생기는 2차다([requirements/board.md §2](requirements/board.md) C-05).
+
+> **그래서 `post.comment_count` 와 목록의 `totalElements` 가 같다.** 삭제된 댓글을 목록에 실으면 둘이 어긋나고, 클라이언트가 어느 쪽을 믿어야 하는지를 정해야 한다. 2차에서 표시를 넣을 때 그 결정이 따라온다 — 1차에서 미리 하지 않는다.
+
+**`postId` 를 넣지 않는다.** 작성·목록은 `/posts/{postId}/comments` 경로가 그것을 이미 담고, 수정은 클라이언트가 목록에서 받은 댓글을 고치는 것이다. 게시글 응답이 작성자 외의 참조를 담지 않는 것과 같다.
+
+**`updatedAt` 을 넣지 않는다.** 게시글과 같은 이유다(§4.3).
 
 ## 5. 내부 API (외부 미노출)
 
