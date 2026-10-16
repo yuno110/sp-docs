@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v24
+version: v25
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1753,7 +1753,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 삭제 중 예외 발생 | `post.deleted`와 댓글 `deleted` **둘 다** 롤백. **두 단언이 각각 반증 가능해야 한다** |
 | **한 번의 삭제에 커밋이 정확히 한 번** | 변이 **셋**(A·B·C)을 돌린다. **C는 행위 단언으로 잡히지 않는다** ([../process/review-policy.md §4.1](../process/review-policy.md)) |
 | 없는 글 수정 | 404 `P001` |
-| **타인의 없는 글** 수정 | **404 `P001`.** 403 `P002`가 아니다 ([../api-contract.md §4.4](../api-contract.md)) |
+| **타인의 삭제된 글** 수정 | **404 `P001`.** 403 `P002`가 아니다 ([../api-contract.md §4.4](../api-contract.md)). **행이 없는 id로는 선후가 관측되지 않는다** |
 | 토큰 없이 수정 | 401 `A001` |
 
 ---
@@ -1812,7 +1812,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | ADMIN이 타인 댓글 수정 | 403 `CM002` |
 | ADMIN이 타인 댓글 삭제 | 204 |
 | 없는 게시글에 댓글 | 404 `P001` |
-| **타인의 없는 댓글** 수정 | **404 `CM001`.** 403 `CM002`가 아니다 ([../api-contract.md §4.4](../api-contract.md)) |
+| **타인의 삭제된 댓글** 수정 | **404 `CM001`.** 403 `CM002`가 아니다 ([../api-contract.md §4.4](../api-contract.md)). **행이 없는 id로는 선후가 관측되지 않는다** |
 | 501자 댓글 | 400 `C001` |
 
 ---
