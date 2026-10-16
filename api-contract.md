@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v26
+version: v27
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -359,6 +359,10 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 **`updatedAt` 을 넣지 않는다.** [domain-model.md §1.1](domain-model.md)이 "`updated_at` 을 감사 흔적으로 쓰지 않는다" 고 적었고 노출 요구가 없다.
 
 **댓글을 함께 싣지 않는다.** `GET /posts/{postId}/comments` 가 따로 있다(§4). 상세 응답에 댓글을 넣으면 그 엔드포인트가 두 벌이 된다.
+
+**`POST /api/v1/posts` 와 `PUT /api/v1/posts/{id}` 의 응답도 상세와 같은 모양이다.** 모양은 둘뿐이고 쓰기 응답이 세 번째를 만들지 않는다 — member 가 §3.1 에서 `POST /api/v1/members`·`PATCH /api/v1/members/me` 를 `GET /me` 와 같은 모양으로 못박은 것과 같다. 방금 만들거나 고친 글은 본문까지 돌려주는 것이 자연스럽다.
+
+> **댓글 응답의 모양은 아직 정해지지 않았다.** `POST /posts/{postId}/comments`·`GET /posts/{postId}/comments`·`PUT /comments/{id}` 가 돌려주는 모양이 정본에 없다 — B-08 착수 전에 여기에 정한다. 이 절이 게시글만 다루는 이유는 B-05 가 게시글만 만들었기 때문이고, 공백이 메워진 것이 아니다.
 
 ## 5. 내부 API (외부 미노출)
 
