@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v39
+version: v40
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1639,7 +1639,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] **원격 호출이 DB 트랜잭션 밖에서 일어난다**
 - [ ] 수정 경로는 `MemberClient`를 호출하지 않는다 (B-07)
 - [ ] `GET /api/v1/posts/{id}`가 [../api-contract.md §4.3](../api-contract.md)의 상세 모양을 반환한다 (비로그인 허용)
-- [ ] 상세 조회 시 `view_count`가 1 증가한다 (`Post.increaseViewCount()` 사용)
+- [ ] 상세 조회 시 `view_count`가 1 증가한다 (`Post.increaseViewCount()` 사용 — **갱신 수단은 B-11이 좁은 UPDATE로 대체한다.** 그쪽 완료 기준이 이 괄호를 이긴다)
 - [ ] 삭제된 게시글·없는 id 조회 시 404 `P001`
 - [ ] 제목 201자·내용 10,001자는 400 `C001`
 
@@ -1945,7 +1945,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] **조회 하나가 `comment_count` 를 덮어쓰지 않는다**
 - [ ] 조회수 증가가 **좁은 UPDATE** 다 — `view_count` 만 싣는다
 - [ ] **동시 조회에서 `view_count` 가 소실되지 않는다**
-- [ ] P-05 의 조회수 증가 동작과 §4.3 의 응답 키가 그대로다 (B-05 의 완료 기준을 깨지 않는다)
+- [ ] P-05 의 조회수 증가 동작과 §4.3 의 응답 키가 그대로다 (B-05 의 **동작·응답** 완료 기준을 깨지 않는다 — 갱신 **수단**을 적은 괄호는 이 항목이 이긴다)
 - [ ] 기존 테스트가 깨지지 않는다
 
 **검증** — `PostServiceTest` 확장
@@ -1962,6 +1962,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 > **`clearAutomatically` 를 켜는지는 B-11 이 재서 정했고, 켜는 쪽이다.** B-10 은 껐지만 **그 선택을 관측하는 단언이 B-10 에 없었다** — 리뷰가 두 `@Modifying` 에 켜 보았고 **272/272, 종료 코드 0** 으로 아무것도 깨지지 않았다. B-10 의 두 경로가 `post` 를 다시 읽지 않기 때문이다. **B-11 은 달랐다** — `getDetail` 은 `PostDetailResponse.from(...)` 로 엔티티를 다시 읽고, 좁은 UPDATE 는 영속성 컨텍스트를 지나지 않으므로 **비우지 않으면 식별자 맵의 낡은 사본이 돌아온다.** 끈 상태에서 **3개가 빨개졌다**(B-11 실측): `PostControllerTest` 의 `$.data.viewCount expected:<1> but was:<0>` 와 서비스 쪽 둘이고, 셋 다 **DB 는 1 인데 응답이 0** 이라는 같은 사실이다.
 >
 > **가른 것은 응답의 키가 아니라 값이다.** 이 문서의 앞 판이 "§4.3 의 여덟 키를 그대로 내는 쪽을 택한다" 고 적었는데 **그것으로는 갈리지 않는다** — `PostDetailResponse` 가 레코드이므로 키 집합은 켜든 끄든 여덟이다. 관측 지점은 **`viewCount` 가 증가 후 값인가**이고, 커밋된 `view_count` 를 보는 단언은 끈 쪽에서도 녹색이었다. **저장이 아니라 응답이 깨진다.**
+>
+> 단, **이 관측은 "다시 읽어 응답을 만든다" 는 설계를 전제로 한다.** 응답의 `viewCount` 를 그 자리에서 `post.getViewCount() + 1` 로 계산하는 구현은 이 설정이 필요 없고 **스위트 전체를 통과한다**(B-11 리뷰 실측 276/276, 종료 코드 0). 그 구현이 틀린 이유는 **동시 조회에서 응답이 거짓이 되는 것**인데(둘이 각각 `n+1` 을 돌려주지만 DB 는 `n+2` 다), 완료 기준 3번이 **저장된 값**에 대한 것이라 그 자리를 요구하지 않는다. **스위트가 이 설정을 고정하지는 않는다.**
 >
 > 확실한 것은 따로 있다 — **엔티티가 더티로 남으면 전체 컬럼 UPDATE 가 좁은 UPDATE 를 덮어쓴다.** 그것은 `update post` 가 **정확히 하나**인지로 관측된다 — B-10 리뷰 실측: 좁은 UPDATE 를 두고 `post.increaseCommentCount()` 를 함께 호출하는 변이에서 `Expected size: 1 but was: 2` 로 빨개진다. **그 단언이 막는 것은 `clear` 설정이 아니라 더티 엔티티다.**
 

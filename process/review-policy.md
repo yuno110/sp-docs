@@ -2,8 +2,8 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v18
-updated: 2026-10-13
+version: v19
+updated: 2026-10-18
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
 ---
@@ -153,6 +153,18 @@ related: [dev-workflow.md, orchestration.md]
 > **`PageImpl` 은 마지막 페이지에서 `totalElements` 를 다시 계산한다.** `offset + pageSize > total` 이면 `offset + content.size()` 를 돌려준다. 그래서 **건수 쿼리의 조건을 제거해도 `totalElements` 단언이 통과한다** — 페이지가 꽉 차지 않았으면 반환값이 콘텐츠 크기에서 보정되어 건수 쿼리를 보지 않는다. B-06 실측: 삭제분 제외 테스트의 `totalElements` 단언이 건수 쿼리의 `deleted` 조건을 제거해도 **녹색이었다.** `size` 를 줄여 **페이지를 꽉 채운 뒤** 같은 변이가 빨개지는 것을 확인했다.
 >
 > **페이징 응답의 `totalElements` 를 단언하는 테스트는 페이지가 꽉 차는지 먼저 본다.** 꽉 차지 않으면 그 단언은 목록 쿼리를 두 번 보는 것이고 건수 쿼리는 관측되지 않는다.
+
+#### 변이를 돌릴 때 — 묵은 결과를 새 결과로 읽는 두 경로
+
+**변이가 적용되지 않아 gradle 이 아예 돌지 않은 것과 `Task :test UP-TO-DATE` 는 다른 경로이고, 둘 다 묵은 `build/test-results` 를 새 결과로 읽게 만든다.** B-11 리뷰 실측: 변이 적용 스크립트가 `pattern count=0` 으로 죽어 `&&` 사슬이 끊겨 gradle 이 실행되지 않았는데, 결과 요약이 **직전 변이의 XML 을 읽어 글자까지 같은 값**을 새 변이의 결과로 냈다. `UP-TO-DATE` 사고는 "gradle 이 돌았지만 테스트를 건너뛴" 경우이고 이쪽은 **"gradle 이 아예 안 돈"** 경우다.
+
+둘을 함께 막는 값싼 방법이 셋이다.
+
+- 돌리기 전에 **결과 디렉터리를 지운다**(`build/test-results/test`). 지우면 안 돈 실행은 결과가 없다
+- **변이 적용 스크립트가 패턴 수를 세어 1이 아니면 거기서 죽게** 만든다. 조용히 0건을 바꾸지 않는다
+- **gradle 종료 코드와 `tests completed` 줄을 둘 다 기록한다.** 하나만 보면 위 두 경로를 구별할 수 없다
+
+> **변이 패턴을 손으로 escape 하지 마라.** 위 사고의 발단은 한글 식별자를 바이트로 치환할 때 `요`(EC 9A 94)를 `용`(EC 9A A9)으로 잘못 적어 패턴이 0건이 된 것이다. 패턴은 **소스 인코딩으로 그대로** 쓴다.
 
 **테스트를 더하라는 규칙이 아니다.** 같은 결함을 두 번 보는 테스트를 넣지 않는다([../AGENTS.md](../AGENTS.md) 불변식 11). 경계 관측 하나가 A와 C를 함께 잡는다.
 
