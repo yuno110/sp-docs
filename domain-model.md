@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v13
+version: v14
 updated: 2026-10-16
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -36,7 +36,7 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 
 > **정확히는 반올림이다. I-03 리뷰 실측.** `…09.5` 이상은 다음 초가 된다 — 그래서 **가까운 시각이 합쳐지고** 같은 초가 반드시 같아지지는 않는다([api-contract.md §7.1](api-contract.md)의 동률 규칙이 그 위에 선다).
 
-**테스트와 운영이 다르다.** H2는 마이크로초를 보존하므로 "같은 초 안의 두 갱신"을 구별하지만 **MySQL은 구별하지 못한다.** `updated_at`의 변화 여부를 단언하는 테스트는 H2에서 반증 가능하고 운영에서는 그만큼 섬세하지 않다.
+**테스트와 운영이 다르다.** H2는 마이크로초를 보존하므로 **가까운 두 갱신**을 구별하지만 **MySQL은 구별하지 못할 수 있다**(반올림으로 한 값에 합쳐지면). `updated_at`의 변화 여부를 단언하는 테스트는 H2에서 반증 가능하고 운영에서는 그만큼 섬세하지 않다.
 
 **그래서 `updated_at`을 감사 흔적으로 쓰지 않는다.** 1초 안에 일어난 일은 보이지 않고, 어떤 갱신이었는지도 구별되지 않는다. 탈퇴 시점을 알아야 하면 `deleted_at`을 추가한다(§2.1의 알려진 한계).
 

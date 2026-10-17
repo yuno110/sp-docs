@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v34
+version: v35
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1888,14 +1888,17 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **이 항목이 B-08 완료 기준 1의 `Post.increaseCommentCount()` 요구를 대체한다.** 엔티티 메서드를 쓰면 flush 때 더티 체킹이 전체 컬럼 UPDATE를 발행하므로 둘을 함께 만족시킬 수 없다 — **B-10의 요구가 이긴다.**
 
 **산출물**
-- `comment_count` 갱신을 **좁은 UPDATE**로 바꾼다 — `comment_count = comment_count + 1` / `- 1`
+- `post/repository/PostRepository` — `comment_count` 갱신을 **좁은 UPDATE**로 바꾼다 (`comment_count = comment_count + 1` / `- 1`)
+- `comment/service/CommentService` · `post/entity/Post` — 호출 지점과 엔티티 메서드 정리
+
+**기반 소유 경로를 고치는 것이 이 항목의 범위다.** §2.1이 `*/entity/`·`*/repository/`를 B-03 소유로 두고 기능 단계에 읽기 전용으로 배정했지만, **결함 수정 단계는 그 제약을 받지 않는다**(§1.1). 고친 뒤 B-03의 완료 기준이 깨지지 않는지 확인한다.
 
 **완료 기준**
 - [ ] **동시 커밋에서 `comment_count`가 소실되지 않는다.** 활성 댓글 수와 같다
 - [ ] 갱신이 **좁은 UPDATE**다 — 엔티티 더티 체킹의 전체 컬럼 UPDATE가 아니다
 - [ ] 삭제도 같은 모양이고 **`comment_count`가 음수가 되지 않는다**(C-04, §5)
 - [ ] **B-08의 트랜잭션 경계가 유지된다** — 댓글 INSERT와 집계 갱신이 한 로컬 트랜잭션이고 커밋이 정확히 한 번이다
-- [ ] 기존 테스트 **268개가 깨지지 않는다**
+- [ ] **기존 테스트가 깨지지 않는다**
 
 **검증** — `CommentServiceTest` 확장
 
@@ -1909,7 +1912,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 > **소실 갱신은 DB가 아니라 애플리케이션에서 일어난다.** 두 트랜잭션이 각각 엔티티를 읽어 메모리에서 증가시키면 마지막 쓰기가 이긴다 — **H2에서도 재현된다.** 그래서 이 검증은 실제 MySQL이 필요하지 않다. 다만 **두 읽기가 두 쓰기보다 먼저 일어나도록** 끼워넣기를 강제해야 한다(래치 등). 강제하지 않으면 통과해도 아무것도 증명하지 못한다.
 >
-> **교착은 이 항목의 대상이 아니다.** 좁은 UPDATE가 전체 컬럼 UPDATE 교착을 줄이지만 동시 쓰기 기준 자체는 1차에 없다([../nfr.md §1](../nfr.md)).
+> **교착은 이 항목의 대상이 아니다.** 좁은 UPDATE가 교착을 줄일 **수 있지만 측정되지 않았고**, 동시 쓰기 기준 자체가 1차에 없다([../nfr.md §1](../nfr.md)). **교착률을 이 항목의 완료 기준으로 삼지 않는다** — 재고 싶으면 보고에만 적는다.
 
 ---
 

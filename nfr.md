@@ -2,7 +2,7 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v6
+version: v7
 updated: 2026-10-13
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
@@ -30,7 +30,7 @@ related: [architecture.md, process/dev-workflow.md]
 >
 > **동시 쓰기 기준이 없다는 것으로 면제되지 않는다.** 그 면제는 **교착에만** 통한다. 소실 갱신은 [requirements/board.md](requirements/board.md) C-01("`commentCount` 증가")과 [api-contract.md §4.5](api-contract.md)("`comment_count`와 목록의 `totalElements`가 같다")를 깨므로 **동시성 기준과 무관하게 1차 요구 미충족**이다. 교착은 500으로 드러나 재시도할 수 있지만 소실 갱신은 **아무 오류 없이 틀린 수를 남긴다**([../AGENTS.md](../AGENTS.md) 불변식 9).
 >
-> **교착 자체는 1차의 한계로 남긴다** — 이 절은 조회 p95만, §3은 타임아웃·서킷만 정한다. B-10의 좁은 UPDATE가 **소실 갱신과 전체 컬럼 UPDATE 교착을 동시에** 줄인다.
+> **교착 자체는 1차의 한계로 남긴다** — 이 절은 조회 p95만, §3은 타임아웃·서킷만 정한다. B-10의 좁은 UPDATE는 소실 갱신을 **없앤다**. 교착도 줄 **수 있지만 측정하지 않았다** — InnoDB 행 락은 `SET` 절의 컬럼 수와 무관하고, 락 보유 구간이 짧아지는 쪽으로만 여지가 있다.
 
 
 ## 2. 장애 격리

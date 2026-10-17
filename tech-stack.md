@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v23
+version: v24
 updated: 2026-10-15
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -503,15 +503,15 @@ spring:
 | MySQL 서버 | `SET PERSIST time_zone='+09:00'` (§4.1) | 로컬 1회 / 운영 DBA |
 | JDBC URL | `serverTimezone=Asia/Seoul` | `application.yml` |
 | Hibernate | `spring.jpa.properties.hibernate.jdbc.time_zone: Asia/Seoul` | `application.yml` |
+| 컬럼 타입 | `DATETIME` (`TIMESTAMP` 아님 — 자동 UTC 변환 회피) | 마이그레이션 |
+| Java 타입 | `LocalDateTime` | 엔티티 |
+| API 응답 | 오프셋 미표기 (아래) | **`LocalDateTime` 타입 + Jackson 기본값** |
 
-> **그 Hibernate 설정이 이 경로의 변환을 정한다. I-03 리뷰 실측.** 값을 `UTC` 로 바꾸면 저장값이 UTC 가 되고, URL 에서 `serverTimezone` 을 빼도 이 설정이 `Asia/Seoul` 이면 저장값은 KST 로 맞는다 — **`serverTimezone` 은 어느 조합에서도 결과를 바꾸지 않았다.** 세 서비스에 반드시 둔다.
+> **그 Hibernate 설정이 이 경로의 변환을 정한다. I-03 리뷰 실측.** 값을 `UTC` 로 바꾸면 저장값이 UTC 가 되고, URL 에서 `serverTimezone` 을 빼도 이 설정이 `Asia/Seoul` 이면 저장값은 KST 로 맞는다 — **`serverTimezone` 은 어느 조합에서도 결과를 바꾸지 않았다.** **그 Hibernate 설정을** 세 서비스에 반드시 둔다.
 >
 > **"설정 유무" 로는 가를 수 없다.** 설정을 빼면 Connector/J 가 **서버 존으로 폴백**하고 이 환경의 MySQL `time_zone` 이 `+09:00` 이라 결과가 같아진다. 그래서 앞선 측정이 "무효하다" 로 잘못 결론했다 — **가르려면 값을 바꾼다.**
 >
 > **JVM이 KST가 아니면 저장값은 맞고 조회 응답이 틀린다.** 읽기가 DB의 KST 값을 JVM 존으로 되돌리기 때문이다 — UTC JVM에서 조회 응답이 `01:19:56`이었고 저장값은 `10:19:56`이었다(I-03 실측). 오프셋 표기가 없어 클라이언트는 그것을 KST로 읽는다. [adr/0011](adr/0011-timezone-from-environment.md)이 그 영향 범위를 정정했다.
-| 컬럼 타입 | `DATETIME` (`TIMESTAMP` 아님 — 자동 UTC 변환 회피) | 마이그레이션 |
-| Java 타입 | `LocalDateTime` | 엔티티 |
-| API 응답 | 오프셋 미표기 (아래) | **`LocalDateTime` 타입 + Jackson 기본값** |
 
 #### 오프셋이 없는 이유는 Jackson 설정이 아니다
 

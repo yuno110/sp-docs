@@ -2,7 +2,7 @@
 title: JVM 시간대는 실행 환경이 정한다
 type: adr
 status: accepted
-version: v4
+version: v5
 updated: 2026-09-14
 read_when: "시간대 설정을 어디에 둘지 판단할 때"
 related: [README.md, ../tech-stack.md]
@@ -43,7 +43,7 @@ tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
 
 > **영향 범위가 이 절이 적었던 것보다 넓다. I-03 실측이다.** JVM 시간대가 영향을 주는 것은 로그와 `LocalDateTime.now()`만이 아니다 — **조회 응답도 영향을 받는다.** 읽기 경로가 DB의 KST 값을 JVM 존으로 되돌리므로 UTC JVM에서 `GET /posts/{id}`가 `2026-10-17T01:19:56`을 돌려줬다(저장값은 `10:19:56`). **오프셋 표기가 없으므로 클라이언트는 그것을 KST로 읽는다** — 9시간 틀린 시각이 조용히 나간다. 그래서 배포 시 `ENV TZ=Asia/Seoul`을 거는 근거는 로그 편의가 아니라 **응답의 정확성**이다([../plan/phase2.md](../plan/phase2.md)).
 >
-> **`hibernate.jdbc.time_zone` 이 이 경로의 변환을 정한다. I-03 리뷰 실측이다.** 값을 `UTC` 로 바꾸면 저장값이 `02:31:39` 로 **UTC 가 된다** — 관측되므로 무효한 설정이 아니다. 그리고 그 설정이 **JDBC URL 의 `serverTimezone` 을 이긴다**: URL 에 `connectionTimeZone=UTC` 를 넣어도 이 설정이 `Asia/Seoul` 이면 저장값은 KST 로 맞았고, 거꾸로 URL 에서 `serverTimezone` 을 **빼도** 저장값이 그대로 KST 였다. **`serverTimezone` 은 어느 조합에서도 결과를 바꾸지 않았다.**
+> **`hibernate.jdbc.time_zone` 이 이 경로의 변환을 정한다. I-03 리뷰 실측이다.** 값을 `UTC` 로 바꾸면 저장값이 **UTC 가 된다**(`serverTimezone` 없음 조합에서 `02:31:39`, 있음 조합에서 `02:32:43` — **둘 다 UTC 다**) — 관측되므로 무효한 설정이 아니다. 그리고 그 설정이 **JDBC URL 의 `serverTimezone` 을 이긴다**: URL 에 `connectionTimeZone=UTC` 를 넣어도 이 설정이 `Asia/Seoul` 이면 저장값은 KST 로 맞았고, 거꾸로 URL 에서 `serverTimezone` 을 **빼도** 저장값이 그대로 KST 였다. **`serverTimezone` 은 어느 조합에서도 결과를 바꾸지 않았다.**
 >
 > **앞선 측정이 교란됐던 자리다.** "설정을 가진 auth 와 가지지 않은 board 가 똑같이 변환됐다" 로 "무효하다" 를 결론했는데, 설정을 빼면 Connector/J 가 **서버 존으로 폴백**하고 이 환경의 MySQL `time_zone` 이 `+09:00` 이라 `Asia/Seoul` 과 같은 오프셋이다. **"있음 vs 없음" 은 설계상 같은 결과를 내므로 "무효" 와 "폴백이 우연히 일치" 를 가르지 못한다.** 가르려면 **값을 바꿔야** 한다.
 >
