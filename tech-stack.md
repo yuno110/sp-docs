@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v24
-updated: 2026-10-15
+version: v25
+updated: 2026-10-18
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -86,12 +86,13 @@ spring:
 
 > 의존성 이름에 `oauth2`가 붙지만 OAuth2 인가 서버가 필요한 것이 아니다. 표준 JWT(RFC 7519) 검증기 부분만 사용한다.
 
-**Claim 계약 검증은 이 목록에 없다.** 스타터는 서명·만료만 보고 [api-contract.md §6](api-contract.md)의 `sub`·`role`·`iss` 가 계약대로인지는 보지 않는다. 그래서 **두 서비스가 서로 다른 층에서 집행하고, 외부로 나가는 답은 같다 — 둘 다 401 `A002` 다**(실측).
+**Claim 계약 검증은 이 목록에 없다.** 스타터는 서명·만료만 보고 [api-contract.md §6](api-contract.md)의 `sub`·`role`·`iss` 가 계약대로인지는 보지 않는다. 그래서 **세 서비스가 서로 다른 층에서 집행하고, 외부로 나가는 답은 같다 — 셋 다 401 `A002` 다**(I-04 실측: 본문이 바이트 동일하고 `Content-Type` 만 갈린다 — member 만 `charset=UTF-8` 이다).
 
 | 서비스 | 집행 지점 | 어떻게 |
 | --- | --- | --- |
 | member | **디코더** | `ClaimContractValidator`(M-04)가 `BadJwtException` 을 던진다 |
 | board | **`@CurrentMember` 리졸버** | `accountId` 의 `NumberFormatException`·`NullPointerException` 과 `role` 의 `hasText` 가드 |
+| auth | **`@CurrentAccount` 리졸버** | `Long.valueOf(jwt.getSubject())` 와 `Role.valueOf(…)` 를 `IllegalArgumentException`·`NullPointerException` 으로 받는다 (I-04 실측 — 앞 판에는 이 행이 없었다) |
 
 > **board 쪽은 전제가 하나 붙는다.** 집행이 리졸버에 있으므로 보호는 **`@CurrentMember` 를 받는 핸들러에서만** 성립한다. B-09 시점에 인증이 필요한 경로 **일곱 개 전부가 그것을 받는다**(실측). `.authenticated()` 만 걸린 핸들러가 `@CurrentMember` 없이 생기면 **`role`·`sub` 가 빠진 토큰이 통과한다.**
 >
@@ -515,7 +516,11 @@ spring:
 
 #### 오프셋이 없는 이유는 Jackson 설정이 아니다
 
-**`spring.jackson.time-zone`은 `LocalDateTime` 직렬화에 영향을 주지 않는다.** (그래서 **auth·member에만 있고 board에는 없다** — 세 서비스 비대칭이지만 무효한 설정이므로 맞추지 않았다. [adr/0011](adr/0011-timezone-from-environment.md) "결과"의 블록인용이 그 판단이다.) 그 값에는 존이 없으므로 변환할 것이 없다. 오프셋이 붙지 않는 실제 이유는 **타입이 `LocalDateTime`이고 Spring Boot가 `WRITE_DATES_AS_TIMESTAMPS`를 끄기 때문**이며, 그 결과는 ISO-8601 지역시각이다.
+**`spring.jackson.time-zone`은 `LocalDateTime` 직렬화에 영향을 주지 않는다.** (그래서 **auth·member에만 있고 board에는 없다** — 세 서비스 비대칭이지만 **`LocalDateTime` 에는 무효한 설정이므로** 맞추지 않았다. [adr/0011](adr/0011-timezone-from-environment.md) "결과"의 블록인용이 그 판단이다.) 그 값에는 존이 없으므로 변환할 것이 없다. 오프셋이 붙지 않는 실제 이유는 **타입이 `LocalDateTime`이고 Spring Boot가 `WRITE_DATES_AS_TIMESTAMPS`를 끄기 때문**이며, 그 결과는 ISO-8601 지역시각이다.
+
+> **"무효한 설정" 은 `LocalDateTime` 에 대해서만 참이다. I-04 실측.** 그 설정은 `java.util.Date` 에는 **유효하고**, 그래서 Spring Boot 기본 `/error` 의 `timestamp` 에서 **board 만 UTC 로 갈린다** — auth `2026-10-18T01:39:09.525+09:00` · member `…09.741+09:00` · board `2026-10-17T16:39:09.959+00:00`. 그 경로는 `anyRequest().authenticated()` 라 유효 토큰으로 외부에서 닿는다.
+>
+> **계약 표면에는 영향이 없다.** 세 저장소의 응답 DTO 에 `java.util.Date`·`Instant`·`ZonedDateTime`·`OffsetDateTime` 이 하나도 없고 시각이 전부 `LocalDateTime` 이다(auth 의 `Instant` 는 토큰 `iat`/`exp` 계산 전용이고 JSON 필드가 아니다). `/error` 는 [api-contract.md](api-contract.md)에 없으므로 **"어느 서비스가 틀렸다" 를 그 문서로 판정할 수 없다** — 어긋난 것은 이 괄호의 근거 문장이었다.
 
 **그래서 소수부는 저장값에 있으면 그대로 나간다. 패턴을 강제하는 것이 없다.**
 
