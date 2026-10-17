@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v38
-updated: 2026-10-17
+version: v39
+updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -1959,7 +1959,9 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 > **끼워넣기를 강제한다.** B-10 이 `StatementInspector` + `CyclicBarrier` 로 `update post` 발행 직전에 세우는 방식을 썼다 — 같은 수단을 쓸 수 있다. **강제는 보장이지, 없을 때 반드시 공허해진다는 뜻이 아니다** — B-10 절의 측정이 그것이다.
 >
-> **`clearAutomatically` 를 켜는지는 B-11 이 재서 정한다.** B-10 은 껐지만 **그 선택을 관측하는 단언이 B-10 에 없다** — 리뷰가 두 `@Modifying` 에 켜 보았고 **272/272, 종료 코드 0** 으로 아무것도 깨지지 않았다. B-10 의 두 경로가 `post` 를 다시 읽지 않기 때문이다. **B-11 은 사정이 다를 수 있다** — `getDetail` 은 `PostDetailResponse.from(post)` 로 엔티티 필드를 다시 읽으므로 분리가 일할 여지가 있다. **B-10 의 상황을 그대로 상속하지 마라** — 켜고 끈 두 상태를 다 돌려 보고, 상세 조회 응답이 [../api-contract.md §4.3](../api-contract.md) 의 여덟 키를 그대로 내는 쪽을 택하고 **무엇을 관측했는지 보고에 적는다.**
+> **`clearAutomatically` 를 켜는지는 B-11 이 재서 정했고, 켜는 쪽이다.** B-10 은 껐지만 **그 선택을 관측하는 단언이 B-10 에 없었다** — 리뷰가 두 `@Modifying` 에 켜 보았고 **272/272, 종료 코드 0** 으로 아무것도 깨지지 않았다. B-10 의 두 경로가 `post` 를 다시 읽지 않기 때문이다. **B-11 은 달랐다** — `getDetail` 은 `PostDetailResponse.from(...)` 로 엔티티를 다시 읽고, 좁은 UPDATE 는 영속성 컨텍스트를 지나지 않으므로 **비우지 않으면 식별자 맵의 낡은 사본이 돌아온다.** 끈 상태에서 **3개가 빨개졌다**(B-11 실측): `PostControllerTest` 의 `$.data.viewCount expected:<1> but was:<0>` 와 서비스 쪽 둘이고, 셋 다 **DB 는 1 인데 응답이 0** 이라는 같은 사실이다.
+>
+> **가른 것은 응답의 키가 아니라 값이다.** 이 문서의 앞 판이 "§4.3 의 여덟 키를 그대로 내는 쪽을 택한다" 고 적었는데 **그것으로는 갈리지 않는다** — `PostDetailResponse` 가 레코드이므로 키 집합은 켜든 끄든 여덟이다. 관측 지점은 **`viewCount` 가 증가 후 값인가**이고, 커밋된 `view_count` 를 보는 단언은 끈 쪽에서도 녹색이었다. **저장이 아니라 응답이 깨진다.**
 >
 > 확실한 것은 따로 있다 — **엔티티가 더티로 남으면 전체 컬럼 UPDATE 가 좁은 UPDATE 를 덮어쓴다.** 그것은 `update post` 가 **정확히 하나**인지로 관측된다 — B-10 리뷰 실측: 좁은 UPDATE 를 두고 `post.increaseCommentCount()` 를 함께 호출하는 변이에서 `Expected size: 1 but was: 2` 로 빨개진다. **그 단언이 막는 것은 `clear` 설정이 아니라 더티 엔티티다.**
 
