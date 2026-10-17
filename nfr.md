@@ -2,7 +2,7 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v4
+version: v5
 updated: 2026-10-13
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
@@ -24,9 +24,13 @@ related: [architecture.md, process/dev-workflow.md]
 
 > **같은 게시글에 댓글을 동시에 쓰면 MySQL 교착으로 500 `C005`가 난다. I-03 실측이고 1차의 범위 밖이다.** 댓글 12건을 병렬로 보내 **3건만 201, 9건이 500**이었다(`CannotAcquireLockException: Deadlock found`). 순차로 보내면 12건 전부 201이다 — **동시성에서만 난다.** 실패한 statement는 `post` 행의 UPDATE이고, `comment_count` 증가가 같은 행의 락을 다툰다. 더티 체킹이 **변경되지 않은 컬럼까지 전부** UPDATE에 싣는 것도 로그에 보인다.
 >
-> **원자성은 지켜졌다.** 실패 트랜잭션이 롤백되어 댓글 행이 남지 않았고 `comment_count`와 실제 행 수가 끝까지 일치했다([domain-model.md §5](domain-model.md)의 요구가 교착 상황에서도 유지됐다).
+> **롤백은 깨끗하다.** 교착으로 **실패한** 트랜잭션은 댓글 행을 남기지 않는다(I-03 리뷰 재확인: 롤백된 INSERT 자리의 `id`가 비어 있다).
 >
-> **1차는 동시 쓰기 기준을 두지 않았다** — 이 절은 조회 p95만, §3은 타임아웃·서킷만 정한다. 그래서 결함으로 올리지 않고 측정값으로 적는다. **2차 후보**: `comment_count`를 전체 컬럼 UPDATE가 아닌 좁은 UPDATE로 바꾸거나, 집계를 비정규화에서 분리한다.
+> **그러나 성공한 동시 커밋 사이에서 `comment_count` 증가가 소실된다. 이것은 한계가 아니라 결함이다 — [B-10](phase1.md)이 고친다.** I-03 리뷰 실측: 동시 커밋이 2건 이상인 **6개 게시글에서 6/6 어긋났다**(201 **4**건에 증가 **2**, 201 **11**건에 증가 **10** 등). 순차·단건에서는 어긋나지 않는다. 외부에서 관측된다 — `GET /posts/44`가 `commentCount: 10`인데 댓글 목록 `totalElements`가 **11**이었다.
+>
+> **동시 쓰기 기준이 없다는 것으로 면제되지 않는다.** 그 면제는 **교착에만** 통한다. 소실 갱신은 [requirements/board.md](requirements/board.md) C-01("`commentCount` 증가")과 [api-contract.md §4.5](api-contract.md)("`comment_count`와 목록의 `totalElements`가 같다")를 깨므로 **동시성 기준과 무관하게 1차 요구 미충족**이다. 교착은 500으로 드러나 재시도할 수 있지만 소실 갱신은 **아무 오류 없이 틀린 수를 남긴다**([../AGENTS.md](../AGENTS.md) 불변식 9).
+>
+> **교착 자체는 1차의 한계로 남긴다** — 이 절은 조회 p95만, §3은 타임아웃·서킷만 정한다. B-10의 좁은 UPDATE가 **소실 갱신과 전체 컬럼 UPDATE 교착을 동시에** 줄인다.
 
 
 ## 2. 장애 격리

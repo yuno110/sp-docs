@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v31
+version: v32
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1865,6 +1865,47 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 내 글 목록에 `size=0` / `page=-1` | **400 `C001`**, `fieldErrors` **1건**(파라미터명). 500이 아니다 |
 | 목록 조회 쿼리 수 | **게시글 수와 무관하게 일정.** 아래 방식으로 관측한다 |
 | `/actuator/env` | **무토큰 401 `A001`, 유효 토큰 403 `A004`.** 404 가 아니다 |
+
+### B-10 comment_count 소실 갱신 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-board` |
+| 의존 | B-08 (I-03 리뷰가 발견했다) |
+| 공유 파일 | `Post`, `CommentService` — B-03·B-08 산출물 |
+| 참조 | [../requirements/board.md §2 §5](../requirements/board.md) (C-01, C-04), [../api-contract.md §4.5](../api-contract.md), [../domain-model.md §5](../domain-model.md), [../nfr.md §1](../nfr.md) |
+
+**I-03 리뷰 실측.** 같은 게시글에 댓글을 동시에 쓰면 **성공한 커밋들 사이에서 `comment_count` 증가가 소실된다** — 동시 커밋 2건 이상인 **6개 게시글에서 6/6** 어긋났고(201 4건에 증가 2, 201 11건에 증가 10), 외부에서 관측된다(`commentCount: 10` vs 댓글 목록 `totalElements: 11`). 순차·단건은 어긋나지 않는다.
+
+**한계가 아니라 결함이다.** C-01("댓글 작성 시 `commentCount` 증가")과 §4.5("`comment_count`와 목록의 `totalElements`가 같다")를 깨므로 **동시 쓰기 기준의 부재로 면제되지 않는다.** 교착(500)과 달리 **아무 오류 없이 틀린 수를 남긴다**([../AGENTS.md](../AGENTS.md) 불변식 9).
+
+**원인은 read-modify-write다.** 엔티티를 읽어 메모리에서 증가시키고 더티 체킹이 **변경되지 않은 컬럼까지 전부** 싣는 UPDATE로 낡은 스냅샷째 덮어쓴다(실패 statement가 `update post set comment_count=?,content=?,deleted=?,title=?,...` 였다).
+
+**산출물**
+- `comment_count` 갱신을 **좁은 UPDATE**로 바꾼다 — `comment_count = comment_count + 1` / `- 1`
+
+**완료 기준**
+- [ ] **동시 커밋에서 `comment_count`가 소실되지 않는다.** 활성 댓글 수와 같다
+- [ ] 갱신이 **좁은 UPDATE**다 — 엔티티 더티 체킹의 전체 컬럼 UPDATE가 아니다
+- [ ] 삭제도 같은 모양이고 **`comment_count`가 음수가 되지 않는다**(C-04, §5)
+- [ ] **B-08의 트랜잭션 경계가 유지된다** — 댓글 INSERT와 집계 갱신이 한 로컬 트랜잭션이고 커밋이 정확히 한 번이다
+- [ ] 기존 테스트 **268개가 깨지지 않는다**
+
+**검증** — `CommentServiceTest` 확장
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| **같은 게시글에 동시 작성 N건** | `comment_count` = 활성 댓글 수. **엔티티 증가로 되돌리면 깨진다** |
+| **같은 게시글에 동시 삭제 N건** | 같음 |
+| 같은 댓글 2회 삭제 | `comment_count` 음수 안 됨 |
+| 발행된 UPDATE의 모양 | **`comment_count`만 싣는다.** `title`·`content`가 실리지 않는다 |
+| 한 번의 작성에 커밋 | **정확히 한 번**(B-08의 경계 관측을 그대로 쓴다) |
+
+> **소실 갱신은 DB가 아니라 애플리케이션에서 일어난다.** 두 트랜잭션이 각각 엔티티를 읽어 메모리에서 증가시키면 마지막 쓰기가 이긴다 — **H2에서도 재현된다.** 그래서 이 검증은 실제 MySQL이 필요하지 않다. 다만 **두 읽기가 두 쓰기보다 먼저 일어나도록** 끼워넣기를 강제해야 한다(래치 등). 강제하지 않으면 통과해도 아무것도 증명하지 못한다.
+>
+> **교착은 이 항목의 대상이 아니다.** 좁은 UPDATE가 전체 컬럼 UPDATE 교착을 줄이지만 동시 쓰기 기준 자체는 1차에 없다([../nfr.md §1](../nfr.md)).
+
+---
 
 ## 7. 다음 단계
 

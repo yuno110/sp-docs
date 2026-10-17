@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v11
+version: v12
 updated: 2026-10-16
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -31,6 +31,8 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | | `datetime_precision` | 저장되는 값 |
 | --- | --- | --- |
 | MySQL `DATETIME` | **0** | `2026-10-12 16:33:36` — 소수부가 **잘린다** |
+
+> **정확히는 반올림이다. I-03 리뷰 실측.** `…09.5` 이상은 다음 초가 된다 — 그래서 **가까운 시각이 합쳐지고** 같은 초가 반드시 같아지지는 않는다([api-contract.md §7.1](api-contract.md)의 동률 규칙이 그 위에 선다).
 | MySQL `DATETIME(6)` | 6 | `2026-10-12 16:33:36.338618` |
 | **H2 `DATETIME`** | **6** | 소수부가 남는다 |
 
