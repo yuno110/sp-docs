@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v18
+version: v19
 updated: 2026-10-18
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -287,7 +287,9 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | **2단계 후 과거 댓글 목록 조회** | **200, 닉네임 그대로.** 댓글도 스냅샷이다([../domain-model.md §4.2](../domain-model.md)) |
 | 1·2단계 중 서비스 간 호출 | **0회.** 클라이언트가 순서대로 호출한다 |
 
-> **2단계를 수행하지 않으면 프로필이 남고 닉네임이 선점된다.** 1차에는 이를 관측·정리할 수단이 없다. 알려진 제약이며 2차 이벤트 범위다([../adr/0010](../adr/0010-kafka-for-nickname-sync.md)).
+> **2단계를 수행하지 않으면 프로필이 남고 닉네임이 선점된다.** 1차에는 **고아 프로필을 찾아내는(목록·수거) 수단이 없다.** 알려진 제약이며 2차 이벤트 범위다([../adr/0010](../adr/0010-kafka-for-nickname-sync.md)).
+>
+> **"관측할 수단이 없다" 로 읽지 마라 — I-05 실측.** `accountId` 를 **이미 알고 있으면** `GET /api/v1/members/{accountId}` 가 `deleted:false` 를 돌려주므로 **한 건은 관측된다.** 없는 것은 **찾아내는** 경로다 — 세 서비스에 `@Scheduled`·`@EnableScheduling` 이 0건이고 member 의 엔드포인트에 관리자 경로가 없다(실측).
 
 ---
 

@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v42
+version: v43
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1996,6 +1996,30 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] 위 둘 중 하나로 정본이 정해져 있다 — [../api-contract.md §6](../api-contract.md)과 [../tech-stack.md §2.1](../tech-stack.md)이 같은 말을 한다
 - [ ] 거부하는 쪽이면 **구현 항목이 세워져 있다**(저장소별로 하나씩). 통과시키는 쪽이면 **전제가 깨지는 조건**이 적혀 있다
 - [ ] `python tools/check_refs.py` 가 통과한다 ([../process/review-policy.md §8](../process/review-policy.md))
+
+---
+### D-03 로컬 바인드 로그가 비밀번호 해시를 남긴다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` (결정에 따라 `sp-auth` 가 뒤따른다) |
+| 의존 | 없다. **1차 완료를 막지 않는다** — §7 의 완료 조건은 `AU-xx`·`M-xx`·`B-xx`·`I-xx` 다 |
+| 참조 | [../security.md §1](../security.md) 민감정보 로깅 행, [../nfr.md §5](../nfr.md), [../conventions.md §8](../conventions.md) |
+
+**I-05 가 찾았다.** 세 저장소의 커밋된 템플릿 `application-local.yml.example` 이 `org.hibernate.orm.jdbc.bind: trace` 를 켠다. 그래서 **`account` 에 쓰기가 일어날 때마다 저장된 BCrypt 해시가 로컬 로그에 찍힌다**(auth 만 해당한다 — member·board 에는 비밀 컬럼이 없다). `application-prod.yml` 은 세 저장소 모두 `org.hibernate.SQL: warn` 과 `org.hibernate.orm.jdbc.bind: warn` 이라 **운영은 영향이 없다**(실측).
+
+**정본 통제와 어긋난다.** [../security.md §1](../security.md)의 "민감정보 로깅 — 비밀번호·토큰·키를 로그에 남기지 않음" 과 [../nfr.md §5](../nfr.md)의 같은 행이 **프로파일을 가리지 않는다.** 그리고 이 프로젝트는 BCrypt 해시를 비밀로 취급해 왔다 — 커밋되는 파일에 `$2[aby]$` 모양 문자열을 넣지 않는 규칙이 그것이다. **평문 비밀번호는 로그에 남지 않는다** — 바인드 파라미터에 실리는 것은 이미 인코딩된 해시다.
+
+**정해야 하는 것 하나** — **통제가 운영만을 말하는가, 모든 프로파일을 말하는가.**
+
+| 결정 | 따라오는 것 |
+| --- | --- |
+| **운영만** | [../security.md §1](../security.md)과 [../nfr.md §5](../nfr.md)의 그 행에 **프로파일 범위**를 적고, 로컬 로그에 해시가 남는다는 것을 **알려진 제약**으로 적는다. 로컬 로그를 공유·업로드하지 않는다는 조건을 함께 적는다 |
+| **모든 프로파일** | `sp-auth` 의 템플릿에서 바인드 로거를 내린다. **대가가 있다** — 로컬에서 SQL 파라미터를 못 본다. 그 로거는 이 프로젝트의 학습 수단이고 [../conventions.md §8](../conventions.md)이 켜라고 적는다. auth 만 내릴지, 세 저장소를 맞출지도 함께 정한다 |
+
+**어느 쪽으로 정하든 그 결정을 관측하는 수단이 지금 없다.** 템플릿의 로거 수준을 되돌리는 변이를 잡는 테스트가 세 저장소에 없다 — `.example` 은 실행되지 않는 파일이고 `application-local.yml` 은 gitignore 되어 있다. **그 비대칭을 적어 두는 것이 이 항목의 산출물 중 하나다.**
+
+> **I-05 워커는 자기 scratchpad 로그에서 그 네 자리를 지우고 독립 `grep` 으로 0건을 확인했다.** 저장소 파일은 고치지 않았다 — 고치는 것이 이 항목이다.
 
 ---
 ## 7. 다음 단계
