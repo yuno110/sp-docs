@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v40
+version: v41
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1958,6 +1958,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 상세 조회 1회 | `view_count` 가 1 증가하고 응답이 §4.3 의 여덟 키다 |
 
 > **끼워넣기를 강제한다.** B-10 이 `StatementInspector` + `CyclicBarrier` 로 `update post` 발행 직전에 세우는 방식을 썼다 — 같은 수단을 쓸 수 있다. **강제는 보장이지, 없을 때 반드시 공허해진다는 뜻이 아니다** — B-10 절의 측정이 그것이다.
+>
+> **`Post.increaseViewCount()` 를 지우지 않는다.** B-03 이 세 군데서 그 존재를 요구한다 — 도메인 메서드 표, 완료 기준 "위 표의 도메인 메서드 6개가 모두 구현되어 있다", 검증표 "`increaseViewCount()` 2회 → `viewCount = 2`". **대신 주석으로 막는다** — 그 메서드와 `viewCount` 필드에 "상세 조회 경로는 이 메서드를 쓰지 않는다 / 증가는 `PostRepository.increaseViewCount` 의 좁은 UPDATE 가 한다 / **이 메서드로 바꾸면 결함이 돌아온다**" 를 적는다. B-10 이 집계 메서드 둘에 같은 처리를 했다.
 >
 > **`clearAutomatically` 를 켜는지는 B-11 이 재서 정했고, 켜는 쪽이다.** B-10 은 껐지만 **그 선택을 관측하는 단언이 B-10 에 없었다** — 리뷰가 두 `@Modifying` 에 켜 보았고 **272/272, 종료 코드 0** 으로 아무것도 깨지지 않았다. B-10 의 두 경로가 `post` 를 다시 읽지 않기 때문이다. **B-11 은 달랐다** — `getDetail` 은 `PostDetailResponse.from(...)` 로 엔티티를 다시 읽고, 좁은 UPDATE 는 영속성 컨텍스트를 지나지 않으므로 **비우지 않으면 식별자 맵의 낡은 사본이 돌아온다.** 끈 상태에서 **3개가 빨개졌다**(B-11 실측): `PostControllerTest` 의 `$.data.viewCount expected:<1> but was:<0>` 와 서비스 쪽 둘이고, 셋 다 **DB 는 1 인데 응답이 0** 이라는 같은 사실이다.
 >
