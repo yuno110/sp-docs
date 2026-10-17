@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v14
+version: v15
 updated: 2026-10-14
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -164,7 +164,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 - [ ] API 응답의 시각에 **오프셋이 없다.** 고정 패턴을 단언하지 않는다 — 소수부는 컬럼 타입이 정하고 코드가 보장하지 않는다([../tech-stack.md §6](../tech-stack.md))
 - [ ] **세 서비스**의 JDBC URL에 `serverTimezone=Asia/Seoul`이 있다
 - [ ] **세 서비스**에 `hibernate.jdbc.time_zone: Asia/Seoul`이 있다
-- [ ] **MySQL `DATETIME`이 소수부를 버리는 것을 확인한다.** [../api-contract.md §7.1](../api-contract.md)의 동률 정렬 규칙이 그 전제에 걸려 있다
+- [ ] **MySQL `DATETIME`에 소수부가 남지 않고 가까운 시각이 한 값으로 합쳐지는 것을 확인한다**(`DATETIME`은 **반올림**한다 — `…09.5` 이상은 다음 초다). [../api-contract.md §7.1](../api-contract.md)의 동률 정렬 규칙이 **그 합쳐짐**에 걸려 있다
 
 **검증**
 

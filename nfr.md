@@ -2,7 +2,7 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v5
+version: v6
 updated: 2026-10-13
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
@@ -26,7 +26,7 @@ related: [architecture.md, process/dev-workflow.md]
 >
 > **롤백은 깨끗하다.** 교착으로 **실패한** 트랜잭션은 댓글 행을 남기지 않는다(I-03 리뷰 재확인: 롤백된 INSERT 자리의 `id`가 비어 있다).
 >
-> **그러나 성공한 동시 커밋 사이에서 `comment_count` 증가가 소실된다. 이것은 한계가 아니라 결함이다 — [B-10](phase1.md)이 고친다.** I-03 리뷰 실측: 동시 커밋이 2건 이상인 **6개 게시글에서 6/6 어긋났다**(201 **4**건에 증가 **2**, 201 **11**건에 증가 **10** 등). 순차·단건에서는 어긋나지 않는다. 외부에서 관측된다 — `GET /posts/44`가 `commentCount: 10`인데 댓글 목록 `totalElements`가 **11**이었다.
+> **그러나 성공한 동시 커밋 사이에서 `comment_count` 증가가 소실된다. 이것은 한계가 아니라 결함이다 — [B-10](plan/phase1.md)이 고친다.** I-03 리뷰 실측: 동시 커밋이 2건 이상인 **6개 게시글에서 6/6 어긋났다**(201 **4**건에 증가 **2**, 201 **11**건에 증가 **10** 등). 순차·단건에서는 어긋나지 않는다. 외부에서 관측된다 — `GET /posts/44`가 `commentCount: 10`인데 댓글 목록 `totalElements`가 **11**이었다.
 >
 > **동시 쓰기 기준이 없다는 것으로 면제되지 않는다.** 그 면제는 **교착에만** 통한다. 소실 갱신은 [requirements/board.md](requirements/board.md) C-01("`commentCount` 증가")과 [api-contract.md §4.5](api-contract.md)("`comment_count`와 목록의 `totalElements`가 같다")를 깨므로 **동시성 기준과 무관하게 1차 요구 미충족**이다. 교착은 500으로 드러나 재시도할 수 있지만 소실 갱신은 **아무 오류 없이 틀린 수를 남긴다**([../AGENTS.md](../AGENTS.md) 불변식 9).
 >

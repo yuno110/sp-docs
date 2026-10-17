@@ -2,14 +2,14 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v32
+version: v33
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
 # 1차 작업 계획
 
-작업 항목 31개(AU 11 + M 11 + B 9)와 통합 검증 5개로 구성한다. 통합 검증은 [integration.md](integration.md)에 있다.
+작업 항목 32개(AU 11 + M 11 + B 10)와 통합 검증 5개로 구성한다. 통합 검증은 [integration.md](integration.md)에 있다.
 
 절차는 [../process/dev-workflow.md](../process/dev-workflow.md)를 따른다. **상태는 이 문서에 적지 않는다.**
 
@@ -1777,7 +1777,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **댓글 작성도 `MemberClient`를 호출한다.** 게시글과 같은 규칙이다 — `writer_id`는 Claim, `writer_nickname`은 내부 API, 호출은 트랜잭션 밖. **수정·삭제는 호출하지 않는다.**
 
 **완료 기준**
-- [ ] 댓글 작성 시 `post.comment_count`가 1 증가한다 (`Post.increaseCommentCount()` 사용)
+- [ ] 댓글 작성 시 `post.comment_count`가 1 증가한다 (`Post.increaseCommentCount()` 사용 — **갱신 수단은 B-10이 좁은 UPDATE로 대체한다.** 그쪽 완료 기준이 이 괄호를 이긴다)
 - [ ] **댓글 INSERT 와 `comment_count` 갱신이 한 로컬 트랜잭션이다** ([../domain-model.md §5](../domain-model.md))
 - [ ] 댓글 삭제 시 1 감소한다
 - [ ] **`comment_count`가 음수가 되지 않는다**
@@ -1880,6 +1880,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **한계가 아니라 결함이다.** C-01("댓글 작성 시 `commentCount` 증가")과 §4.5("`comment_count`와 목록의 `totalElements`가 같다")를 깨므로 **동시 쓰기 기준의 부재로 면제되지 않는다.** 교착(500)과 달리 **아무 오류 없이 틀린 수를 남긴다**([../AGENTS.md](../AGENTS.md) 불변식 9).
 
 **원인은 read-modify-write다.** 엔티티를 읽어 메모리에서 증가시키고 더티 체킹이 **변경되지 않은 컬럼까지 전부** 싣는 UPDATE로 낡은 스냅샷째 덮어쓴다(실패 statement가 `update post set comment_count=?,content=?,deleted=?,title=?,...` 였다).
+
+**이 항목이 B-08 완료 기준 1의 `Post.increaseCommentCount()` 요구를 대체한다.** 엔티티 메서드를 쓰면 flush 때 더티 체킹이 전체 컬럼 UPDATE를 발행하므로 둘을 함께 만족시킬 수 없다 — **B-10의 요구가 이긴다.**
 
 **산출물**
 - `comment_count` 갱신을 **좁은 UPDATE**로 바꾼다 — `comment_count = comment_count + 1` / `- 1`
