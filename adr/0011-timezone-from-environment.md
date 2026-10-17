@@ -2,7 +2,7 @@
 title: JVM 시간대는 실행 환경이 정한다
 type: adr
 status: accepted
-version: v2
+version: v3
 updated: 2026-09-14
 read_when: "시간대 설정을 어디에 둘지 판단할 때"
 related: [README.md, ../tech-stack.md]
@@ -53,7 +53,11 @@ JVM 시간대는 배포 환경을 KST로 맞추면 해결된다.
 
 - 두 서비스의 `static` 블록과 Gradle `jvmArgs`를 제거했다
 - `TimeZone.getDefault()`를 단언하는 테스트를 제거했다. 개발 머신에서 항상 통과해 아무것도 검증하지 못했다
-- JDBC·Hibernate·Jackson의 시간대 설정은 유지한다. 이들은 환경 설정이 아니라 **데이터 경계의 계약**이다
+- JDBC·Hibernate·Jackson의 시간대 설정은 유지한다. 이들은 환경 설정이 아니라 **데이터 경계의 계약**이다 — **다만 셋의 무게가 다르다**(아래)
+
+> **셋을 같은 무게로 적은 것이 과했다. I-03 실측이다.** 1차의 타입 조합(`LocalDateTime` + `DATETIME`)에서 실제로 변환을 하는 것은 **JDBC URL의 `serverTimezone`** 으로 보이고(측정으로 분리하지 않았다 — 추론이다), `hibernate.jdbc.time_zone`은 **결과를 바꾸지 않으며**(설정을 가진 auth와 가지지 않은 board가 똑같이 +9시간 변환됐다), `spring.jackson.time-zone`은 [../tech-stack.md §6](../tech-stack.md)이 적은 대로 **`LocalDateTime` 직렬화에 영향이 없다**(존이 없어 변환할 것이 없다).
+>
+> **그래서 board에 없는 두 줄을 다르게 처리했다.** `hibernate.jdbc.time_zone`은 [../plan/integration.md](../plan/integration.md) I-03의 완료 기준이 "세 서비스에 있다"를 요구하므로 **더했다**. `spring.jackson.time-zone`은 §6의 표가 API 응답을 "Jackson **기본값**"으로 적고 같은 절이 무효임을 명시하므로 **더하지 않았다** — auth·member가 그것을 가진 쪽이 잉여다. **효과로 고르지 않고 정본이 요구하는지로 골랐다.**
 - 배포 시 시간대 지정이 필요해졌다. 2차 컨테이너화에서 `ENV TZ=Asia/Seoul`로 처리한다
 
 ## 되돌릴 조건

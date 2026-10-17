@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v21
+version: v22
 updated: 2026-10-15
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -343,6 +343,12 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 
 `JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다.
 
+#### 두 YAML 소스는 블록이 아니라 키 단위로 합쳐진다
+
+**I-03 측정.** board의 `application-local.yml`에도 `spring.jpa` 블록이 있는데(`show-sql` 등) `application.yml`에 새로 넣은 `spring.jpa.properties.hibernate.jdbc.time_zone`이 **가려지지 않는다.** 같은 근거가 `datasource`에도 보인다 — local에는 `password`만 있고 `url`·`username`이 없으며 관련 환경변수도 없는데 DB 연결이 성공한다. **프로파일 yml이 같은 이름의 블록을 가져도 그 블록 전체를 덮지 않는다.**
+
+> 이것이 아래의 "환경변수 이름은 속성 경로를 따른다" 절과 짝이다. 덮이는 단위는 **키 하나**이므로, 리터럴이 덮는 것도 그 키 하나이고 같은 블록의 다른 키는 그대로 남는다.
+
 #### 환경변수 이름은 속성 경로를 따른다 — 그리고 리터럴이 placeholder 를 덮으면 그 변수는 쓰이지 않는다
 
 **I-01 실측.** board 를 `INTERNAL_API_KEY=wrong` 으로 띄웠는데 **글 작성이 그대로 201 이었다.** 이유가 둘 겹쳐 있다.
@@ -507,7 +513,7 @@ spring:
 
 #### 오프셋이 없는 이유는 Jackson 설정이 아니다
 
-**`spring.jackson.time-zone`은 `LocalDateTime` 직렬화에 영향을 주지 않는다.** 그 값에는 존이 없으므로 변환할 것이 없다. 오프셋이 붙지 않는 실제 이유는 **타입이 `LocalDateTime`이고 Spring Boot가 `WRITE_DATES_AS_TIMESTAMPS`를 끄기 때문**이며, 그 결과는 ISO-8601 지역시각이다.
+**`spring.jackson.time-zone`은 `LocalDateTime` 직렬화에 영향을 주지 않는다.** (그래서 **auth·member에만 있고 board에는 없다** — 세 서비스 비대칭이지만 무효한 설정이므로 맞추지 않았다. [adr/0011](adr/0011-timezone-from-environment.md) "결과"의 블록인용이 그 판단이다.) 그 값에는 존이 없으므로 변환할 것이 없다. 오프셋이 붙지 않는 실제 이유는 **타입이 `LocalDateTime`이고 Spring Boot가 `WRITE_DATES_AS_TIMESTAMPS`를 끄기 때문**이며, 그 결과는 ISO-8601 지역시각이다.
 
 **그래서 소수부는 저장값에 있으면 그대로 나간다. 패턴을 강제하는 것이 없다.**
 
