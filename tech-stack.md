@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v20
+version: v21
 updated: 2026-10-15
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -497,6 +497,10 @@ spring:
 | MySQL 서버 | `SET PERSIST time_zone='+09:00'` (§4.1) | 로컬 1회 / 운영 DBA |
 | JDBC URL | `serverTimezone=Asia/Seoul` | `application.yml` |
 | Hibernate | `spring.jpa.properties.hibernate.jdbc.time_zone: Asia/Seoul` | `application.yml` |
+
+> **그 Hibernate 설정은 `LocalDateTime` + `DATETIME` 경로에서 관측되지 않는다. I-03 실측.** 설정을 가진 auth와 가지지 않은 **board**를 `-Duser.timezone=UTC`로 함께 띄웠더니 **똑같이 +9시간 변환**됐다. 그래도 세 서비스에 **같이 둔다** — [adr/0011](adr/0011-timezone-from-environment.md)이 이 설정들을 "환경 설정이 아니라 데이터 경계의 계약"으로 두었고, 다른 컬럼 타입이나 `Instant` 바인딩에서는 걸릴 수 있다. **없어도 되는 설정이라는 뜻이 아니라, 이 경로의 변환을 그것이 하지 않는다는 뜻이다.**
+>
+> **JVM이 KST가 아니면 저장값은 맞고 조회 응답이 틀린다.** 읽기가 DB의 KST 값을 JVM 존으로 되돌리기 때문이다 — UTC JVM에서 조회 응답이 `01:19:56`이었고 저장값은 `10:19:56`이었다(I-03 실측). 오프셋 표기가 없어 클라이언트는 그것을 KST로 읽는다. [adr/0011](adr/0011-timezone-from-environment.md)이 그 영향 범위를 정정했다.
 | 컬럼 타입 | `DATETIME` (`TIMESTAMP` 아님 — 자동 UTC 변환 회피) | 마이그레이션 |
 | Java 타입 | `LocalDateTime` | 엔티티 |
 | API 응답 | 오프셋 미표기 (아래) | **`LocalDateTime` 타입 + Jackson 기본값** |

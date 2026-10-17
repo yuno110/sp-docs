@@ -2,7 +2,7 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v3
+version: v4
 updated: 2026-10-13
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
@@ -21,6 +21,13 @@ related: [architecture.md, process/dev-workflow.md]
 `commentCount`를 `post`에 비정규화해 둔 것은 목록 조회에서 댓글 수 집계 쿼리를 없애기 위해서다([domain-model.md §4.1](domain-model.md)).
 
 **"조회 경로 원격 호출 0회"는 유지되지만 "서비스 간 의존성 없음"은 아니다.** 쓰기 경로는 member에 의존한다(§2).
+
+> **같은 게시글에 댓글을 동시에 쓰면 MySQL 교착으로 500 `C005`가 난다. I-03 실측이고 1차의 범위 밖이다.** 댓글 12건을 병렬로 보내 **3건만 201, 9건이 500**이었다(`CannotAcquireLockException: Deadlock found`). 순차로 보내면 12건 전부 201이다 — **동시성에서만 난다.** 실패한 statement는 `post` 행의 UPDATE이고, `comment_count` 증가가 같은 행의 락을 다툰다. 더티 체킹이 **변경되지 않은 컬럼까지 전부** UPDATE에 싣는 것도 로그에 보인다.
+>
+> **원자성은 지켜졌다.** 실패 트랜잭션이 롤백되어 댓글 행이 남지 않았고 `comment_count`와 실제 행 수가 끝까지 일치했다([domain-model.md §5](domain-model.md)의 요구가 교착 상황에서도 유지됐다).
+>
+> **1차는 동시 쓰기 기준을 두지 않았다** — 이 절은 조회 p95만, §3은 타임아웃·서킷만 정한다. 그래서 결함으로 올리지 않고 측정값으로 적는다. **2차 후보**: `comment_count`를 전체 컬럼 UPDATE가 아닌 좁은 UPDATE로 바꾸거나, 집계를 비정규화에서 분리한다.
+
 
 ## 2. 장애 격리
 

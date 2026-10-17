@@ -2,7 +2,7 @@
 title: JVM 시간대는 실행 환경이 정한다
 type: adr
 status: accepted
-version: v1
+version: v2
 updated: 2026-09-14
 read_when: "시간대 설정을 어디에 둘지 판단할 때"
 related: [README.md, ../tech-stack.md]
@@ -39,7 +39,13 @@ tasks.withType(Test).configureEach     { jvmArgs '-Duser.timezone=Asia/Seoul' }
 
 **실행 방식마다 동작이 갈린다.** `static` 블록은 그 클래스를 로딩할 때만 돌고, Gradle `jvmArgs`는 Gradle을 거치는 실행에만 붙는다. 어느 쪽도 모든 경로를 덮지 못해 결국 둘 다 넣게 되고, 그래도 IDE 직접 실행과 `java -jar`는 각각 한쪽만 덮인다. 덮이지 않는 조합을 추적하는 비용이 이득을 넘었다.
 
-**데이터 안전은 다른 계층이 보장한다.** JDBC URL의 `serverTimezone`과 `hibernate.jdbc.time_zone`이 DB 경계를 고정하므로, JVM이 UTC여도 저장되는 값은 KST 기준으로 유지된다. JVM 시간대가 실제로 영향을 주는 것은 로그 타임스탬프와 `LocalDateTime.now()`이고, 둘 다 배포 환경을 KST로 맞추면 해결된다.
+**데이터 안전은 다른 계층이 보장한다.** JVM이 UTC여도 **저장되는 값은 KST 기준으로 유지된다** — I-03에서 세 서비스를 `-Duser.timezone=UTC`로 함께 띄워 측정했다(바인드 `01:19:5x` → 저장 `10:19:5x`). 왕복에 손실이 없다.
+
+> **영향 범위가 이 절이 적었던 것보다 넓다. I-03 실측이다.** JVM 시간대가 영향을 주는 것은 로그와 `LocalDateTime.now()`만이 아니다 — **조회 응답도 영향을 받는다.** 읽기 경로가 DB의 KST 값을 JVM 존으로 되돌리므로 UTC JVM에서 `GET /posts/{id}`가 `2026-10-17T01:19:56`을 돌려줬다(저장값은 `10:19:56`). **오프셋 표기가 없으므로 클라이언트는 그것을 KST로 읽는다** — 9시간 틀린 시각이 조용히 나간다. 그래서 배포 시 `ENV TZ=Asia/Seoul`을 거는 근거는 로그 편의가 아니라 **응답의 정확성**이다([../plan/phase2.md](../plan/phase2.md)).
+>
+> **그리고 `hibernate.jdbc.time_zone`은 이 경로에서 관측되지 않는다.** 그 설정을 가진 auth와 **가지지 않은 board**가 같은 조건에서 **똑같이 +9시간 변환**됐다(I-03 실측). 설정이 걸렸다면 Hibernate가 바인드 값을 이미 Asia/Seoul로 해석해 `01:19:55`로 저장했어야 한다. `LocalDateTime` + `DATETIME` 조합에서는 그 설정이 하는 일이 없다 — **변환을 한 것이 JDBC URL의 `serverTimezone`이라는 설명은 측정으로 분리하지 않았다(추론이다).** 측정으로 닫힌 것은 "변환이 일어났다"와 "설정 유무가 결과를 바꾸지 않았다" 둘이다.
+
+JVM 시간대는 배포 환경을 KST로 맞추면 해결된다.
 
 **검증이 불가능했다.** 검증 표의 `TimeZone.getDefault()` 케이스는 KST 개발 머신에서 설정이 없어도 통과한다. 이 사실 때문에 "설정이 동작했는지"와 "OS가 원래 KST인지"를 구분하려고 리뷰어·수정 워커·오케스트레이터가 각자 다른 측정을 했고, 세 번 모두 서로 다른 잘못된 결론을 냈다.
 
