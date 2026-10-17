@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v41
+version: v42
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1971,6 +1971,33 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 ---
 
+### D-02 `role` 값 검증의 소유를 정한다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` (결정에 따라 `sp-member`·`sp-board` 가 뒤따른다) |
+| 의존 | 없다. **1차 완료를 막지 않는다** — §7 의 완료 조건은 `AU-xx`·`M-xx`·`B-xx`·`I-xx` 다 |
+| 참조 | [../api-contract.md §6](../api-contract.md), [../tech-stack.md §2.1](../tech-stack.md), [../security.md §5.2](../security.md), [integration.md](integration.md) I-04 |
+
+**I-04 리뷰가 찾았다.** [../api-contract.md §6](../api-contract.md)이 `role` 을 `USER | ADMIN` 으로 못박는데 **member·board 는 값을 검사하지 않는다** — `hasText` 만 본다. `{"role":"BOGUS"}` 로 서명한 토큰에 **auth 401 `A002` · member 200 · board 200** 이다(실측). auth 만 `Role.valueOf` 로 걸린다.
+
+**권한 상승은 아니다(실측).** board 의 역할 판정 두 자리가 문자열 동등 비교라 열거 밖 값은 "ADMIN 아님" 으로 떨어진다 — 타인 글·댓글 삭제가 `role=USER` 와 **바이트 동일한 403** 이었다. 역할 기반 인가 규칙이 세 저장소에 0건이라 `ROLE_BOGUS` 는 **만들어지고 아무도 읽지 않는다.** 그래서 1차를 막지 않는다.
+
+**정해야 하는 것 하나** — **계약 밖 `role` 값을 받은 서비스는 거부하는가, 통과시키는가.** 그에 따라 세 가지가 따라온다.
+
+| 결정 | 따라오는 것 |
+| --- | --- |
+| **거부한다** | member 의 `ClaimContractValidator` 와 board 의 `CurrentMemberArgumentResolver` 에 열거 검사를 더한다. board 의 `LoginMember.role` 을 `String` 에서 열거로 바꿀지도 함께 본다(auth 의 `LoginAccount` 는 이미 `Role` 이다) |
+| **통과시킨다** | [../api-contract.md §6](../api-contract.md)에 **"소비자는 값을 검사하지 않는다"** 를 명시하고, `ROLE_` 권한이 소비되지 않는다는 전제를 [../tech-stack.md §2.1](../tech-stack.md)에 못박는다. **역할 기반 인가 규칙이 생기는 순간 그 전제가 깨진다**는 조건을 함께 적는다 |
+
+**비용은 측정됐다. 거부하는 쪽을 택해도 깨지는 테스트가 0건이다** — 세 저장소의 토큰 팩토리에 계약 밖 값을 만드는 메서드가 없다(있는 것은 누락과 공백이고 둘 다 이미 막힌다). **같은 사실의 뒷면이 지금의 fail-open 을 고정하는 테스트도 없다는 것이다** — 어느 쪽으로 정하든 **그 결정을 관측하는 테스트가 새로 필요하다.**
+
+**완료 기준**
+- [ ] 위 둘 중 하나로 정본이 정해져 있다 — [../api-contract.md §6](../api-contract.md)과 [../tech-stack.md §2.1](../tech-stack.md)이 같은 말을 한다
+- [ ] 거부하는 쪽이면 **구현 항목이 세워져 있다**(저장소별로 하나씩). 통과시키는 쪽이면 **전제가 깨지는 조건**이 적혀 있다
+- [ ] `python tools/check_refs.py` 가 통과한다 ([../process/review-policy.md §8](../process/review-policy.md))
+
+---
 ## 7. 다음 단계
 
 **AU-11·M-11·B-09가 모두 `done`이 되면** [integration.md](integration.md)로 넘어간다.

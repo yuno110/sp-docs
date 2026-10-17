@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v25
+version: v26
 updated: 2026-10-18
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -86,7 +86,13 @@ spring:
 
 > 의존성 이름에 `oauth2`가 붙지만 OAuth2 인가 서버가 필요한 것이 아니다. 표준 JWT(RFC 7519) 검증기 부분만 사용한다.
 
-**Claim 계약 검증은 이 목록에 없다.** 스타터는 서명·만료만 보고 [api-contract.md §6](api-contract.md)의 `sub`·`role`·`iss` 가 계약대로인지는 보지 않는다. 그래서 **세 서비스가 서로 다른 층에서 집행하고, 외부로 나가는 답은 같다 — 셋 다 401 `A002` 다**(I-04 실측: 본문이 바이트 동일하고 `Content-Type` 만 갈린다 — member 만 `charset=UTF-8` 이다).
+**Claim 계약 검증은 이 목록에 없다.** 스타터는 서명·만료만 보고 [api-contract.md §6](api-contract.md)의 `sub`·`role`·`iss` 가 계약대로인지는 보지 않는다. 그래서 **세 서비스가 서로 다른 층에서 집행한다.** `sub`·`role` 이 **누락된** 두 경우는 외부로 나가는 답이 같다 — **셋 다 401 `A002`** 이고 본문이 바이트 동일이며 `Content-Type` 만 갈린다(member 만 `charset=UTF-8` 이다. I-04 실측).
+
+> **그 일치는 "누락" 두 경우에 한한다. `role` 이 "있지만 열거 밖인 값" 이면 갈린다 — I-04 리뷰 실측.** `{"role":"BOGUS"}` 로 서명한 토큰에 **auth 401 `A002` · member 200 · board 200** 이다(계약대로의 토큰으로 대조군을 먼저 고정했으므로 서명 문제가 아니다). auth 만 `Role.valueOf` 로 값을 검사하고 member·board 는 `hasText` 만 본다. §6 이 `role` 을 `USER | ADMIN` 으로 못박으므로 **두 서비스가 계약 밖 토큰을 통과시킨다.**
+>
+> **권한 상승은 아니다(실측).** board 의 역할 판정 두 자리가 `"ADMIN".equals(loginMember.role())` 의 **문자열 동등 비교**라 열거 밖 값은 전부 "ADMIN 아님" 으로 떨어진다 — 타인 글·댓글 삭제가 `role=USER` 와 **바이트 동일한 403**(`P002` 126B · `CM002` 124B)이었고 `role=ADMIN` 만 204 였다. 역할 기반 인가 규칙(`hasRole`·`@PreAuthorize`)이 세 저장소에 **0건**이므로 `RoleClaimConverter` 가 만드는 `ROLE_BOGUS` 는 **만들어지고 아무도 읽지 않는다.** 즉 **안전한 쪽으로 닫힌다.**
+>
+> 갈림의 뿌리는 타입이다 — board 의 `LoginMember` 는 `role` 을 **`String`** 으로 끝까지 들고 가고 auth 의 `LoginAccount` 는 경계에서 **`Role`** 로 바꾼다. **어느 쪽이 정본인지는 이 문서가 정하지 않는다** — 값 검증을 어디에 둘지는 별 항목이 결정한다. 비용은 측정됐다: 세 저장소의 토큰 팩토리에 **계약 밖 값을 만드는 메서드가 없어** 값 검증을 넣어도 깨지는 테스트가 **0건**이다. 같은 사실의 뒷면이 **지금의 fail-open 을 고정하는 테스트도 없다**는 것이다.
 
 | 서비스 | 집행 지점 | 어떻게 |
 | --- | --- | --- |
