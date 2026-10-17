@@ -2,7 +2,7 @@
 title: 작업 계획
 type: index
 status: rule
-version: v2
+version: v3
 updated: 2026-09-15
 read_when: "작업 계획의 구조를 이해하거나, 상태를 어디에 적는지 확인할 때"
 related: [phase1.md, phase2.md, integration.md, ../process/dev-workflow.md]
@@ -43,7 +43,7 @@ related: [phase1.md, phase2.md, integration.md, ../process/dev-workflow.md]
 
 **`A-xx`는 쓰지 않는다.** 에러 코드 `A001`~`A004`와 혼동된다([../README.md](../README.md) §ID 네임스페이스).
 
-각 항목은 **기반**과 **기능** 두 단계 중 하나에 속한다([phase1.md §1.1](phase1.md)). 기반 단계(AU-01~AU-04, M-01R~M-04, B-01~B-04)는 순서 의존과 공유 상태를 제거하는 구간이고, 기능 단계는 기반 산출물을 읽기만 한다.
+각 항목은 **기반**·**기능**·**결함 수정** 세 단계 중 하나에 속한다([phase1.md §1.1](phase1.md)). 기반 단계(AU-01~AU-04, M-01R~M-04, B-01~B-04)는 순서 의존과 공유 상태를 제거하는 구간이고, 기능 단계는 기반 산출물을 읽기만 한다.
 
 - 번호는 재사용하지 않는다. 항목을 삭제해도 번호를 비워 둔다
 - 항목을 추가·분할하려면 **계획을 먼저 개정**하고 해당 체크리스트에 반영한다

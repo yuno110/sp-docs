@@ -2,14 +2,14 @@
 title: 통합 검증
 type: plan
 status: living
-version: v15
+version: v16
 updated: 2026-10-14
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
 ---
 # 통합 검증
 
-**AU-11·M-11·B-09가 모두 `done`이 된 뒤에** 진행한다.
+**AU-11·M-11·B-09가 모두 `done`이 된 뒤에** 진행한다. 통합 검증이 찾은 결함을 고치는 항목(현재 [B-10](phase1.md))은 **통합과 병행하되 1차 완료 전에 `done`이어야 한다**([phase1.md §7](phase1.md)).
 
 **이 단계는 순차로 진행한다.** 세 서비스가 모두 기동된 상태를 전제하므로 병렬 작업이 불가능하다. 상태는 `yuno110/sp-board`의 `docs/checklist.md`에 기록한다([README.md](README.md) §상태의 위치).
 
