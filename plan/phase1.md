@@ -2,14 +2,14 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v35
+version: v36
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
 # 1차 작업 계획
 
-작업 항목 32개(AU 11 + M 11 + B 10)와 통합 검증 5개로 구성한다. 통합 검증은 [integration.md](integration.md)에 있다.
+작업 항목 33개(AU 11 + M 11 + B 11)와 통합 검증 5개로 구성한다. 통합 검증은 [integration.md](integration.md)에 있다.
 
 절차는 [../process/dev-workflow.md](../process/dev-workflow.md)를 따른다. **상태는 이 문서에 적지 않는다.**
 
@@ -30,7 +30,7 @@ related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements
 | **정본 개정** | **D-01** | 나머지 전부의 선행 조건. §3 |
 | **기반** | AU-01~AU-04, **AU-03R**, M-01R~M-04, B-01~B-04 | 순차. 뒤의 모든 항목이 의존한다 |
 | **기능** | AU-05~AU-11, M-05·M-08~M-11, B-05~B-09 | 기반 산출물을 **읽기만** 하고 자기 파일을 만든다 |
-| **결함 수정** | **B-10** | **통합 검증이 찾은 결함을 고친다.** 앞의 두 단계와 달리 **완료된 항목의 산출물을 고치므로** 그 항목의 완료 기준과 충돌하지 않는지 먼저 본다(B-10이 B-08 완료 기준 1을 대체한 것이 그 예다) |
+| **결함 수정** | **B-10**, **B-11** | **통합 검증이 찾은 결함을 고친다.** 앞의 두 단계와 달리 **완료된 항목의 산출물을 고치므로** 그 항목의 완료 기준과 충돌하지 않는지 먼저 본다(B-10이 B-08 완료 기준 1을 대체한 것이 그 예다) |
 
 기반 단계에 **순서 의존과 공유 상태를 몰아서 제거한다.** 엔티티 도메인 메서드, 전체 경로 인가 설정, 마이그레이션, 공통 빈이 모두 여기서 끝난다.
 
@@ -60,6 +60,8 @@ AU-11 마무리
                               |
                    B-10 comment_count 소실 [결함 수정]
                    (I-03 이 찾았다. 1차 완료 전에 done)
+                   B-11 조회수가 집계를 덮어쓴다 [결함 수정]
+                   (B-10 이 찾았다)
 ```
 
 **M-06·M-07은 없다.** 로그인·재발급·로그아웃이 auth로 옮겨가 `AU-06`·`AU-07`이 됐다. 번호는 재사용하지 않는다.
@@ -1913,6 +1915,45 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 > **소실 갱신은 DB가 아니라 애플리케이션에서 일어난다.** 두 트랜잭션이 각각 엔티티를 읽어 메모리에서 증가시키면 마지막 쓰기가 이긴다 — **H2에서도 재현된다.** 그래서 이 검증은 실제 MySQL이 필요하지 않다. 다만 **두 읽기가 두 쓰기보다 먼저 일어나도록** 끼워넣기를 강제해야 한다(래치 등). 강제하지 않으면 통과해도 아무것도 증명하지 못한다.
 >
 > **교착은 이 항목의 대상이 아니다.** 좁은 UPDATE가 교착을 줄일 **수 있지만 측정되지 않았고**, 동시 쓰기 기준 자체가 1차에 없다([../nfr.md §1](../nfr.md)). **교착률을 이 항목의 완료 기준으로 삼지 않는다** — 재고 싶으면 보고에만 적는다.
+
+---
+
+### B-11 조회수 증가가 comment_count 를 덮어쓴다 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-board` |
+| 의존 | B-10 (B-10 구현 워커가 찾았다) |
+| 공유 파일 | `PostService`·`PostRepository`·`Post` — B-05·B-10 산출물 |
+| 참조 | [../requirements/board.md §1 §5](../requirements/board.md) (P-05), [../api-contract.md §4.3 §4.5](../api-contract.md), [../domain-model.md §4.1 §5](../domain-model.md), [../nfr.md §1](../nfr.md) |
+
+**B-10 이 댓글 쓰기 경로를 고쳤지만 같은 불변식을 깨는 경로가 하나 더 남았다.** `PostService.getDetail`(상세 조회의 조회수 증가, P-05)이 관리 엔티티를 바꾸므로 **같은 전체 컬럼 UPDATE** 를 발행한다(측정값: `update post set comment_count=?,content=?,deleted=?,title=?,updated_at=?,view_count=?,writer_id=?,writer_nickname=? where id=?`). 그 트랜잭션이 읽은 `comment_count` 를 그대로 다시 쓰므로 **SELECT 와 flush 사이에 커밋된 댓글 작성의 증가가 조회 하나로 소실될 수 있다.**
+
+**`view_count` 자체도 같은 성질이다** — 동시 조회 둘이 같은 값을 읽어 하나가 소실된다.
+
+**산출물**
+- `post/repository/PostRepository` — 조회수 증가를 **좁은 UPDATE** 로 (`view_count = view_count + 1`)
+- `post/service/PostService` — `getDetail` 의 호출 지점
+
+**완료 기준**
+- [ ] **조회 하나가 `comment_count` 를 덮어쓰지 않는다**
+- [ ] 조회수 증가가 **좁은 UPDATE** 다 — `view_count` 만 싣는다
+- [ ] **동시 조회에서 `view_count` 가 소실되지 않는다**
+- [ ] P-05 의 조회수 증가 동작과 §4.3 의 응답 키가 그대로다 (B-05 의 완료 기준을 깨지 않는다)
+- [ ] 기존 테스트가 깨지지 않는다
+
+**검증** — `PostServiceTest` 확장
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| **댓글 작성과 상세 조회를 끼워넣기** | `comment_count` 가 덮어써지지 않는다. **조회수 증가를 엔티티 변경으로 되돌리면 깨진다** |
+| **같은 글을 동시 조회 N건** | `view_count` = N. 소실 없음 |
+| 발행된 UPDATE 의 모양 | **`view_count` 만 싣는다.** `comment_count`·`title`·`content` 가 실리지 않는다 |
+| 상세 조회 1회 | `view_count` 가 1 증가하고 응답이 §4.3 의 여덟 키다 |
+
+> **끼워넣기를 강제한다.** B-10 이 `StatementInspector` + `CyclicBarrier` 로 `update post` 발행 직전에 세우는 방식을 썼다 — 같은 수단을 쓸 수 있다. **강제하지 않으면 통과해도 아무것도 증명하지 못한다.**
+>
+> **`clearAutomatically` 를 켜지 마라.** B-10 이 끈 이유가 그대로 적용된다 — 켜면 호출한 트랜잭션의 `post` 가 분리된다. 그리고 엔티티가 깨끗이 남아야 더티 UPDATE 가 좁은 UPDATE 를 덮어쓰지 않는다(`update post` 가 **정확히 하나**인지 단언해 확인한다).
 
 ---
 

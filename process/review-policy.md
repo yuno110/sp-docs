@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v17
+version: v18
 updated: 2026-10-13
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -235,6 +235,12 @@ related: [dev-workflow.md, orchestration.md]
 | --- | --- |
 | 링크 대상 파일이 있는가 | `[...](other.md)` |
 | 라벨의 절 번호가 대상에 있는가 | `[tech-stack.md §5.3](tech-stack.md)` |
+
+> **그 표가 적은 것보다 도구가 덜 검사한다. I-03 2라운드 실측.** `tools/check_refs.py` 의 `main()` 이 `secs = SEC.findall(label); if not secs: continue` 로 **라벨에 `§` 가 없는 링크를 건너뛴다.** 그래서 **`[B-10](phase1.md)` 처럼 절 번호 없는 링크의 대상 파일 존재는 검사되지 않는다** — 실제로 그 깨진 링크가 `nfr.md` 에 들어갔고 `check_refs` 가 "link targets OK" 를 냈다.
+>
+> **`§` 없는 링크를 쓸 때는 대상 경로를 손으로 확인한다.** 루트 문서에서는 `plan/phase1.md`, `plan/`·`process/` 안에서는 `phase1.md`·`../tech-stack.md` 다 — 같은 파일을 가리키는 경로가 위치마다 다르다.
+>
+> **알려진 부채**: `../AGENTS.md` 를 가리키는 링크 여덟 개가 파일시스템상 존재하지 않는 경로다(`AGENTS.md` 는 세 구현 저장소에 있고 `sp-docs` 에는 없다). 관례로 굳었고 고치려면 여덟 곳을 손봐야 해서 1차에서 건드리지 않는다 — **새 링크를 그 관례로 더하지 않는다.**
 | **개정 대상을 고쳤으면 `version` 도 올랐는가** | `HEAD` 와 비교하므로 **커밋 전에** 돌려야 의미가 있다 |
 
 절을 지우거나 번호를 바꾸면 **다른 문서가 가리키던 주소가 조용히 죽는다.** 32편이 서로를 참조하므로 손으로 좇을 수 없다.

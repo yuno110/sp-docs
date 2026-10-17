@@ -2,7 +2,7 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v20
+version: v21
 updated: 2026-10-15
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
@@ -80,9 +80,12 @@ com.example.board
 | 쓰는 쪽 | 참조 | 쓰임 |
 | --- | --- | --- |
 | `post.service` | `comment.repository.CommentRepository` | 게시글 삭제의 댓글 연쇄 (B-07) |
-| `comment.*` | `post.entity.Post`, `post.support.PostReader` | 연관관계 매핑, 게시글 존재 판정과 `comment_count` 갱신 (B-03·B-08) |
+| `comment.*` | `post.entity.Post`, `post.support.PostReader` | 연관관계 매핑, 게시글 존재 판정 (B-03·B-08) |
+| `comment.service` | `post.repository.PostRepository` | **`comment_count` 의 좁은 UPDATE** (B-10) |
 
-**면제는 이 두 줄까지다.** 서로의 **Service**를 참조하지 않는다 — 업무 규칙이 두 곳으로 갈리고 트랜잭션 경계가 어느 쪽 것인지 흐려진다. 게시글 존재 판정은 `PostReader` 한 곳이고([plan/phase1.md §2.5](plan/phase1.md)의 공유 지점), 댓글 연쇄 삭제는 `CommentRepository`의 벌크 UPDATE 한 곳이다.
+**면제는 이 세 줄까지다.** 서로의 **Service**를 참조하지 않는다 — 업무 규칙이 두 곳으로 갈리고 트랜잭션 경계가 어느 쪽 것인지 흐려진다. 게시글 존재 판정은 `PostReader` 한 곳이고([plan/phase1.md §2.5](plan/phase1.md)의 공유 지점), 댓글 연쇄 삭제는 `CommentRepository`의 벌크 UPDATE 한 곳이다.
+
+> **셋째 줄은 B-10이 만들었다.** `comment_count` 갱신이 엔티티 메서드에서 **좁은 UPDATE**로 바뀌면서(소실 갱신 때문이다 — [plan/phase1.md](plan/phase1.md) B-10) 그 문장이 `PostRepository`에 선언됐다. **`CommentRepository`에 두지 않은 이유**는 그 문장이 바꾸는 테이블이 `post`라서다 — `comment` 쪽에 숨기면 `PostRepository`를 읽는 사람이 `comment_count`가 어디서도 바뀌지 않는다고 결론한다. 방향은 첫 줄과 같은 모양이고 금지된 **Service 상호 참조는 아니다.**
 
 `LoginMember`는 `(accountId, role)`이다. **`nickname`은 없다.** 작성자 닉네임은 `MemberClient`로 얻는다.
 

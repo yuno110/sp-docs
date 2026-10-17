@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v41
+version: v42
 updated: 2026-10-16
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -406,7 +406,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 **`deleted` 를 넣지 않는다.** [requirements/board.md §5](requirements/board.md) 규칙 1이 "삭제된 게시글·댓글은 목록·상세에서 제외한다" 로 정했으므로 **돌아온 댓글은 항상 활성이다.** 같은 절의 규칙 2("삭제된 댓글은 "삭제된 댓글입니다"로 표시할 수 있도록 행을 남긴다")는 **행을 남기는 이유**이고 1차의 응답 요구가 아니다 — 표시가 필요해지는 것은 대댓글이 생기는 2차다([requirements/board.md §2](requirements/board.md) C-05).
 
-> **그래서 `post.comment_count` 와 목록의 `totalElements` 가 같다.** 삭제된 댓글을 목록에 실으면 둘이 어긋나고, 클라이언트가 어느 쪽을 믿어야 하는지를 정해야 한다. 2차에서 표시를 넣을 때 그 결정이 따라온다 — 1차에서 미리 하지 않는다.
+> **그래서 `post.comment_count` 와 목록의 `totalElements` 가 같다** — **[B-10](plan/phase1.md)·[B-11](plan/phase1.md)이 끝난 뒤에 그렇다.** 동시 쓰기에서 집계 증가가 소실되는 결함이 둘 있었다([nfr.md §1](nfr.md)). 삭제된 댓글을 목록에 실으면 둘이 어긋나고, 클라이언트가 어느 쪽을 믿어야 하는지를 정해야 한다. 2차에서 표시를 넣을 때 그 결정이 따라온다 — 1차에서 미리 하지 않는다.
 
 **`postId` 를 넣지 않는다.** 작성·목록은 `/posts/{postId}/comments` 경로가 그것을 이미 담고, 수정은 클라이언트가 목록에서 받은 댓글을 고치는 것이다. 게시글 응답이 작성자 외의 참조를 담지 않는 것과 같다.
 
