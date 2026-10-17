@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v36
+version: v37
 updated: 2026-10-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1488,7 +1488,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `idx_post_created_at`, `idx_post_writer_id`, `idx_post_title`, `idx_comment_post_id`가 있다
 - [ ] `view_count`, `comment_count` 기본값이 0이다
 - [ ] 위 표의 도메인 메서드 6개가 모두 구현되어 있다
-- [ ] `decreaseCommentCount()`가 0에서 호출돼도 음수가 되지 않는다
+- [ ] `decreaseCommentCount()`가 0에서 호출돼도 음수가 되지 않는다 — **이 가드는 B-10 이후 운영 경로를 지키지 않는다.** 집계 갱신이 좁은 UPDATE 로 바뀌어 엔티티를 지나지 않으므로 **운영의 음수 방지는 그 문장의 `where` 절**에 있다(B-10). 이 기준은 메서드가 그 자리에 남아 있는 한 그대로 유효하다
 - [ ] `CommentRepository.softDeleteByPostId()`가 동작한다
 - [ ] Entity에 `@Setter`·`@Data`가 없다
 - [ ] **`@DataJpaTest` 클래스에 `@AutoConfigureTestDatabase(replace = NONE)`이 붙어 있다** ([../tech-stack.md §5.2](../tech-stack.md))
@@ -1891,7 +1891,13 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **산출물**
 - `post/repository/PostRepository` — `comment_count` 갱신을 **좁은 UPDATE**로 바꾼다 (`comment_count = comment_count + 1` / `- 1`)
-- `comment/service/CommentService` · `post/entity/Post` — 호출 지점과 엔티티 메서드 정리
+- `comment/service/CommentService` · `post/entity/Post` — 호출 지점과 엔티티 메서드 **역할 재서술**
+
+> **`Post.increaseCommentCount()`·`decreaseCommentCount()` 를 지우지 않는다.** B-03 이 네 군데서 그 존재를 요구한다 — 도메인 메서드 표, 완료 기준 "표의 도메인 메서드 **6개**가 모두 구현되어 있다", 완료 기준 "`decreaseCommentCount()`가 0에서 호출돼도 음수가 되지 않는다", 검증표 두 행. **§1.1 의 결함 수정 면제는 경로 소유에 대한 것이고 완료 기준에 대한 것이 아니다**(B-10 이 대체한다고 적은 것도 B-08 완료 기준 1 의 **갱신 수단**이다).
+>
+> **대신 주석으로 막는다** — 두 메서드와 `commentCount` 필드에 "댓글 작성·삭제 경로는 이 메서드를 쓰지 않는다. 집계 동기화는 `PostRepository` 의 좁은 UPDATE 가 하고 음수 방지는 그 문장의 `where` 절에 있다. **집계를 이 메서드로 바꾸면 결함이 돌아온다**" 를 적는다.
+>
+> **지우려면 D 항목이 먼저다.** 커버리지가 막는 것은 아니다 — 두 테스트의 주제(집계가 컬럼에 남는다 / 음수 가드)가 모두 `CommentServiceTest` 로 옮겨 가 측정됐다(B-10 실측). 막는 것은 **B-03 의 문구**이므로, 지우는 쪽으로 가려면 B-03 의 표·완료 기준 둘·검증표 두 행을 먼저 고치고 그 다음 코드 세 지점(엔티티 메서드 둘, `PostRepositoryTest` 두 테스트, `PostServiceTest` 의 픽스처)을 손본다. **1차에서는 하지 않는다.**
 
 **기반 소유 경로를 고치는 것이 이 항목의 범위다.** §2.1이 `*/entity/`·`*/repository/`를 B-03 소유로 두고 기능 단계에 읽기 전용으로 배정했지만, **결함 수정 단계는 그 제약을 받지 않는다**(§1.1). 고친 뒤 B-03의 완료 기준이 깨지지 않는지 확인한다.
 
