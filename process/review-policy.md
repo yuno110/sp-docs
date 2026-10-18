@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v22
+version: v23
 updated: 2026-10-18
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -280,6 +280,8 @@ B-11 리뷰 실측이 그 모양이다. 끈 쪽에서 3개가 빨개지므로 `c
 `api-contract.md`, `domain-model.md`, `tech-stack.md`, `conventions.md`, `requirements/`, `adr/`의 변경은 개정이다.
 
 - front matter의 `version`과 `updated`를 올린다. **`security.md` 도 같은 취급이다** — 세 서비스가 의존하는 계약이다. 누락은 도구가 잡는다(위 표 셋째 행)
+- **한 개정 = +1 이다.** 한 커밋 안에서 편집을 여러 번 하더라도 `version` 은 **마지막에 한 번만** 올린다. 그래야 `version` 이 **개정의 수**가 되고 이력을 훑어 되짚을 수 있다 — 세 번째 검사가 생긴 이유가 "리뷰어가 12개 커밋을 손으로 훑어 잡았다" 이고, 건너뛴 번호는 **그 훑기조차 막는다**(D-02 가 한 커밋에서 +3 했고 v44·v45 는 어떤 커밋에도 없다. D-02 리뷰가 잡았다)
+- **편집 스크립트는 치환 *후* 값을 출력하게 만든다.** 치환 전 값을 찍으면 **틀린 값을 자신 있게 보고하는 도구**가 된다 — D-02 가 그렇게 두 저장소 커밋 메시지에 없는 버전을 적었다. 커밋 직전 `head -6` 로 눈으로 확인한다
 - **구현 워커는 정본 문서를 고치지 않는다**([orchestration.md §7](orchestration.md)). 문서가 틀렸다고 판단되면 BLOCKED로 보고한다
 - **`api-contract.md §6`(JWT Claim)는 세 서비스가 공유하는 계약이다.** 발급은 auth 하나, 검증은 member·board 둘이다. 개정 시 세 담당이 모두 확인한다
 - **`api-contract.md §5`(내부 API)는 board와 member가 공유하는 계약이다.** 1차부터 쓰기 경로에서 호출된다

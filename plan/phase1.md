@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v46
+version: v47
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1994,10 +1994,10 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **결정: 거부한다.** 사용자가 2026-10-18 에 그렇게 정했다. 근거 넷.
 
-1. [../api-contract.md §6](../api-contract.md)이 값을 못박았으므로 열거 밖 토큰은 **계약 위반 입력**이고, 그것을 조용히 통과시키는 것이 [../AGENTS.md](../AGENTS.md) 불변식 9(실패 은폐 금지)가 금지하는 모양이다
+1. [../api-contract.md §6](../api-contract.md)이 값을 못박았으므로 열거 밖 토큰은 **계약 위반 입력**이고, 그것을 조용히 통과시키는 것이 `AGENTS.md` 불변식 9(실패 은폐 금지 — 암묵적 fallback·silent degradation 으로 실패를 숨기지 않는다)가 금지하는 모양이다. 열거 밖 값이 `ROLE_BOGUS` 로 조립되고 서비스가 "ADMIN 아님" 으로 **묵시적으로 강등 처리**하는 것이 그 모양이다 (그 파일은 세 구현 저장소에 있고 `sp-docs` 에는 없다 — 링크로 적지 않는다, [../process/review-policy.md §8](../process/review-policy.md))
 2. **auth 는 이미 거부한다.** 세 서비스가 갈라져 있고, 복제를 유지한 대가로 둔 3자 비교(I-04)가 잡는 것이 바로 그 갈림이다([../adr/0007](../adr/0007-shared-code-policy.md))
-3. **비용이 0 이다** — 깨지는 테스트가 없고 변경은 두 집행 지점에 각각 몇 줄이다
-4. **지금의 안전이 우연에 기댄다.** board 의 `"ADMIN".equals(...)` 문자열 비교가 열거 밖 값을 안전하게 떨어뜨리는 것인데, `hasRole("ADMIN")` 이 생기거나 `LoginMember.role` 이 열거로 바뀌면 그 우연이 사라진다 — [../tech-stack.md §2.1](../tech-stack.md)이 적어 둔 "전제가 붙는다" 와 같은 성질이다
+3. **비용이 0 이다** — **계약 밖 값을 넘기는 호출 지점이 없어서** 깨지는 테스트가 없다(팩토리는 `role` 을 자유 문자열로 받으므로 새 메서드 없이 `"BOGUS"` 를 넘기면 된다 — 타입으로 막히는 것은 auth 뿐이다). **그 0 은 지정된 집행 지점에서만 0 이다** — 두 항목이 고르는 자리를 벗어나면 깨진다(M-12·B-12 의 산출물이 그것을 고정한다)
+4. **지금의 닫힘이 설계가 아니다.** board 의 인가 표현 둘이 "ADMIN 과 **같을 때만** 통과" 라서 모르는 값은 더 좁은 분기로 떨어진다 — 안전이 **비교의 모양**에 딸려 온다. **모르는 값이 허용 분기로 가는 표현이 하나라도 생기면 닫히지 않는다**: 역할이 늘어 "USER 만 제약한다" 로 **역전된 검사**가 적히는 경우, 부정형 권한 표현(`!hasRole('USER')`·기본 분기가 허용인 `switch`·`getOrDefault(role, ALL)`), 그리고 `RoleClaimConverter` 가 **검사 없이 claim 값을 권한 이름으로 올리는 것**. **`hasRole("ADMIN")` 도입과 열거 전환은 반례가 아니다** — 둘 다 안전하게 닫힌다(이 절의 앞 판이 그 둘을 계기로 적었는데 **틀렸고 D-02 리뷰가 잡았다**). 자세한 것은 [../tech-stack.md §2.1](../tech-stack.md)이 갖는다
 
 **따라오는 구현 항목 둘을 세웠다** — `M-12`·`B-12`(둘 다 **[1차 후]**). **`LoginMember.role` 의 타입 변경은 두 항목 어디에도 넣지 않았다** — 그것은 board 의 ADMIN 판정 두 자리와 `RoleClaimConverter` 를 함께 봐야 하는 별 항목이다.
 
@@ -2018,15 +2018,15 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **D-02 가 "거부한다" 로 정했다.** `ClaimContractValidator` 가 `role` 의 **존재**만 보고 **값**을 보지 않는다 — `{"role":"BOGUS"}` 로 서명한 토큰이 **200** 으로 통과했다(I-04 리뷰 실측).
 
 **산출물**
-- `global/security/ClaimContractValidator` — `role` 이 `USER`·`ADMIN` 중 하나인지 검사한다. 아니면 지금 누락·공백에서 내는 것과 **같은 예외**를 던진다(`BadJwtException` → 401 `A002`)
+- `global/security/ClaimContractValidator` — `role` 이 `USER`·`ADMIN` 중 하나인지 검사한다. 아니면 지금 누락에서 내는 것과 **같은 예외**를 던진다(`BadJwtException` → 401 `A002`). **그 클래스 안을 고친다 — 새 검증기 빈을 만들면 `JwtDecoderValidatorsTest` 의 "검증기가 기본 둘과 `ClaimContractValidator` 뿐이다" 단언이 빨개진다**
 
 **완료 기준**
-- [ ] `role` 이 열거 밖인 토큰에 **401 `A002`** 다. 누락·공백과 **응답이 같다** — 거부 사유를 응답으로 구별하지 않는다
+- [ ] `role` 이 열거 밖인 토큰에 **401 `A002`** 다. 누락·공백과 **응답이 같다** — 거부 사유를 응답으로 구별하지 않는다 ([../api-contract.md §8.5](../api-contract.md)의 "그 밖의 claim 검증 실패" 행을 구체화한 것이다)
 - [ ] `role = "USER"`·`"ADMIN"` 토큰은 그대로 통과한다
-- [ ] **열거 값의 출처가 한 곳이다** — 문자열 리터럴을 새로 박지 않는다
+- [ ] **열거 값의 출처를 하나 만들고 그 하나만 쓴다** — member 에는 **지금 출처가 없다**(`src/main` 에 `"USER"`·`"ADMIN"` 리터럴 0건, D-02 리뷰 실측). 그래서 "새로 박지 않는다" 로는 판정할 수 없다
 - [ ] 기존 테스트가 깨지지 않는다 (182개)
 
-**검증** — `ClaimContractValidatorTest`·`JwtAuthenticationTest` 확장
+**검증** — `SecurityConfigTest`·`JwtDecoderValidatorsTest` 확장 (**`ClaimContractValidatorTest` 는 없다.** 누락 role 의 401 `A002` 단언이 `SecurityConfigTest` 에 산다 — D-02 리뷰 실측)
 
 | 케이스 | 기대 결과 |
 | --- | --- |
@@ -2050,13 +2050,15 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **같은 요구의 board 쪽이다.** 집행 지점이 다르다 — board 는 디코더가 아니라 **`@CurrentMember` 리졸버**에서 집행한다([../tech-stack.md §2.1](../tech-stack.md)).
 
 **산출물**
-- `global/security/CurrentMemberArgumentResolver` — `role` 이 열거 안인지 검사한다. 아니면 지금 `hasText` 가드가 내는 것과 **같은 예외**를 던진다(→ 401 `A002`)
+- `global/security/CurrentMemberArgumentResolver` — `role` 이 열거 안인지 검사한다. 아니면 지금 `hasText` 가드가 내는 것과 **같은 예외**를 던진다(→ 401 `A002`). **디코더에 검증기 빈을 더하지 않는다** — `JwtDecoderValidatorsTest` 가 "기동된 디코더의 claim 검증기가 **기본 둘뿐이다**" 를 단언한다(그 선택이 테스트로 강제돼 있다)
+- `global/security/LoginMember` — javadoc 의 **"권한 판정은 `RoleClaimConverter` 가 만든 `GrantedAuthority` 로 한다" 가 이미 거짓이다**(실제 판정은 `loginMember.role()` 문자열 비교이고 `hasRole`·`@PreAuthorize` 사용처가 0건이다, D-02 리뷰 실측). **이 항목이 그 파일의 이웃을 건드리므로 함께 고친다**
 
 **완료 기준**
 - [ ] `role` 이 열거 밖인 토큰에 **401 `A002`** 다. 누락·공백과 응답이 같다
 - [ ] `role = "USER"`·`"ADMIN"` 토큰은 그대로 통과한다
 - [ ] **`"ADMIN".equals(...)` 로 ADMIN 을 판정하는 두 자리가 그대로 동작한다** — `PostService`·`CommentService` 의 삭제 권한([../security.md §5.2](../security.md)의 매트릭스)
 - [ ] **`LoginMember.role` 의 타입을 바꾸지 않는다** — 열거로 바꾸는 것은 이 항목의 범위가 아니다(바꾸면 그 두 자리와 `RoleClaimConverter` 를 함께 봐야 한다). 바꾸고 싶으면 별 항목이다
+- [ ] **열거 값의 출처를 하나 만들고 세 자리가 그것을 쓴다** — 리졸버의 열거 검사 + `PostService`·`CommentService` 의 ADMIN 판정. board 에는 지금 `"ADMIN"` 이 **두 벌** 박혀 있다(`PostService`·`CommentService` 의 `ROLE_ADMIN` 상수 — **이름에는 `ROLE_` 접두어가 있는데 값에는 없다**). 기준이 없으면 리졸버에 세 번째 `"ADMIN"` 과 첫 `"USER"` 가 생긴다. **타입 변경과 다른 일이고**, 상수를 모으면 나중에 타입을 바꿀 때 고칠 자리가 하나다
 - [ ] 기존 테스트가 깨지지 않는다 (276개)
 
 **검증** — `JwtAuthenticationTest`·`PostControllerTest` 확장
@@ -2096,6 +2098,57 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 > **I-05 워커는 자기 scratchpad 로그에서 그 네 자리를 지우고 독립 `grep` 으로 0건을 확인했다.** 저장소 파일은 고치지 않았다 — 고치는 것이 이 항목이다.
 
 ---
+### D-04 `AGENTS.md` 링크 여덟 개를 참으로 만든다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 막지 않는다** |
+| 참조 | [../process/review-policy.md §8](../process/review-policy.md), [../adr/0002-shared-nothing-repos.md](../adr/0002-shared-nothing-repos.md) |
+
+**`../AGENTS.md` 를 가리키는 링크 여덟 개가 존재하지 않는 경로다.** `AGENTS.md` 는 세 구현 저장소에 있고 **`sp-docs` 에는 없다**. [../process/review-policy.md §8](../process/review-policy.md)이 그것을 부채로 적고 **"1차에서 건드리지 않는다"** 로 유보했는데, **1차가 2026-10-18 에 닫혔으므로 그 줄 자신의 조건에 따라 지금이 처리 시점이다.**
+
+**`check_refs.py` 가 잡아 주지 않는다.** `main()` 의 `secs = SEC.findall(label); if not secs: continue` 가 **라벨에 `§` 가 없는 링크를 건너뛴다**(§8 이 I-03 2라운드 실측으로 적었다). D-02 리뷰가 양성 대조로 재확인했다 — `§` 있는 깨진 링크는 exit 1, **없는 것은 exit 0** 이다. 그래서 **도구가 통과해도 깨져 있고**, D-02 가 아홉 번째를 더하다가 리뷰에 잡혔다.
+
+**정해야 하는 것 하나** — **링크를 없애는가, 대상을 만드는가.**
+
+| 결정 | 따라오는 것 |
+| --- | --- |
+| **(i) 여덟 곳을 평문 참조로 바꾼다** | 여섯 파일 여덟 곳이고 **그중 셋이 개정 대상**이다 — `api-contract.md` 3건 · `conventions.md` 1건 · `nfr.md` 1건(각각 `version`·`updated` 를 올려야 한다). `api-contract.md` 는 세 서비스 공유 계약이다 |
+| **(ii) `sp-docs/AGENTS.md` 를 만든다** | **파일 하나 추가로 여덟 링크가 한 번에 참이 된다.** 개정 대상을 건드리지 않는다. 세 사본이 **바이트 동일**이므로(md5 동일, 5584B, D-02 리뷰 실측) 넷째 사본의 유지 비용은 [../adr/0002](../adr/0002-shared-nothing-repos.md)가 이미 "거의 바뀌지 않아 낮다" 로 받은 성질이다 |
+
+> **부채의 진짜 모양은 링크가 아닐 수 있다.** 지금 `sp-docs` 에는 `AGENTS.md` 도 `CLAUDE.md` 도 **없다** — `D-xx` 를 하는 워커만 불변식 문서 없이 일하고, 정작 그 불변식을 **인용하는** 문서가 `sp-docs` 에 모여 있다. D-02 리뷰가 **(ii) 를 먼저 재라**고 권고했다. 판정은 이 항목의 리뷰어가 한다.
+
+**완료 기준**
+- [ ] `sp-docs` 안에서 **`../AGENTS.md` 를 대상으로 하는 링크가 0건**이거나, **`sp-docs/AGENTS.md` 가 세 사본과 바이트 동일**하다.
+      **검색 패턴을 이 문서에 적지 마라** — 적으면 그 `grep` 이 **자기 자신을 센다**. 이 기준의 앞 판이 패턴을 적어서 8건을 9건으로 세게 만들었다(백틱 안이라 링크는 아니지만 검색은 걸린다)
+- [ ] **[../process/review-policy.md §8](../process/review-policy.md)의 부채 줄을 지운다** — 부채를 닫는 항목이 부채 기록을 남겨 두면 다음 사람이 또 센다
+- [ ] (ii) 를 택하면 **네 사본을 맞추는 규칙**이 [../adr/0002](../adr/0002-shared-nothing-repos.md)에 적혀 있다
+- [ ] `python tools/check_refs.py` 가 통과한다. **그 통과가 이 항목을 판정하지 않는다** — 위 `grep` 이 판정한다
+
+---
+
+### D-05 만료와 claim 계약 위반이 겹칠 때의 코드를 정한다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | **`M-12`·`B-12` 가 `done` 인 뒤가 값싸다** (그때 세 서비스를 한 번에 잰다) |
+| 참조 | [../api-contract.md §6 §8.5](../api-contract.md), [../security.md §4.1 §5.3](../security.md) |
+
+**[../api-contract.md §8.5](../api-contract.md)가 `exp` 경과를 `A003`, 그 밖의 claim 검증 실패를 `A002` 로 정하는데 둘이 겹치는 경우를 정하지 않는다.** 만료됐고 동시에 claim 계약을 깬 토큰이다.
+
+**D-02 리뷰가 소스로 추론했다 — 측정값이 아니다.** member 의 `ClaimContractValidator` 는 결과를 돌려주지 않고 **던지므로**(그 클래스 javadoc 이 이유를 적는다: 결과로 실패하면 `JwtValidationException` 이 되어 §8.5 가 `A002` 로 정한 것이 **만료로 읽힌다**) 그 토큰이 `A003` 이 아니라 `A002` 가 될 것으로 본다. **누락 role + 만료에서 이미 그렇고 `M-12`·`B-12` 가 그 표면을 넓힌다.**
+
+> **이 항목의 산출물은 실측이다.** 세 서비스에 **만료 + 계약 위반** 토큰을 쳐서 나오는 코드를 재고 그것을 §8.5 에 적는다. **미측정 추론을 계약에 적지 않는다** — 그것이 이 세션에서 반복된 실패의 모양이고, D-02 가 그래서 리뷰에서 `CHANGES_REQUESTED` 를 받았다.
+
+**완료 기준**
+- [ ] 세 서비스에서 **만료 + 계약 위반** 토큰의 응답을 **실측**했다(상태와 `error.code`)
+- [ ] [../api-contract.md §8.5](../api-contract.md)에 그 선후가 적혀 있다 — 셋이 다르면 **그 차이도** 적는다
+- [ ] 노출 관점을 함께 본다 — [../security.md §4.1](../security.md)이 "어느 쪽이 틀렸는지 노출하지 않는다" 를 요구한다
+- [ ] `M-12`·`B-12` 를 막지 않는다. 두 항목의 검증표는 **서명 유효** 토큰만 쓰고 만료와 겹치는 케이스를 요구하지 않는다
+
+---
 ## 7. 다음 단계
 
 **AU-11·M-11·B-09가 모두 `done`이 되면** [integration.md](integration.md)로 넘어간다.
@@ -2104,8 +2157,12 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **통합 검증이 결함을 찾으면 그것을 고치는 항목이 생긴다.** B-10이 그렇게 생겼다(I-03이 찾았다). **그 항목은 통합 검증과 병행하되 1차 완료 전에 `done`이어야 한다** — 통합 항목의 선행 조건에 끼워 넣지 않는 이유는 발견 시점이 그보다 뒤이기 때문이다. **1차가 끝났다고 말할 수 있는 조건은 `AU-xx`·`M-xx`·`B-xx`·`I-xx`가 모두 `done`인 것이다.**
 
-> **1차는 2026-10-18 에 완료됐다.** `AU-01`~`AU-12` · `M-01`~`M-11` · `B-01`~`B-11` · `I-01`~`I-05` 가 모두 `done` 이다(`sp-auth` `e5fe6a8` · `sp-member` `98f11be` · `sp-board` `2ea6a17`).
+> **1차는 2026-10-18 에 완료됐다.** `AU-01`~`AU-11`(+`AU-03R`) · `M-01`~`M-11`(+`M-01R`, `M-06`·`M-07`은 auth로 옮겨가 없다) · `B-01`~`B-11` · `I-01`~`I-05` 가 모두 `done` 이다(`sp-auth` `e5fe6a8` · `sp-member` `98f11be` · `sp-board` `2ea6a17`). **`AU-12` 는 존재하지 않는다** — 이 줄의 앞 판이 그렇게 적었고 D-02 리뷰가 잡았다. 번호는 재사용하지 않으므로([README.md](README.md) §항목 ID 규칙) 없는 번호를 완료 명부에 두면 다음 auth 항목이 그것을 집을 때 충돌한다.
 >
-> **그 뒤에 생긴 항목은 `[1차 후]` 로 표시하고, 1차 완료 선언을 되돌리지 않는다.** 지금 둘이다 — `M-12`·`B-12`(D-02 가 만들었다). **그러지 않으면 완료의 의미가 사라진다** — 통합 검증과 리뷰는 앞으로도 발견을 낼 것이고, 발견마다 1차가 다시 열리면 "1차 완료" 가 어떤 시점도 가리키지 못한다. **고치지 않는다는 뜻이 아니다** — 어느 항목이 어느 선 안에 있었는지를 남긴다는 뜻이다.
+> **`:2105` 의 규칙은 선언 당시 정본을 깨는 결함에 적용된다.** B-10 이 그 경우다 — `api-contract.md` §4.5 가 **1차 동안** "`comment_count` 와 `totalElements` 가 같다" 를 요구했고 구현이 그것을 깼다. 그래서 1차 안에서 고쳐야 했다.
+>
+> **`M-12`·`B-12` 가 고치는 것은 2026-10-18 에 새로 생긴 요구다.** 1차가 끝날 때까지 [../api-contract.md §6](../api-contract.md)은 `role` 의 **값**만 못박았고 **소비자가 검증해야 한다**고는 말하지 않았다. 그때 열려 있던 것은 "결함인가" 가 아니라 **"결함인지를 정해야 한다"**(= D-02)였고, `D-xx` 는 `:2105` 의 완료 조건에 애초에 들어 있지 않다. **1차가 요구받은 적 없는 것을 구현하는 항목이므로 `[1차 후]` 다** — 그 요구의 발효 날짜가 §6 에 적혀 있다.
+>
+> **이 구분을 적어 두는 이유는 그 구분이 없으면 규칙을 피할 수 있기 때문이다.** `D-xx` 를 열어 두고 구현 항목을 선언 뒤에 세우는 순서로 언제든 `:2105` 를 비껴갈 수 있다 — **D-02 의 순서가 실제로 그 모양이었다**(D-02 등록 02:26 → 1차 선언 09:56 → `M-12`·`B-12` 등록 10:30). 그것이 아니었다는 근거는 **면제가 선언보다 7시간 반 앞섰다**는 것과 위의 발효 날짜뿐이고, **그 근거가 문서에 없으면 읽는 사람은 편의로 읽는다.** 다음에 `[1차 후]` 를 붙일 때는 **요구가 언제 생겼는지를 먼저 적는다.**
 >
 > **`D-xx` 는 애초에 그 조건에 들어 있지 않다.** 상태는 [../docs/checklist.md](../docs/checklist.md)가 갖는다.
