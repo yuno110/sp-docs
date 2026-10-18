@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v12
-updated: 2026-10-16
+version: v13
+updated: 2026-10-18
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -260,6 +260,8 @@ ADMIN에게 **수정 권한을 주지 않는다.** 타인 글의 내용 변조�
 즉 **"비밀번호를 바꿨으니 안전하다"는 최대 31분 뒤부터 참이다.** 비밀번호 변경이 침해 대응으로 쓰인다면 이 창이 그대로 노출이다. 즉시 차단은 1차 범위 밖이고([adr/0012](adr/0012-auth-as-separate-service.md) 포기 목록 1), 그때 탈퇴·권한 회수·비밀번호 변경 셋을 함께 다룬다.
 
 > **clock skew 60초는 Spring의 기본값이다.** `JwtTimestampValidator`가 `DEFAULT_MAX_CLOCK_SKEW = 60s`로 두고 있어(6.5.11 바이트코드로 확인), **`exp`가 지난 토큰이 60초 더 통과한다.** 분산 환경의 시계 드리프트를 흡수하려는 값이다.
+>
+> **그 기본값이 이 경로에서 실제로 일한다. I-05 리뷰 실측.** 바이트코드는 "기본값이 60초다" 를 말하고 이것은 "그 60초가 통과시킨다" 를 말한다 — **다른 주장이다.** 2단계까지 탈퇴한 계정의 Access Token 으로 `GET /api/v1/posts/me`(`authenticated()` 경로)를 쳤을 때 `exp`**+7초·+35초에 200**, `exp`**+70초·+130초에 401 `A003`** 이었다(만료 전 200, 무토큰 대조가 여섯 발화 모두 200 이라 서비스 정지가 배제된다). 만료 뒤 쓰기도 board·member 둘 다 401 `A003` 이다.
 >
 > 1차에서 줄이지 않는다. 노출 창이 30분에서 31분이 되는 것이고, 줄이려면 `JwtConfig`에 validator를 직접 주입해야 한다. **즉시 차단이 요구가 되면 그때 skew와 블랙리스트를 함께 본다**([adr/0012](adr/0012-auth-as-separate-service.md) 포기 목록 1).
 
