@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v49
+version: v50
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2019,11 +2019,13 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **산출물**
 - `global/security/ClaimContractValidator` — `role` 이 `USER`·`ADMIN` 중 하나인지 검사한다. 아니면 지금 누락에서 내는 것과 **같은 예외**를 던진다(`BadJwtException` → 401 `A002`). **그 클래스 안을 고친다 — 새 검증기 빈을 만들면 `JwtDecoderValidatorsTest` 의 "검증기가 기본 둘과 `ClaimContractValidator` 뿐이다" 단언이 빨개진다**
+- `global/security/LoginMember` — javadoc 두 문장이 **member 에서 거짓이거나 절반만 참이다**(M-12 구현 워커가 측정해 올렸다). ① "권한 판정은 `RoleClaimConverter` 가 만든 `GrantedAuthority` 로 한다" — member `src/main` 에 `hasRole`·`@PreAuthorize`·`hasAuthority` 가 **0건**이고 `LoginMember.role()` 호출처도 **0건**이다. member 에는 그 판정 자체가 없다. ② "값이 `USER`·`ADMIN` 중 하나인지는 **발급 측 계약**이며" — **이 항목이 그것을 절반 거짓으로 만든다.** 이제 member 도 집행한다. **그 문장을 믿고 열거 검사를 지우면** [../conventions.md §9.5](../conventions.md)가 경고하는 모양이 된다
 
 **완료 기준**
 - [ ] `role` 이 열거 밖인 토큰에 **401 `A002`** 다. 누락·공백과 **응답이 같다** — 거부 사유를 응답으로 구별하지 않는다 ([../api-contract.md §8.5](../api-contract.md)의 "그 밖의 claim 검증 실패" 행을 구체화한 것이다)
 - [ ] `role = "USER"`·`"ADMIN"` 토큰은 그대로 통과한다
 - [ ] **열거 값의 출처를 하나 만들고 그 하나만 쓴다** — member 에는 **지금 출처가 없다**(`src/main` 에 `"USER"`·`"ADMIN"` 리터럴 0건, D-02 리뷰 실측). 그래서 "새로 박지 않는다" 로는 판정할 수 없다
+- [ ] **`LoginMember` javadoc 이 member 의 실제 경로를 적는다** — 권한 판정이 member 에 없다는 것과, 값 검증을 **이 항목 이후 member 도 한다**는 것. B-12 가 board 쪽에 같은 기준을 갖는다(거기서는 판정이 **있고** 문장이 그 수단을 틀리게 적는다 — **두 저장소의 거짓이 다르다**)
 - [ ] 기존 테스트가 깨지지 않는다 (182개)
 
 **검증** — `SecurityConfigTest`·`JwtDecoderValidatorsTest` 확장 (**`ClaimContractValidatorTest` 는 없다.** 누락 role 의 401 `A002` 단언이 `SecurityConfigTest` 에 산다 — D-02 리뷰 실측)
