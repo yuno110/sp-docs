@@ -2,7 +2,7 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v14
+version: v15
 updated: 2026-10-18
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
@@ -21,7 +21,23 @@ related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 | CORS | 허용 오리진은 **환경이 정한다**(§1.1). 메서드·헤더·credentials는 §1.1이 고정한다. `*` 금지 |
 | SQL Injection | JPA·QueryDSL 파라미터 바인딩. 네이티브 쿼리 문자열 결합 금지 |
 | XSS | 서버는 원문 저장, 출력 이스케이프는 클라이언트 책임 |
-| 민감정보 로깅 | 비밀번호·토큰·키를 로그에 남기지 않음 |
+| 민감정보 로깅 | 비밀번호·토큰·키를 로그에 남기지 않음. **운영 프로파일의 통제다** — 로컬은 §1.2 가 예외와 조건을 적는다 |
+
+### 1.2 로컬 프로파일의 예외 — 바인드 로그에 비밀번호 해시가 남는다
+
+**통제는 운영을 말한다. 로컬에는 알려진 예외가 하나 있다 — D-03 이 그렇게 정했다(2026-10-18).**
+
+세 저장소의 커밋된 템플릿 `application-local.yml.example` 이 `org.hibernate.orm.jdbc.bind: trace` 를 켠다([conventions.md §8](conventions.md)이 로컬에서 SQL 로그를 켜라고 적는다). 그래서 **auth 의 `account` 에 쓰기가 일어날 때마다 저장된 BCrypt 해시가 로컬 로그에 찍힌다**(I-05 실측: 한 세션에 4건). member·board 에는 비밀 컬럼이 없어 해당하지 않는다.
+
+**운영은 영향이 없다.** `application-prod.yml` 이 세 저장소 모두 `org.hibernate.SQL: warn` 과 `org.hibernate.orm.jdbc.bind: warn` 이다(실측). **평문 비밀번호는 어느 프로파일에서도 남지 않는다** — 바인드 파라미터에 실리는 것은 이미 인코딩된 해시다.
+
+**로컬을 끄지 않는 이유는 그 로거가 학습 수단이기 때문이다.** 끄면 로컬에서 SQL 파라미터를 볼 수 없다. 대신 조건을 둔다.
+
+- **로컬 로그를 공유·업로드·커밋하지 않는다.** 저장소에 로그 파일을 만들지 않는다([conventions.md §8](conventions.md))
+- 로그를 보고서나 이슈에 인용할 때 **BCrypt 모양 문자열(`$2[aby]$…`)을 지운다.** I-05 워커가 그렇게 했고 독립 `grep` 으로 0건을 확인했다 — **패턴의 양성 대조를 먼저 세운다**(`$` 가 cost 뒤에 또 오므로 문자 클래스에 `$` 를 넣지 않으면 거짓 0 이 나온다. I-05 리뷰 실측)
+- **커밋되는 파일에는 어떤 프로파일에서도 그 모양을 넣지 않는다**
+
+> **이 결정을 관측하는 수단이 없다.** `.example` 은 실행되지 않는 파일이고 `application-local.yml` 은 gitignore 되어 있어, 로거 수준을 되돌리는 변이를 잡는 테스트가 세 저장소에 없다. **그래서 이 절이 그 자리를 대신한다** — 다음 사람이 로컬 로그에서 해시를 보고 결함으로 올리지 않게, 그리고 **운영에서 그 로거를 켜는 것이 통제 위반임을** 알게 한다.
 
 ### 1.1 CORS — 무엇을 정본이 정하고 무엇을 환경이 정하는가
 

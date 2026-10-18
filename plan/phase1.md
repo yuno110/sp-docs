@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v58
+version: v59
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2134,6 +2134,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 > **같은 가족이 하나 더 있다. B-12 구현이 찾았다.** [../conventions.md §1.3](../conventions.md)의 board 패키지 트리가 `global/security` 를 `# RoleClaimConverter, LoginMember(record), @CurrentMember` 로 적는데 **그 디렉터리의 파일은 B-12 전에 이미 다섯이었다**(`CurrentMemberArgumentResolver`·`SecurityErrorResponder` 가 빠져 있다). 빠진 둘 중 하나는 [../tech-stack.md §2.1](../tech-stack.md)이 **board 의 집행 지점으로 지명한 클래스**다 — **한 절이 지명하는 클래스가 다른 절의 목록에 없다.** B-12 가 `ContractRole` 을 더해 지금은 여섯이다. **목록을 늘리지 말고 성질로 적는 쪽을 권한다**(예: `# 보안 — JWT claim 변환·계약 검증·인증 실패 응답`) — 늘리면 다음 항목이 또 거짓으로 만든다. member 의 §1.2 가 같은 모양인지는 **재지 않았다**(B-12 구현이 확인 못 함으로 남겼다).
 
+**결정: M-12 리뷰의 제안대로 좁혔다(2026-10-18).** [../tech-stack.md §2.1](../tech-stack.md)이 이제 **스타터의 몫**(서명 검증·만료 확인·`SecurityContext` 주입)과 **서비스의 몫**(`GrantedAuthority` 변환·Claim 계약 검증·인증 실패 응답·인자 해석)을 갈라 적고 **"컨버터뿐" 이 아니다**를 명시한다. 세 저장소의 javadoc 인용은 `M-13`·`B-12` 가 걷었다 — **auth 에는 `RoleClaimConverter` 가 없다**(M-12 리뷰 실측).
+
 **정해야 하는 것** — 그 문장을 **무엇으로 좁히는가.** M-12 리뷰의 제안: "스타터가 하는 것은 **서명 검증·만료 확인·`SecurityContext` 주입**이고, **`GrantedAuthority` 변환과 Claim 계약 검증은 서비스가 작성한다**". 그러면 §2.1 의 집행 지점 표(member 는 디코더, board 는 리졸버, auth 는 리졸버)와 어긋나지 않는다.
 
 **완료 기준**
@@ -2211,6 +2213,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **I-05 가 찾았다.** 세 저장소의 커밋된 템플릿 `application-local.yml.example` 이 `org.hibernate.orm.jdbc.bind: trace` 를 켠다. 그래서 **`account` 에 쓰기가 일어날 때마다 저장된 BCrypt 해시가 로컬 로그에 찍힌다**(auth 만 해당한다 — member·board 에는 비밀 컬럼이 없다). `application-prod.yml` 은 세 저장소 모두 `org.hibernate.SQL: warn` 과 `org.hibernate.orm.jdbc.bind: warn` 이라 **운영은 영향이 없다**(실측).
 
 **정본 통제와 어긋난다.** [../security.md §1](../security.md)의 "민감정보 로깅 — 비밀번호·토큰·키를 로그에 남기지 않음" 과 [../nfr.md §5](../nfr.md)의 같은 행이 **프로파일을 가리지 않는다.** 그리고 이 프로젝트는 BCrypt 해시를 비밀로 취급해 왔다 — 커밋되는 파일에 `$2[aby]$` 모양 문자열을 넣지 않는 규칙이 그것이다. **평문 비밀번호는 로그에 남지 않는다** — 바인드 파라미터에 실리는 것은 이미 인코딩된 해시다.
+
+**결정: 운영만이다.** 사용자가 2026-10-18 에 "문서에 결함이 있으면 안 된다" 로 마무리를 지시했고 내가 그렇게 정했다. [../security.md §1.2](../security.md)를 새로 두어 **로컬의 예외와 그 조건**(로그를 공유·업로드·커밋하지 않는다 · 인용할 때 BCrypt 모양을 지우고 **패턴의 양성 대조를 먼저 세운다** · 커밋되는 파일에는 어떤 프로파일에서도 넣지 않는다)을 적었고, [../security.md §1](../security.md)과 [../nfr.md §5](../nfr.md)의 행에 **프로파일 범위**를 달았다. **로컬을 끄지 않은 이유는 그 로거가 [../conventions.md §8](../conventions.md)이 켜라고 적은 학습 수단이기 때문이다.**
 
 **정해야 하는 것 하나** — **통제가 운영만을 말하는가, 모든 프로파일을 말하는가.**
 

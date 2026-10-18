@@ -2,7 +2,7 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v9
+version: v10
 updated: 2026-10-18
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
@@ -68,7 +68,7 @@ related: [architecture.md, process/dev-workflow.md]
 | --- | --- |
 | 요청 추적 | `X-Request-Id` 헤더를 서비스 간 전파하고 MDC에 실어 로그 상관관계를 만든다 |
 | SQL 로그 | 로컬 프로파일만 ON. 운영 OFF |
-| 민감정보 | 비밀번호·토큰·키를 로그에 남기지 않는다 |
+| 민감정보 | 비밀번호·토큰·키를 로그에 남기지 않는다. **운영 프로파일의 통제다** — 로컬의 알려진 예외는 [security.md §1.2](security.md)가 적는다 |
 
 ## 6. 테스트
 

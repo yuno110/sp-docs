@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v30
+version: v31
 updated: 2026-10-18
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -80,9 +80,9 @@ spring:
           public-key-location: classpath:jwt-public.pem
 ```
 
-이것으로 서명 검증·만료 확인·`SecurityContext` 주입이 끝난다. 직접 작성할 것은 `role` claim을 `GrantedAuthority`로 바꾸는 컨버터뿐이다.
+**스타터가 하는 것은 서명 검증·만료 확인·`SecurityContext` 주입이다.** 그 밖은 서비스가 작성한다 — `role` claim 을 `GrantedAuthority` 로 바꾸는 변환, **Claim 계약 검증**(아래), 인증 실패 응답, 그리고 `@CurrentMember`·`@CurrentAccount` 의 인자 해석이다. **"컨버터뿐" 이 아니다** — 아래 집행 지점 표가 서비스마다 다른 자리를 지명한다.
 
-> **이 문장은 `D-06` 이 좁힌다. M-12 리뷰가 올렸다.** 같은 절이 뒤에서 "Claim 계약 검증은 이 목록에 없다" 로 한정하는데, **단독으로 인용되면 "보안 코드는 컨버터 하나" 로 읽힌다** — 실제로 세 저장소의 `RoleClaimConverter` javadoc 이 그렇게 인용했다. member `global/security` 에 손으로 쓴 클래스가 넷 더 있다(`ClaimContractValidator`·`SecurityErrorResponder`·`InternalApiKeyFilter`·`CurrentMemberArgumentResolver`). **유일성 주장이므로** [conventions.md §9.5](conventions.md)가 금지한 모양이다.
+> **앞 판이 "직접 작성할 것은 … 컨버터뿐이다" 였다. `D-06` 이 좁혔다 — M-12 리뷰가 올렸다.** 같은 절이 뒤에서 "Claim 계약 검증은 이 목록에 없다" 로 한정하는데 **단독으로 인용되면 "보안 코드는 컨버터 하나" 로 읽혔고, 실제로 세 저장소의 `RoleClaimConverter` javadoc 이 그렇게 인용했다**(`M-13`·`B-12` 가 그 인용을 걷었다). member `global/security` 에 손으로 쓴 클래스가 넷 더 있다(`ClaimContractValidator`·`SecurityErrorResponder`·`InternalApiKeyFilter`·`CurrentMemberArgumentResolver`). **유일성 주장은 [conventions.md §9.5](conventions.md)가 금지한 모양이고, 정본의 그 주장이 코드 주석 셋으로 번진 것이 이 건의 교훈이다.**
 
 **member·board뿐 아니라 auth도 이 의존성을 갖는다.** auth는 자기가 발급한 토큰을 보호 경로에서 검증해야 한다(§3.2).
 
