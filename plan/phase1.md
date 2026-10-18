@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v55
+version: v56
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2132,6 +2132,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **실제로 그렇게 인용됐다.** 세 저장소의 `RoleClaimConverter` javadoc 이 그 문장을 옮겨 적었다 — member 에는 손으로 쓴 보안 클래스가 넷 더 있다(`ClaimContractValidator`·`SecurityErrorResponder`·`InternalApiKeyFilter`·`CurrentMemberArgumentResolver`). **정본의 유일성 주장이 코드 주석 셋으로 번진 사례**다.
 
+> **같은 가족이 하나 더 있다. B-12 구현이 찾았다.** [../conventions.md §1.3](../conventions.md)의 board 패키지 트리가 `global/security` 를 `# RoleClaimConverter, LoginMember(record), @CurrentMember` 로 적는데 **그 디렉터리의 파일은 B-12 전에 이미 다섯이었다**(`CurrentMemberArgumentResolver`·`SecurityErrorResponder` 가 빠져 있다). 빠진 둘 중 하나는 [../tech-stack.md §2.1](../tech-stack.md)이 **board 의 집행 지점으로 지명한 클래스**다 — **한 절이 지명하는 클래스가 다른 절의 목록에 없다.** B-12 가 `ContractRole` 을 더해 지금은 여섯이다. **목록을 늘리지 말고 성질로 적는 쪽을 권한다**(예: `# 보안 — JWT claim 변환·계약 검증·인증 실패 응답`) — 늘리면 다음 항목이 또 거짓으로 만든다. member 의 §1.2 가 같은 모양인지는 **재지 않았다**(B-12 구현이 확인 못 함으로 남겼다).
+
 **정해야 하는 것** — 그 문장을 **무엇으로 좁히는가.** M-12 리뷰의 제안: "스타터가 하는 것은 **서명 검증·만료 확인·`SecurityContext` 주입**이고, **`GrantedAuthority` 변환과 Claim 계약 검증은 서비스가 작성한다**". 그러면 §2.1 의 집행 지점 표(member 는 디코더, board 는 리졸버, auth 는 리졸버)와 어긋나지 않는다.
 
 **완료 기준**
@@ -2140,6 +2142,62 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `python tools/check_refs.py` 를 **커밋 직전에** 돌려 통과했고 그 출력을 커밋 메시지에 남겼다
 
 > **코드 주석 셋이 정본 한 문장에 매달려 있다.** 그래서 순서가 **정본 먼저**다 — 주석을 먼저 고치면 무엇을 인용할지 정해지지 않는다. `M-13`·`B-12` 가 그 주석을 고칠 때 이 항목이 아직 `todo` 면, **인용을 걷어내는 쪽**(문장을 가리키지 않고 자기 저장소의 사실만 적는 쪽)으로 한다.
+
+---
+### D-07 `.gitattributes` 에 `*.java` 줄끝을 고정한다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-auth`·`yuno110/sp-member`·`yuno110/sp-board` (세 저장소에 같은 줄) |
+| 의존 | 없다. **1차 완료를 막지 않는다** |
+| 참조 | [../process/review-policy.md §4.1](../process/review-policy.md), [../adr/0002-separate-repositories.md](../adr/0002-separate-repositories.md) |
+
+**이 세션이 줄끝으로 치른 모든 대가의 뿌리다. B-12 구현이 찾았고 내가 세 저장소에서 확인했다.**
+
+| 측정 | 값 |
+| --- | --- |
+| `core.autocrlf` 의 출처 | **시스템 gitconfig** (`file:C:/Program Files/Git/etc/gitconfig true`) — 저장소·전역 설정에는 **없다**. Git for Windows 설치 기본값이다 |
+| 세 저장소의 `.gitattributes` | **똑같이 세 줄**(`/gradlew text eol=lf` · `*.bat text eol=crlf` · `*.jar binary`). **`text=auto` 도 `*.java` 규칙도 없다** |
+| `src/**/*.java` 중 CRLF | auth **4** · member **16** · board **17** |
+
+**규칙이 아니라 체크아웃 이력이 상태를 정한다.** 인덱스는 LF 인데 작업 트리는 체크아웃마다 CRLF 가 되므로, **같은 파일이 작업자에 따라 LF 이거나 CRLF 다.** 그래서 이 세션의 워커들이 매번 줄끝을 세어야 했고, `git add` 때마다 `LF will be replaced by CRLF` 경고가 찍혔다.
+
+**고치면 사고의 조건 자체가 사라진다.** `*.java text eol=lf` 한 줄이면 작업 트리가 고정되고, **Git Bash 의 `sed`·`awk`·`grep` 이 CR 을 먹어 바이트 복원을 깨뜨리는 사고**([../process/review-policy.md §4.1](../process/review-policy.md))가 `*.java` 에서는 일어날 수 없다.
+
+**산출물**
+- 세 저장소의 `.gitattributes` — `*.java` 의 줄끝을 고정하는 한 줄. **세 저장소에 같은 내용으로 둔다**(`AGENTS.md` 가 그렇게 요구한다)
+
+**완료 기준**
+- [ ] 세 `.gitattributes` 가 **바이트 동일**하고 `*.java` 규칙을 담는다
+- [ ] `git check-attr text eol -- <아무 .java>` 가 세 저장소에서 **`unspecified` 가 아니다**(지금은 둘 다 `unspecified` 다 — B-12 실측)
+- [ ] **재정규화의 영향을 측정해서 적는다** — `git add --renormalize` 가 무엇을 바꾸는지. B-12 구현은 "인덱스가 이미 LF 라서 필요 없다" 고 **추론했고 재지 않았다**. 그 추론을 그대로 믿지 말고 **재서** 적는다
+- [ ] 세 저장소의 테스트가 그대로 통과한다 (auth 224 · member 190 · board 282)
+
+> **`.gitattributes` 를 바꾸는 것은 저장소 설정 변경이고 과거 커밋의 내용을 바꾸지 않는다** — 다만 그것도 위의 측정 대상이다. 체크아웃된 작업 트리의 줄끝은 바뀔 수 있으므로 **각 저장소에서 테스트를 한 번 돌려 확인한다.**
+
+---
+
+### B-13 board javadoc 의 인용 범위 [1차 후]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-board` |
+| 의존 | **B-12** (그 항목의 구현 워커가 찾았다) |
+| 참조 | [../security.md §4](../security.md), [../api-contract.md §6](../api-contract.md) |
+
+**`M-13` 의 board 쪽이다.** `global/security/CurrentMember` 의 javadoc 이 "요청 본문·**경로 변수**의 식별자를 신뢰하지 않는다 ([../security.md §4](../security.md))" 를 적는데 **§4 는 본문만 말한다**(`account_id = Claim.sub` ← 본문의 식별자를 신뢰하지 않는다).
+
+**board 는 member 와 사정이 다르다.** member 에서는 그 문장이 **실제와도 어긋난다** — `GET /api/v1/members/{accountId}` 가 `permitAll` 이고 그 경로 변수를 조회 키로 읽는다. **board 는 인증 경로가 모두 `sub` 를 쓰므로 실제와는 어긋나지 않고 인용 범위만 넓다**(B-12 구현 실측). 그래서 **고칠 것은 인용이지 사실이 아니다.**
+
+**산출물**
+- `global/security/CurrentMember` — javadoc 의 인용을 §4 가 뒷받침하는 범위로 좁힌다. board 의 `LoginMember` javadoc 은 같은 문장을 갖지만 **§4 를 인용하지 않으므로**(꼬리가 `adr/0003`·`adr/0012` §6 이다) 그 자리는 손대지 않는다 — **확인하고 손대지 마라**
+
+**완료 기준**
+- [ ] `CurrentMember` 의 인용이 §4 가 뒷받침하는 범위 안이다
+- [ ] `LoginMember` 의 같은 문장은 **그대로**다(인용이 다르다 — 확인했다는 것을 보고에 적는다)
+- [ ] 기존 테스트가 깨지지 않는다 (**282개**. javadoc 만 고치므로 수가 변하지 않는다)
+
+> **`src/**/*.java` 중 17파일이 CRLF 다**(B-12 실측). 고치기 전에 그 파일의 줄끝을 세고 고친 뒤 다시 세라. `sed`·`awk`·`grep` 으로 고치면 CR 을 먹는다. `D-07` 이 그 조건을 없애지만 그 전까지는 세어야 한다.
 
 ---
 ### D-03 로컬 바인드 로그가 비밀번호 해시를 남긴다 [정본 개정]
