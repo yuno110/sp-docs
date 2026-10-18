@@ -86,7 +86,8 @@ def check_versions(out):
     """Report revised canon docs whose `version` line did not change.
 
     Compares against HEAD, so it only means anything before committing.
-    Silent when git is unavailable or nothing is modified.
+    Returns None when git is unavailable - report_versions names that case.
+    Returns [] when the check ran and found nothing to flag.
     """
     import subprocess
     try:

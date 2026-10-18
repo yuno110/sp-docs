@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v48
+version: v49
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2105,7 +2105,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | --- | --- |
 | 저장소 | `yuno110/sp-docs` |
 | 의존 | 없다. **1차 완료를 막지 않는다** |
-| 참조 | [../process/review-policy.md §8](../process/review-policy.md), [../adr/0002-shared-nothing-repos.md](../adr/0002-shared-nothing-repos.md) |
+| 참조 | [../process/review-policy.md §8](../process/review-policy.md), [../adr/0002-separate-repositories.md](../adr/0002-separate-repositories.md) |
 
 **`../AGENTS.md` 를 가리키는 링크 여덟 개가 존재하지 않는 경로다.** `AGENTS.md` 는 세 구현 저장소에 있고 **`sp-docs` 에는 없다**. [../process/review-policy.md §8](../process/review-policy.md)이 그것을 부채로 적고 **"1차에서 건드리지 않는다"** 로 유보했는데, **1차가 2026-10-18 에 닫혔으므로 그 줄 자신의 조건에 따라 지금이 처리 시점이다.**
 
@@ -2115,16 +2115,20 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 | 결정 | 따라오는 것 |
 | --- | --- |
-| **(i) 여덟 곳을 평문 참조로 바꾼다** | **다섯 파일 여덟 곳이고 그중 둘이 개정 대상**이다 — `api-contract.md` 3건 · `conventions.md` 1건(각각 `version`·`updated` 를 올려야 한다. `api-contract.md` 는 세 서비스 공유 계약이다). **나머지 넷은 개정 대상이 아니다** — `plan/phase1.md` 2건 · `nfr.md` 1건 · `process/review-policy.md` 1건(`nfr.md` 는 `version` 을 갖지만 [../process/review-policy.md §8](../process/review-policy.md)의 개정 대상 목록에 없다). 마지막 1건은 **부채 줄 자신이 있는 자리**라 완료 기준 2와 겹친다 |
-| **(ii) `sp-docs/AGENTS.md` 를 만든다** | **파일 하나 추가로 여덟 링크가 한 번에 참이 된다.** 개정 대상을 건드리지 않는다. 세 사본이 **바이트 동일**이므로(md5 동일, 5584B, D-02 리뷰 실측) 넷째 사본의 유지 비용은 [../adr/0002](../adr/0002-shared-nothing-repos.md)가 이미 "거의 바뀌지 않아 낮다" 로 받은 성질이다 |
+| **(i) 여덟 곳을 평문 참조로 바꾼다** | **다섯 파일 여덟 곳이고 그중 둘이 개정 대상**이다 — `api-contract.md` 3건 · `conventions.md` 1건(각각 `version`·`updated` 를 올려야 한다. `api-contract.md` 는 세 서비스 공유 계약이다). **나머지 넷은 개정 대상이 아니다** — `plan/phase1.md` 2건 · `nfr.md` 1건 · `process/review-policy.md` 1건(`nfr.md` 는 `version` 을 갖지만 [../process/review-policy.md §8](../process/review-policy.md)의 개정 대상 목록에 없다). 마지막 1건은 **§4(체크 항목) 끝에 있고, 완료 기준 2가 지우는 §8 의 부채 줄과는 다른 자리다** — 기준 2를 만족해도 그 링크는 남으므로 따로 고친다(D-02 3라운드 실측: 링크는 §4, 부채 줄은 §8 이고 부채 줄에는 마크다운 링크가 없다) |
+| **(ii) `sp-docs/AGENTS.md` 를 만든다** | **파일 하나 추가로 여덟 링크가 한 번에 참이 된다.** 개정 대상을 건드리지 않는다. 세 사본이 **바이트 동일**이므로(md5 동일, 5584B, D-02 리뷰 실측) 넷째 사본의 유지 비용은 [../adr/0002](../adr/0002-separate-repositories.md)가 이미 "거의 바뀌지 않아 낮다" 로 받은 성질이다 |
 
 > **부채의 진짜 모양은 링크가 아닐 수 있다.** 지금 `sp-docs` 에는 `AGENTS.md` 도 `CLAUDE.md` 도 **없다** — `D-xx` 를 하는 워커만 불변식 문서 없이 일하고, 정작 그 불변식을 **인용하는** 문서가 `sp-docs` 에 모여 있다. D-02 리뷰가 **(ii) 를 먼저 재라**고 권고했다. 판정은 이 항목의 리뷰어가 한다.
+>
+> **D-02 가 이 절을 쓰면서 같은 맹점에 세 번 빠졌다. D-02 3라운드가 전수로 잡았다.** 이 절의 세 링크가 `../adr/0002-shared-nothing-repos.md`(없는 파일)를 가리켰고 — 실제는 `adr/0002-separate-repositories.md` 다 — **라벨에 `§` 가 없어 `check_refs.py` 가 통과시켰다.** 그중 하나는 **완료 기준**이어서, 따랐다면 워커가 없는 파일을 새로 만들어 **ADR 0002 가 두 벌로 쪼개졌을 것이다.** 경로는 고쳤다(`380b398` 다음 커밋). **완료 기준 1을 `AGENTS.md` 가 아니라 "대상 없는 `.md` 링크 0건" 으로 둔 이유가 이것이다** — 설명만 있는 맹점은 다시 밟힌다.
+>
+> **전수로 세면 11건이 나오는데 셋은 고칠 대상이 아니다.** `process/review-policy.md` §8 의 표·블록인용이 "도구가 무엇을 검사하는가" 를 보이는 **예시**(`other.md`·`tech-stack.md`·`phase1.md`)여서 대상이 없는 것이 정상이다. **이 항목이 0으로 만들 것은 나머지 여덟이다.**
 
 **완료 기준**
-- [ ] `sp-docs` 안에서 **`../AGENTS.md` 를 대상으로 하는 링크가 0건**이거나, **`sp-docs/AGENTS.md` 가 세 사본과 바이트 동일**하다.
+- [ ] `sp-docs` 안에 **대상 없는 `.md` 링크가 0건**이다 — `../AGENTS.md` 여덟 개가 그 대부분이고, **`sp-docs/AGENTS.md` 를 만들면 그 여덟은 한 번에 참이 된다**. 기준을 `AGENTS.md` 로 좁히지 않는 이유는 **`§` 없는 링크를 건너뛰는 맹점을 완료 기준 쪽에서 닫는 것**이다(아래 블록인용).
       **검색 패턴을 이 문서에 적지 마라** — 적으면 그 `grep` 이 **자기 자신을 센다**. 이 기준의 앞 판이 패턴을 적어서 8건을 9건으로 세게 만들었다(백틱 안이라 링크는 아니지만 검색은 걸린다)
 - [ ] **[../process/review-policy.md §8](../process/review-policy.md)의 부채 줄을 지운다** — 부채를 닫는 항목이 부채 기록을 남겨 두면 다음 사람이 또 센다
-- [ ] (ii) 를 택하면 **네 사본을 맞추는 규칙**이 [../adr/0002](../adr/0002-shared-nothing-repos.md)에 적혀 있다
+- [ ] (ii) 를 택하면 **네 사본을 맞추는 규칙**이 [../adr/0002](../adr/0002-separate-repositories.md)에 적혀 있다
 - [ ] `python tools/check_refs.py` 가 통과한다. **그 통과가 이 항목을 판정하지 않는다** — 위 **기준 1**이 판정한다
 
 ---
