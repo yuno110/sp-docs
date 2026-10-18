@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v29
+version: v30
 updated: 2026-10-18
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -81,6 +81,8 @@ spring:
 ```
 
 이것으로 서명 검증·만료 확인·`SecurityContext` 주입이 끝난다. 직접 작성할 것은 `role` claim을 `GrantedAuthority`로 바꾸는 컨버터뿐이다.
+
+> **이 문장은 `D-06` 이 좁힌다. M-12 리뷰가 올렸다.** 같은 절이 뒤에서 "Claim 계약 검증은 이 목록에 없다" 로 한정하는데, **단독으로 인용되면 "보안 코드는 컨버터 하나" 로 읽힌다** — 실제로 세 저장소의 `RoleClaimConverter` javadoc 이 그렇게 인용했다. member `global/security` 에 손으로 쓴 클래스가 넷 더 있다(`ClaimContractValidator`·`SecurityErrorResponder`·`InternalApiKeyFilter`·`CurrentMemberArgumentResolver`). **유일성 주장이므로** [conventions.md §9.5](conventions.md)가 금지한 모양이다.
 
 **member·board뿐 아니라 auth도 이 의존성을 갖는다.** auth는 자기가 발급한 토큰을 보호 경로에서 검증해야 한다(§3.2).
 

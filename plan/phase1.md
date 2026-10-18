@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v51
+version: v52
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2039,6 +2039,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 > **지금의 fail-open 을 고정하는 테스트가 없다는 것이 D-02 의 측정값이다.** **계약 밖 값을 넘기는 호출 지점이 없어서 깨지는 테스트가 0건**이고(팩토리는 `role` 을 자유 문자열로 받는다), 같은 이유로 **이 변경을 관측하는 테스트도 없다.** 그래서 위 검증표의 첫 두 행이 이 항목의 산출물 중 가장 중요한 부분이다 — 코드 한 줄보다 그 두 행이 오래 남는다.
 
+> **스위트는 열거 값을 고정하고 "그 상수를 쓰는 것" 은 고정하지 않는다. M-12 리뷰 실측.** `CONTRACT_ROLES` 를 쓰지 않는 구현 셋(리터럴 비교·정규식·`switch` 식)을 넣었더니 **셋 다 190/190 녹색**이었고, 그 상태에서 그 상수의 참조는 **javadoc 둘뿐**이었다. 즉 `role_허용값_출처` 는 **상수가 §6 의 값을 갖는다**를 못박고 **검증기가 그것을 쓴다**는 못박지 않는다. 기준 3 은 결과가 아니라 **수단**을 요구하므로 **기계로 고정되지 않는다** — `src/main` 의 리터럴이 상수 선언 줄 하나뿐임을 **`grep` 으로 확인하는 것**이 그 기준의 실제 판정 수단이고, **양성 대조를 세워** 확인한다. **테스트를 더하지 않는다**([../AGENTS.md](../AGENTS.md) 불변식 11 — 같은 결함을 두 번 보는 테스트를 넣지 않는다).
+
 ---
 
 ### M-13 `RoleClaimConverter` javadoc 의 수량 주장과 거짓 문장 [1차 후]
@@ -2108,6 +2110,28 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 열거 검사를 지우는 변이 | **첫 두 케이스가 빨개진다** |
 
 > **`@CurrentMember` 를 받지 않는 핸들러에는 이 집행이 닿지 않는다.** [../tech-stack.md §2.1](../tech-stack.md)이 적어 둔 전제가 그대로 적용된다 — 보호는 그 애노테이션을 받는 핸들러에서만 성립하고, `.authenticated()` 만 걸린 핸들러가 생기면 그 자리는 비어 있다. **이 항목이 그 전제를 없애지 않는다.**
+
+---
+### D-06 "직접 작성할 것은 컨버터뿐이다" 를 좁힌다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` (결정에 따라 세 저장소의 주석이 뒤따른다) |
+| 의존 | 없다. **1차 완료를 막지 않는다** |
+| 참조 | [../tech-stack.md §2.1](../tech-stack.md), [../conventions.md §9.5](../conventions.md), [../security.md §5.1](../security.md) |
+
+**M-12 리뷰가 올렸다.** [../tech-stack.md §2.1](../tech-stack.md)이 "직접 작성할 것은 `role` claim 을 `GrantedAuthority` 로 바꾸는 **컨버터뿐이다**" 를 적는데, **같은 절이 뒤에서 "Claim 계약 검증은 이 목록에 없다" 로 한정한다.** 플랫하게 거짓은 아니지만 **유일성 주장**이고([../conventions.md §9.5](../conventions.md)), **단독으로 인용되면 "보안 코드는 컨버터 하나" 로 읽힌다.**
+
+**실제로 그렇게 인용됐다.** 세 저장소의 `RoleClaimConverter` javadoc 이 그 문장을 옮겨 적었다 — member 에는 손으로 쓴 보안 클래스가 넷 더 있다(`ClaimContractValidator`·`SecurityErrorResponder`·`InternalApiKeyFilter`·`CurrentMemberArgumentResolver`). **정본의 유일성 주장이 코드 주석 셋으로 번진 사례**다.
+
+**정해야 하는 것** — 그 문장을 **무엇으로 좁히는가.** M-12 리뷰의 제안: "스타터가 하는 것은 **서명 검증·만료 확인·`SecurityContext` 주입**이고, **`GrantedAuthority` 변환과 Claim 계약 검증은 서비스가 작성한다**". 그러면 §2.1 의 집행 지점 표(member 는 디코더, board 는 리졸버, auth 는 리졸버)와 어긋나지 않는다.
+
+**완료 기준**
+- [ ] §2.1 에 **유일성 주장이 없다** — 스타터의 몫과 서비스의 몫이 갈려 적혀 있다
+- [ ] 세 저장소의 `RoleClaimConverter` javadoc 이 그 문장을 **더는 인용하지 않거나 좁혀진 쪽을 인용한다**. `M-13`(member)·`B-12`(board)가 그 자리를 이미 맡는다 — **auth 에는 `RoleClaimConverter` 가 없다**(M-12 리뷰 실측: `global/security` 에 다섯 클래스가 있고 그 컨버터는 없다)
+- [ ] `python tools/check_refs.py` 를 **커밋 직전에** 돌려 통과했고 그 출력을 커밋 메시지에 남겼다
+
+> **코드 주석 셋이 정본 한 문장에 매달려 있다.** 그래서 순서가 **정본 먼저**다 — 주석을 먼저 고치면 무엇을 인용할지 정해지지 않는다. `M-13`·`B-12` 가 그 주석을 고칠 때 이 항목이 아직 `todo` 면, **인용을 걷어내는 쪽**(문장을 가리키지 않고 자기 저장소의 사실만 적는 쪽)으로 한다.
 
 ---
 ### D-03 로컬 바인드 로그가 비밀번호 해시를 남긴다 [정본 개정]

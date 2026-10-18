@@ -2,7 +2,7 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v25
+version: v26
 updated: 2026-10-18
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
@@ -170,7 +170,7 @@ B-11 리뷰 실측이 그 모양이다. 끈 쪽에서 3개가 빨개지므로 `c
 
 - 돌리기 전에 **결과 디렉터리를 지운다**(`build/test-results/test`). 지우면 안 돈 실행은 결과가 없다
 - **변이 적용 스크립트가 패턴 수를 세어 1이 아니면 거기서 죽게** 만든다. 조용히 0건을 바꾸지 않는다
-- **gradle 종료 코드와 `tests completed` 줄을 둘 다 기록한다.** 하나만 보면 위 두 경로를 구별할 수 없다
+- **gradle 종료 코드와 결과 XML 집계를 둘 다 기록한다.** 하나만 보면 위 두 경로를 구별할 수 없다 — `build/test-results/test/TEST-*.xml` 의 `tests`·`failures`·`errors`·`skipped` 를 더하고 **XML 파일 수**도 적는다. **`N tests completed` 줄에 기대지 마라 — gradle 은 실패가 있을 때만 그 줄을 찍는다**(M-12 리뷰 실측). 통과한 실행에서 그 줄을 찾으면 없고, 없는 것을 "안 돌았다" 로 오판한다
 
 > **변이 패턴을 손으로 escape 하지 마라.** 위 사고의 발단은 한글 식별자를 바이트로 치환할 때 `요`(EC 9A 94)를 `용`(EC 9A A9)으로 잘못 적어 패턴이 0건이 된 것이다. 패턴은 **소스 인코딩으로 그대로** 쓴다.
 >
