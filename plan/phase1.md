@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v53
+version: v54
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2043,7 +2043,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 ---
 
-### M-13 `RoleClaimConverter` javadoc 의 수량 주장과 거짓 문장 [1차 후]
+### M-13 member javadoc 의 수량 주장과 거짓 인용 [1차 후]
 
 | | |
 | --- | --- |
@@ -2063,11 +2063,13 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **산출물**
 - `global/security/RoleClaimConverter` — javadoc 만. 유일성 주장을 걷고, "세 서비스" 를 **둘**로 고치고, M-12 이후 **값까지 보장된다**는 것을 적는다
+- `global/security/LoginMember` — **`:6` 의 인용이 너무 넓다**(M-12 수정 워커가 찾았다). "요청 본문·**경로 변수**의 식별자를 신뢰하지 않는다 ([../security.md §4](../security.md))" 인데 **§4 는 본문만 말한다**("`account_id = Claim.sub` ← 본문의 식별자를 신뢰하지 않는다"). 그리고 **member 는 경로 변수 식별자를 실제로 읽는다** — `GET /api/v1/members/{accountId}` 가 `permitAll` 이고 그 값이 공개 조회의 **조회 키**다. **주체의 식별자**에 한정해 적거나 인용을 §4 가 뒷받침하는 범위로 좁힌다
 
 **완료 기준**
 - [ ] 유일성 주장("…뿐이다")이 없다 — 그 자리에 **무엇이 더 있는지** 적거나 주장을 걷는다
 - [ ] "세 서비스가 같은 이름을 쓴다" 가 **둘**로 고쳐져 있다(auth 는 `ROLE_` 을 만들지 않는다)
 - [ ] M-12 이후 **값까지** 보장된다는 것이 적혀 있다 — `ROLE_BOGUS` 조립 경로가 닫혔다
+- [ ] **`LoginMember:6` 의 인용이 §4 가 뒷받침하는 범위 안이다** — 경로 변수를 §4 의 말로 적지 않는다. `GET /{accountId}` 가 그 값을 조회 키로 쓰는 것과 어긋나지 않는다
 - [ ] 기존 테스트가 깨지지 않는다 (**190개**. javadoc 만 고치므로 수가 변하지 않는다)
 
 > **`B-12` 가 board 쪽 같은 문장을 고친다.** 네 번째 문장은 **두 저장소에 바이트 동일**이다(M-12 워커 실측) — 복제 문장이므로 한쪽만 고치면 다른 쪽에 거짓이 남는다. **다섯째 문장은 board 에서는 `B-12` 가 끝난 뒤에야 참이 된다** — 그 순서가 맞다.
