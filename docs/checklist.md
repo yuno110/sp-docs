@@ -16,7 +16,7 @@
 - [x] D-02 role 값 검증의 소유를 정한다 · 상태 done · 리뷰 3라운드
 - [x] D-03 로컬 바인드 로그가 비밀번호 해시를 남긴다 · 상태 done
 - [x] D-04 AGENTS.md 링크 여덟 개를 참으로 만든다 · 상태 done
-- [ ] D-05 만료와 claim 계약 위반이 겹칠 때의 코드를 정한다 · 상태 todo
+- [x] D-05 만료와 claim 계약 위반이 겹칠 때의 코드를 정한다 · 상태 done · 세 서비스 실측 (api-contract.md §8.5)
 - [x] D-06 "직접 작성할 것은 컨버터뿐이다" 를 좁힌다 · 상태 done
 - [x] D-07 .gitattributes 에 텍스트 파일 줄끝을 고정한다 · 상태 done · 커밋 ddd53b4(auth)·9f30b88(member)·ad04e68(board)
 
