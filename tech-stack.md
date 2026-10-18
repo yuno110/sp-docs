@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v26
+version: v27
 updated: 2026-10-18
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -105,6 +105,12 @@ spring:
 > **그 "전부" 를 기계로 묶는 것은 없다.** board 의 `JwtAuthenticationTest` 가 인증 필요 경로를 `@CsvSource` 로 **손으로 유지하는 목록**으로 들고 있어, 새 핸들러가 그 목록에 추가되지 않으면 아무것도 빨개지지 않는다(B-09 리뷰어 지적). 전제를 적어 두는 것으로 받고, 세 서비스가 같은 답을 내는지는 I-04 가 응답으로 비교한다.
 >
 > **그때도 권한이 올라가지는 않는다.** `RoleClaimConverter` 는 null 검사 없이 `ROLE_null` 을 조립하지만, board 에는 `hasRole`·`@PreAuthorize` 사용처가 없고 권한 판정을 서비스가 `LoginMember.role()` 문자열로 한다(실측). 그래서 지금의 비대칭은 **방어 깊이의 차이**이고 관측되는 계약의 차이가 아니다 — [plan/integration.md](plan/integration.md) I-04 가 그 동일성을 3자로 비교한다.
+>
+> **값 검증은 D-02 가 "거부한다" 로 정했다.** 그 전까지는 **열거 밖 `role`(예: `BOGUS`)이 member·board 를 통과했다** — I-04 리뷰 실측으로 auth 401 `A002` · member 200 · board 200 이었다. auth 만 `Role.valueOf` 로 값을 검사하고 나머지 둘은 `hasText` 만 봤다. `M-12`·`B-12` 가 두 집행 지점에 열거 검사를 더해 **셋 다 401 `A002`** 로 맞춘다.
+>
+> **그때도 권한 상승은 아니었다(실측).** board 의 역할 판정 두 자리가 `"ADMIN".equals(loginMember.role())` 의 **문자열 동등 비교**라 열거 밖 값은 전부 "ADMIN 아님" 으로 떨어졌다 — 타인 글·댓글 삭제가 `role=USER` 와 **바이트 동일한 403**(`P002` · `CM002`)이고 `role=ADMIN` 만 204 였다. 역할 기반 인가 규칙(`hasRole`·`@PreAuthorize`)이 세 저장소에 **0건**이라 `RoleClaimConverter` 가 만드는 `ROLE_BOGUS` 는 **만들어지고 아무도 읽지 않았다.**
+>
+> **그래서 고치는 이유는 오늘의 위험이 아니라 전제의 취약함이다.** 안전이 **문자열 비교라는 우연**에 기대고 있었다 — 누가 `hasRole("ADMIN")` 을 쓰거나 board 의 `LoginMember.role` 을 열거로 바꾸는 순간 그 우연이 사라진다. 갈림의 뿌리가 타입이다: board 는 `role` 을 **`String`** 으로 끝까지 들고 가고 auth 는 경계에서 **`Role`** 로 바꾼다.
 
 ### 2.2 발급 — auth-service만
 

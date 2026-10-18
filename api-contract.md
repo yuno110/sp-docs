@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v42
-updated: 2026-10-16
+version: v43
+updated: 2026-10-18
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -493,6 +493,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 - **발급은 auth-service만 한다.** member·board는 공개키로 검증만 한다
 - payload는 암호화되지 않는다. 이메일 등 불필요한 개인정보를 넣지 않는다
 - **`nickname` claim은 없다.** auth는 닉네임을 소유하지 않는다. 작성자 스냅샷은 §5의 내부 API로 얻는다([adr/0012](adr/0012-auth-as-separate-service.md) §3·§6)
+- **소비자는 `role` 값이 열거 안인지 검증하고, 아니면 401 `A002`로 거부한다.** `USER`·`ADMIN` 밖의 값(예: `BOGUS`)은 **계약 위반 토큰**이다 — 서명이 유효해도 그렇다. **D-02 가 그렇게 정했고**(I-04 리뷰 실측: 그때는 auth 401 `A002` · member 200 · board 200 으로 갈려 있었다) `M-12`·`B-12`가 그것을 맞춘다. 거부 사유를 응답으로 구별하지 않는다 — 누락·공백·열거 밖이 **모두 401 `A002`**다
 - **권한 판정은 이 Claim만으로 한다.** 권한을 다른 서비스에 되묻지 않는다. 프로필 보유 확인(§4.2)은 권한 판정이 아니라 작성자 스냅샷 취득이다
 - **검증은 오프라인이다.** 따라서 탈퇴·권한 박탈이 기존 토큰에 즉시 반영되지 않는다. 최대 노출은 Access Token 만료까지이며, 잔여 권한은 그 `role`이 가진 모든 변경 권한이다 — ADMIN이면 **타인 글·댓글 삭제를 포함한다**([security.md §5.2](security.md))
 
