@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v59
+version: v60
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2146,7 +2146,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 > **코드 주석 셋이 정본 한 문장에 매달려 있다.** 그래서 순서가 **정본 먼저**다 — 주석을 먼저 고치면 무엇을 인용할지 정해지지 않는다. `M-13`·`B-12` 가 그 주석을 고칠 때 이 항목이 아직 `todo` 면, **인용을 걷어내는 쪽**(문장을 가리키지 않고 자기 저장소의 사실만 적는 쪽)으로 한다.
 
 ---
-### D-07 `.gitattributes` 에 `*.java` 줄끝을 고정한다 [정본 개정]
+### D-07 `.gitattributes` 에 텍스트 파일 줄끝을 고정한다 [정본 개정]
 
 | | |
 | --- | --- |
@@ -2159,23 +2159,29 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 측정 | 값 |
 | --- | --- |
 | `core.autocrlf` 의 출처 | **시스템 gitconfig** (`file:C:/Program Files/Git/etc/gitconfig true`) — 저장소·전역 설정에는 **없다**. Git for Windows 설치 기본값이다 |
-| 세 저장소의 `.gitattributes` | **똑같이 세 줄**(`/gradlew text eol=lf` · `*.bat text eol=crlf` · `*.jar binary`). **`text=auto` 도 `*.java` 규칙도 없다** |
-| `src/**/*.java` 중 CRLF | auth **4** · member **16** · board **17** |
+| 세 저장소의 `.gitattributes` | **똑같이 세 줄**(`/gradlew text eol=lf` · `*.bat text eol=crlf` · `*.jar binary`). **`text=auto` 도 다른 확장자 규칙도 없다** |
+| `src/**/*.java` 중 CRLF | auth **4** / 59 · member **16** / 50 · board **17** / 64 |
+| 추적되는 `*.yml`·`*.md` 중 CRLF | auth **4**(`AGENTS.md`·`README.md`·`application.yml`·`application-prod.yml`) · member **4**(`AGENTS.md`·`CLAUDE.md`·`docs/checklist.md`·`application-test.yml`) · board **4**(`AGENTS.md`·`CLAUDE.md`·`README.md`·`application.yml`) |
 
 **규칙이 아니라 체크아웃 이력이 상태를 정한다.** 인덱스는 LF 인데 작업 트리는 체크아웃마다 CRLF 가 되므로, **같은 파일이 작업자에 따라 LF 이거나 CRLF 다.** 그래서 이 세션의 워커들이 매번 줄끝을 세어야 했고, `git add` 때마다 `LF will be replaced by CRLF` 경고가 찍혔다.
 
-**고치면 사고의 조건 자체가 사라진다.** `*.java text eol=lf` 한 줄이면 작업 트리가 고정되고, **Git Bash 의 `sed`·`awk`·`grep` 이 CR 을 먹어 바이트 복원을 깨뜨리는 사고**([../process/review-policy.md §4.1](../process/review-policy.md))가 `*.java` 에서는 일어날 수 없다.
+**`*.java` 만 고정하면 사고가 난 파일 종류가 남는다.** 이 절의 앞 판은 산출물과 완료 기준을 `*.java` 한 줄로 적었는데, **[../process/review-policy.md §4.1](../process/review-policy.md) 이 기록한 실제 사고는 `.yml` 에서 났다** — I-03 리뷰가 57줄 CRLF 파일의 줄끝을 `sed … | od -c` 로 확인해 **LF 로 오진한 일**이고, 그 파일은 `src/main/resources` 의 yml 이다. `*.java` 규칙은 그 조건을 **`.java` 에서만** 없앤다. 위 표의 둘째 행이 그 잔여를 센 것이고, 그래서 범위를 **텍스트 파일 전체**로 넓힌다.
+
+**고치면 사고의 조건 자체가 사라진다.** `* text=auto eol=lf` 가 작업 트리를 고정하고, **Git Bash 의 `sed`·`awk`·`grep` 이 CR 을 먹어 바이트 복원을 깨뜨리는 사고**([../process/review-policy.md §4.1](../process/review-policy.md))가 일어날 수 없다. `text=auto` 라 이진 파일은 git 의 탐지에 맡기고, `*.bat`(CRLF 가 필요하다)·`*.jar`(binary)는 **뒤에 오는 명시 규칙이 이긴다.**
 
 **산출물**
-- 세 저장소의 `.gitattributes` — `*.java` 의 줄끝을 고정하는 한 줄. **세 저장소에 같은 내용으로 둔다**(`AGENTS.md` 가 그렇게 요구한다)
+- 세 저장소의 `.gitattributes` — `* text=auto eol=lf` 를 **먼저** 두고 기존 세 줄을 그 뒤에 남긴다(뒤가 이긴다). **세 저장소에 같은 내용으로 둔다**(`AGENTS.md` 가 그렇게 요구한다)
 
 **완료 기준**
-- [ ] 세 `.gitattributes` 가 **바이트 동일**하고 `*.java` 규칙을 담는다
-- [ ] `git check-attr text eol -- <아무 .java>` 가 세 저장소에서 **`unspecified` 가 아니다**(지금은 둘 다 `unspecified` 다 — B-12 실측)
+- [ ] 세 `.gitattributes` 가 **바이트 동일**하고 `*.bat` 는 여전히 `eol=crlf` 로 해석된다(`git check-attr` 로 확인한다 — 규칙 순서를 틀리면 조용히 뒤집힌다)
+- [ ] `git check-attr text eol -- <아무 .java>`·`<아무 .yml>`·`<아무 .md>` 가 세 저장소에서 **`unspecified` 가 아니다**(앞 판에서는 전부 `unspecified` 였다 — B-12 실측)
 - [ ] **재정규화의 영향을 측정해서 적는다** — `git add --renormalize` 가 무엇을 바꾸는지. B-12 구현은 "인덱스가 이미 LF 라서 필요 없다" 고 **추론했고 재지 않았다**. 그 추론을 그대로 믿지 말고 **재서** 적는다
+- [ ] **작업 트리에 CRLF 가 남지 않는다** — 속성 추가만으로는 바뀌지 않는다는 것이 측정값이다(아래 블록)
 - [ ] 세 저장소의 테스트가 그대로 통과한다 (auth 224 · member 190 · board 282)
 
 > **`.gitattributes` 를 바꾸는 것은 저장소 설정 변경이고 과거 커밋의 내용을 바꾸지 않는다** — 다만 그것도 위의 측정 대상이다. 체크아웃된 작업 트리의 줄끝은 바뀔 수 있으므로 **각 저장소에서 테스트를 한 번 돌려 확인한다.**
+
+> **속성을 추가해도 작업 트리는 그대로다. 측정값이다**(2026-10-18, auth·board). `git add --renormalize .` 가 바꾼 `.java` blob 은 **0개**였다 — 인덱스가 이미 LF 라는 추론은 맞았다. 그런데 **그 뒤에도 작업 트리의 CRLF 개수는 줄지 않았다**(board 17 → 17). 속성은 **다음 체크아웃**에 적용되므로, 해당 파일을 `rm` 후 `git checkout --` 로 다시 받아야 0 이 된다. **"규칙을 넣었으니 상태가 바뀌었다" 는 추론이 여기서 틀린다.**
 
 ---
 
