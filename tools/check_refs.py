@@ -94,7 +94,9 @@ def check_versions(out):
             ['git', 'diff', 'HEAD', '--name-only'], cwd=ROOT,
             stderr=subprocess.DEVNULL).decode('utf-8').split()
     except Exception:
-        return []
+        # git unavailable (no repo, no git binary). The check cannot run - say so
+        # instead of returning silently, or an absent line reads like a pass.
+        return None
 
     missing = []
     for rel_path in changed:
@@ -115,6 +117,19 @@ def check_versions(out):
             out.write('  %s\n' % rel_path)
     else:
         out.write('version bumps: OK\n')
+    return missing
+
+
+def report_versions(out):
+    """Run the version check and keep its silence visible.
+
+    check_versions returns None when git is unavailable. Printing nothing in
+    that case is indistinguishable from a pass, so name it.
+    """
+    missing = check_versions(out)
+    if missing is None:
+        out.write('version bumps: SKIPPED (git unavailable)\n')
+        return []
     return missing
 
 
@@ -161,7 +176,7 @@ def main():
         out.write('link targets: OK\n')
 
     out.write('\n')
-    missing = check_versions(out)
+    missing = report_versions(out)
 
     return 1 if (bad or nolink or missing) else 0
 

@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v28
+version: v29
 updated: 2026-10-18
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -92,7 +92,7 @@ spring:
 >
 > **권한 상승은 아니다(실측).** board 의 역할 판정 두 자리가 `"ADMIN".equals(loginMember.role())` 의 **문자열 동등 비교**라 열거 밖 값은 전부 "ADMIN 아님" 으로 떨어진다 — 타인 글·댓글 삭제가 `role=USER` 와 **바이트 동일한 403**(`P002` 126B · `CM002` 124B)이었고 `role=ADMIN` 만 204 였다. 역할 기반 인가 규칙(`hasRole`·`@PreAuthorize`)이 세 저장소에 **0건**이므로 `RoleClaimConverter` 가 만드는 `ROLE_BOGUS` 는 **만들어지고 아무도 읽지 않는다.** 즉 **안전한 쪽으로 닫힌다.**
 >
-> **그래서 고치는 이유는 오늘의 위험이 아니라 그 닫힘이 설계가 아니라는 것이다.** 안전이 **비교의 모양**에 딸려 온다 — "ADMIN 과 같을 때만 통과" 라서 모르는 값은 더 좁은 분기로 떨어진다. **모르는 값이 허용 분기로 가는 표현이 하나라도 생기면 닫히지 않는다**: 역할이 늘어 "USER 만 제약한다" 로 **역전된 검사**가 적히는 경우, 부정형 권한 표현(`!hasRole('USER')`·기본 분기가 허용인 `switch`·`getOrDefault(role, ALL)`), 그리고 `RoleClaimConverter` 가 **검사 없이 claim 값을 권한 이름으로 올리는 것**(권한 이름을 키로 쓰는 규칙이 생기면 그 키를 발급자가 아니라 claim 값이 고른다). **`hasRole("ADMIN")` 도입과 열거 전환은 반례가 아니다** — 둘 다 안전하게 닫힌다(앞 판이 그 둘을 위험의 계기로 적었는데 **틀렸다**. D-02 리뷰가 잡았다). 열거 전환의 비용은 다른 데 있다: board 리졸버의 catch 가 `NumberFormatException | NullPointerException` 이라 맨 `IllegalArgumentException` 을 받지 못해 **401 `A002` 가 아니라 500 + `ERROR` 경보**가 된다.
+> **그래서 고치는 이유는 오늘의 위험이 아니라 그 닫힘이 설계가 아니라는 것이다.** 안전이 **비교의 모양**에 딸려 온다 — "ADMIN 과 같을 때만 통과" 라서 모르는 값은 더 좁은 분기로 떨어진다. **모르는 값이 허용 분기로 가는 표현이 하나라도 생기면 닫히지 않는다**: 역할이 늘어 "USER 만 제약한다" 로 **역전된 검사**가 적히는 경우, 부정형 권한 표현(`!hasRole('USER')`·기본 분기가 허용인 `switch`·`getOrDefault(role, ALL)`), 그리고 `RoleClaimConverter` 가 **검사 없이 claim 값을 권한 이름으로 올리는 것**(권한 이름을 키로 쓰는 규칙이 생기면 그 키를 발급자가 아니라 claim 값이 고른다). **`hasRole("ADMIN")` 도입과 열거 전환은 반례가 아니다** — 둘 다 안전하게 닫힌다(앞 판이 그 둘을 위험의 계기로 적었는데 **틀렸다**. D-02 리뷰가 잡았다). 열거 전환의 비용은 다른 데 있다: board 리졸버의 **`role()` 에는 catch 가 없고** `accountId()` 의 catch 는 `NumberFormatException | NullPointerException` 이라 맨 `IllegalArgumentException` 을 받지 못한다 — **어느 쪽이든 401 `A002` 가 아니라 500 + `ERROR` 경보**가 된다.
 >
 > **타입은 아직 미결이다** — board 의 `LoginMember` 는 `role` 을 **`String`** 으로 끝까지 들고 가고 auth 의 `LoginAccount` 는 경계에서 **`Role`** 로 바꾼다. **값 검증은 D-02 가 정했고 타입은 정하지 않았다**(B-12 가 그것을 명시적으로 범위 밖에 뒀다). 값 검증의 비용은 측정됐다: **계약 밖 값을 넘기는 호출 지점이 없어** 깨지는 테스트가 **0건**이다(팩토리는 `role` 을 자유 문자열로 받으므로 새 메서드 없이 `"BOGUS"` 를 넘기면 된다 — 타입으로 막히는 것은 auth 뿐이다). **그 0 은 지정된 집행 지점에서만 0 이다** — board 에서 디코더에 검증기 빈을 더하면 `JwtDecoderValidatorsTest` 가 빨개진다. 같은 사실의 뒷면이 **지금의 fail-open 을 고정하는 테스트도 없다**는 것이다.
 
