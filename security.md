@@ -2,7 +2,7 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v13
+version: v14
 updated: 2026-10-18
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
@@ -186,8 +186,12 @@ boolean ok = (account != null)
 | 판정 | 위치 |
 | --- | --- |
 | 인증 필요 여부(경로별) | `SecurityFilterChain`의 `permitAll` / `authenticated` |
-| ADMIN 여부 | `role` claim 기반 `GrantedAuthority` — **member·board가 갖는다.** auth는 자기 경로에 ADMIN 전용이 없어 변환을 두지 않고, 권한을 `LoginAccount.role`로만 전달한다 |
+| ADMIN 여부 | **board 의 Service 계층이 `LoginMember.role()` 문자열을 비교한다** — `"ADMIN".equals(...)` 가 `PostService`·`CommentService` 두 자리에 있다. **`GrantedAuthority` 로 판정하지 않는다** — `hasRole`·`@PreAuthorize`·`hasAuthority` 사용처가 세 저장소에 **0건**이다(D-02 리뷰 실측). **member 는 이 판정을 갖지 않는다** — §5.2 의 매트릭스에서 ADMIN 으로 갈리는 것이 전부 board 기능이다. auth 는 변환을 두지 않고 권한을 `LoginAccount.role` 로만 전달한다 |
 | **소유자 검증(본인 글인가)** | **Service 계층** |
+
+> **`RoleClaimConverter` 가 만드는 `ROLE_` 권한은 만들어지고 아무도 읽지 않는다. D-02 리뷰 실측.** 세 저장소에 역할 기반 인가 규칙이 없어서다 — 그래서 열거 밖 `role` 이 와도 **안전한 쪽으로 닫혔다**(타인 글·댓글 삭제가 `role=USER` 와 바이트 동일한 403). **그 닫힘은 설계가 아니라 비교의 모양에 딸려 온 것**이고 `D-02` 가 그래서 값 검증을 요구했다 — 자세한 것은 [tech-stack.md §2.1](tech-stack.md)이 갖는다.
+>
+> **이 행의 앞 판이 "`role` claim 기반 `GrantedAuthority` — member·board가 갖는다" 였다. 두 겹으로 틀렸다** — 판정 수단이 `GrantedAuthority` 가 아니고(문자열 비교다), member 는 그 판정을 갖지 않는다. **member·board 의 `LoginMember` javadoc 이 그 틀린 문장을 옮겨 적었다** — `M-12`·`B-12` 가 두 저장소에서 각각 고친다(거짓의 종류가 다르다).
 
 소유자 검증을 Controller나 Security 설정에 두지 않는다. 리소스를 조회해야 판정할 수 있기 때문이다.
 

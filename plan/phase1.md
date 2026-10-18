@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v50
+version: v51
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2041,6 +2041,38 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 ---
 
+### M-13 `RoleClaimConverter` javadoc 의 수량 주장과 거짓 문장 [1차 후]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-member` |
+| 의존 | **M-12** (그 항목의 구현 워커가 찾았다) |
+| 참조 | [../security.md §5.1](../security.md), [../tech-stack.md §2.1](../tech-stack.md), [../conventions.md §9.5](../conventions.md) |
+
+**M-12 구현 워커가 읽고 문장별로 판정해 올렸다.** 고치지 않고 보고한 것이 맞다 — M-12 산출물이 그 파일을 담지 않았다.
+
+| 문장 | 판정 |
+| --- | --- |
+| `role` claim 을 `GrantedAuthority` 로 바꾼다 | **참** |
+| "직접 작성할 것으로 남겨 둔 것이 **이 컨버터뿐이다**" | **거짓은 아니지만 유일성 주장**이다 — [../tech-stack.md §2.1](../tech-stack.md)의 문장을 인용했는데 **같은 절이 바로 뒤에서 "Claim 계약 검증은 이 목록에 없다" 로 한정한다.** 실제로 member `global/security` 에 손으로 쓴 클래스가 넷 더 있다(`ClaimContractValidator`·`SecurityErrorResponder`·`InternalApiKeyFilter`·`CurrentMemberArgumentResolver`). 단독으로 읽으면 "보안 코드는 이것 하나" 로 읽힌다 — [../conventions.md §9.5](../conventions.md)가 금지한 모양이다 |
+| `ROLE_` 은 `hasRole` 이 보는 이름이고 B-04 검증표가 그것을 요구한다 | **참이고 주소도 맞다**(§6 의 B-04 절. 워커가 확인했다). **프레임워크 사실을 적을 뿐 member 가 `hasRole` 로 판정한다고 말하지 않는다** |
+| "— **세 서비스가 같은 이름을 쓴다**" | **거짓이다.** `sp-auth/src/main` 에 `ROLE_` **0건**, `GrantedAuthority` 를 쓰는 파일 **0건**이다(양성 대조: board 는 적중). auth 는 그 이름을 **아예 만들지 않는다** — [../security.md §5.1](../security.md)이 그렇게 정했다. 쓰는 것은 **둘**이다 |
+| `role` claim 존재는 `ClaimContractValidator` 가 보장하므로 여기서 다시 보지 않는다 | **참이고 M-12 가 더 강하게 만들었다** — 이제 **값까지** 보장하므로 이 컨버터가 `ROLE_BOGUS` 를 조립할 경로가 member 에서 닫혔다. **javadoc 이 아직 그것을 적지 않는다** |
+
+**산출물**
+- `global/security/RoleClaimConverter` — javadoc 만. 유일성 주장을 걷고, "세 서비스" 를 **둘**로 고치고, M-12 이후 **값까지 보장된다**는 것을 적는다
+
+**완료 기준**
+- [ ] 유일성 주장("…뿐이다")이 없다 — 그 자리에 **무엇이 더 있는지** 적거나 주장을 걷는다
+- [ ] "세 서비스가 같은 이름을 쓴다" 가 **둘**로 고쳐져 있다(auth 는 `ROLE_` 을 만들지 않는다)
+- [ ] M-12 이후 **값까지** 보장된다는 것이 적혀 있다 — `ROLE_BOGUS` 조립 경로가 닫혔다
+- [ ] 기존 테스트가 깨지지 않는다 (**190개**. javadoc 만 고치므로 수가 변하지 않는다)
+
+> **`B-12` 가 board 쪽 같은 문장을 고친다.** 네 번째 문장은 **두 저장소에 바이트 동일**이다(M-12 워커 실측) — 복제 문장이므로 한쪽만 고치면 다른 쪽에 거짓이 남는다. **다섯째 문장은 board 에서는 `B-12` 가 끝난 뒤에야 참이 된다** — 그 순서가 맞다.
+>
+> **테스트로 고정되지 않는다.** javadoc 이므로 변이로 잡을 수 없고, 완료 기준은 **읽어서** 판정한다. 측정으로 받칠 수 있는 것은 수량 주장 쪽이다 — `sp-auth/src/main` 의 `ROLE_` 0건에 **양성 대조를 세워** 보고한다.
+
+---
 ### B-12 열거 밖 `role` 을 거부한다 [1차 후]
 
 | | |
@@ -2054,6 +2086,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **산출물**
 - `global/security/CurrentMemberArgumentResolver` — `role` 이 열거 안인지 검사한다. 아니면 지금 `hasText` 가드가 내는 것과 **같은 예외**를 던진다(→ 401 `A002`). **디코더에 검증기 빈을 더하지 않는다** — `JwtDecoderValidatorsTest` 가 "기동된 디코더의 claim 검증기가 **기본 둘뿐이다**" 를 단언한다(그 선택이 테스트로 강제돼 있다)
 - `global/security/LoginMember` — javadoc 의 **"권한 판정은 `RoleClaimConverter` 가 만든 `GrantedAuthority` 로 한다" 가 이미 거짓이다**(실제 판정은 `loginMember.role()` 문자열 비교이고 `hasRole`·`@PreAuthorize` 사용처가 0건이다, D-02 리뷰 실측). **이 항목이 그 파일의 이웃을 건드리므로 함께 고친다**
+- `global/security/RoleClaimConverter` — javadoc 의 **"세 서비스가 같은 이름을 쓴다" 가 거짓이다**(`sp-auth/src/main` 에 `ROLE_` 0건, M-12 워커 실측). **둘**로 고친다. 그 문장은 **member 쪽과 바이트 동일한 복제**이고 `M-13` 이 member 쪽을 맡는다 — 한쪽만 고치면 다른 쪽에 거짓이 남는다
 
 **완료 기준**
 - [ ] `role` 이 열거 밖인 토큰에 **401 `A002`** 다. 누락·공백과 응답이 같다
