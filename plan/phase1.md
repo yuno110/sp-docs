@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v54
+version: v55
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2113,6 +2113,10 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | `role = "USER"` 로 타인 글 삭제 | **403 `P002`** |
 | 열거 검사를 지우는 변이 | **첫 두 케이스가 빨개진다** |
 
+> **출처를 "쓴다" 는 것도 테스트로 관측되지 않는다. B-12 실측이고 M-12 와 같다.** `ContractRole` 과 그 값을 그대로 두고 **읽지 않게만** 바꾼 변이 네 갈래(리졸버만 리터럴·정규식·`switch`, 두 서비스만 리터럴, 세 자리 전부)가 **전부 0 red**(282/0/0/0, 종료 코드 0)였다. **출처를 읽는 자리가 셋이어도 다르지 않았다** — 잡히는 것은 **값이 틀릴 때**이고(ADMIN 상수 값만 어긋내면 3 red, 허용값 집합을 어긋내면 54 red) **값이 같은 채 수단만 다르면 동작이 바이트까지 같다.** 빌드에도 신호가 없다 — 세 자리를 모두 비껴간 상태에서 두 서비스의 `ContractRole` import 가 쓰이지 않는데 javac 이 경고하지 않았다.
+>
+> **그래서 이 기준의 판정 수단은 `grep` 이다.** `src/main` 의 `"USER"`·`"ADMIN"` 리터럴이 **출처 선언 두 줄뿐**인지 보고, **양성 대조를 세워** 확인한다(변이 상태에서 그 수가 3·4·5 줄로 늘었다 — 즉 `grep` 은 가른다). **테스트를 더하지 않는다**([../AGENTS.md](../AGENTS.md) 불변식 11).
+>
 > **`@CurrentMember` 를 받지 않는 핸들러에는 이 집행이 닿지 않는다.** [../tech-stack.md §2.1](../tech-stack.md)이 적어 둔 전제가 그대로 적용된다 — 보호는 그 애노테이션을 받는 핸들러에서만 성립하고, `.authenticated()` 만 걸린 핸들러가 생기면 그 자리는 비어 있다. **이 항목이 그 전제를 없애지 않는다.**
 
 ---
