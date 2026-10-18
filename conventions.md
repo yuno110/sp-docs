@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v21
-updated: 2026-10-15
+version: v22
+updated: 2026-10-18
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -157,7 +157,7 @@ public class PostService {
 
 **세 서비스가 이 표를 똑같이 구현한다.** 다만 **클래스 자체는 복제 대상이 아니다**(§7.2) — 서비스별 `ErrorCode`에 의존하므로 각자 쓴다. 같아야 하는 것은 **핸들러 집합·코드·로그 수준·응답 본문**이고, 그 일치를 [plan/integration.md](plan/integration.md) I-04가 3자 비교한다. **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
 
-**로그 수준을 가른다.** 클라이언트 오류는 `warn`, **마지막 그물만 `error`**다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](../AGENTS.md) 불변식 9).
+**로그 수준을 가른다.** 클라이언트 오류는 `warn`, **마지막 그물만 `error`**다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](AGENTS.md) 불변식 9).
 
 **양쪽을 다 단언한다.** 클라이언트 오류가 `error`가 아닌 것만 보면 **반대 방향이 열린다** — 마지막 그물을 `warn`으로 낮추면 500이 ERROR 경보를 전혀 만들지 않게 되고, 그것이 더 나쁘다. M-02 리뷰에서 그 변이가 잡히지 않는 것이 측정됐다.
 

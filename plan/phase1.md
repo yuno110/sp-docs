@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v57
+version: v58
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2243,6 +2243,10 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | **(i) 여덟 곳을 평문 참조로 바꾼다** | **다섯 파일 여덟 곳이고 그중 둘이 개정 대상**이다 — `api-contract.md` 3건 · `conventions.md` 1건(각각 `version`·`updated` 를 올려야 한다. `api-contract.md` 는 세 서비스 공유 계약이다). **나머지 넷은 개정 대상이 아니다** — `plan/phase1.md` 2건 · `nfr.md` 1건 · `process/review-policy.md` 1건(`nfr.md` 는 `version` 을 갖지만 [../process/review-policy.md §8](../process/review-policy.md)의 개정 대상 목록에 없다). 마지막 1건은 **§4(체크 항목) 끝에 있고, 완료 기준 2가 지우는 §8 의 부채 줄과는 다른 자리다** — 기준 2를 만족해도 그 링크는 남으므로 따로 고친다(D-02 3라운드 실측: 링크는 §4, 부채 줄은 §8 이고 부채 줄에는 마크다운 링크가 없다) |
 | **(ii) `sp-docs/AGENTS.md` 를 만든다** | **파일 하나 추가로 여덟 링크가 한 번에 참이 된다.** 개정 대상을 건드리지 않는다. 세 사본이 **바이트 동일**이므로(md5 동일, 5584B, D-02 리뷰 실측) 넷째 사본의 유지 비용은 [../adr/0002](../adr/0002-separate-repositories.md)가 이미 "거의 바뀌지 않아 낮다" 로 받은 성질이다 |
 
+> **결정: (ii) 를 택했고, 그것만으로는 모자랐다. 2026-10-18 실측.** `sp-docs/AGENTS.md` 를 세 사본과 **바이트 동일**로 만들었지만(md5 `453823f9d80131612ad2debb78d68a55`) **여덟 중 셋만 참이 됐다** — `plan/`·`process/` 안의 셋이다. **루트 문서 다섯의 `../AGENTS.md` 는 `sp-docs` 바깥을 가리킨다**(그 문서가 저장소 루트에 있으므로). 그 다섯을 `AGENTS.md` 로 고쳤다(`api-contract.md` 3 · `conventions.md` 1 · `nfr.md` 1). **M-12 리뷰의 "파일 하나로 여덟이 한 번에 참이 된다" 는 절반이 틀렸고 내가 그것을 이 절에 옮겼다** — 경로가 문서의 위치에 달려 있다는 것을 세지 않았다.
+>
+> **지금 대상 없는 `.md` 링크는 셋이고 전부 [../process/review-policy.md §8](../process/review-policy.md)의 예시다**(`other.md`·`tech-stack.md`·`phase1.md` — 도구가 무엇을 검사하는가를 보이는 샘플이라 대상이 없는 것이 정상이다). 그 절의 부채 줄은 **지웠고** 그 자리에 이 구분을 적었다. **네 사본을 바이트 동일로 유지하는 규칙은 [../adr/0002-separate-repositories.md](../adr/0002-separate-repositories.md)에 적었다.**
+>
 > **부채의 진짜 모양은 링크가 아닐 수 있다.** 지금 `sp-docs` 에는 `AGENTS.md` 도 `CLAUDE.md` 도 **없다** — `D-xx` 를 하는 워커만 불변식 문서 없이 일하고, 정작 그 불변식을 **인용하는** 문서가 `sp-docs` 에 모여 있다. D-02 리뷰가 **(ii) 를 먼저 재라**고 권고했다. 판정은 이 항목의 리뷰어가 한다.
 >
 > **D-02 가 이 절을 쓰면서 같은 맹점에 세 번 빠졌다. D-02 3라운드가 전수로 잡았다.** 이 절의 세 링크가 `../adr/0002-shared-nothing-repos.md`(없는 파일)를 가리켰고 — 실제는 `adr/0002-separate-repositories.md` 다 — **라벨에 `§` 가 없어 `check_refs.py` 가 통과시켰다.** 그중 하나는 **완료 기준**이어서, 따랐다면 워커가 없는 파일을 새로 만들어 **ADR 0002 가 두 벌로 쪼개졌을 것이다.** 경로는 고쳤다(`380b398` 다음 커밋). **완료 기준 1을 `AGENTS.md` 가 아니라 "대상 없는 `.md` 링크 0건" 으로 둔 이유가 이것이다** — 설명만 있는 맹점은 다시 밟힌다.

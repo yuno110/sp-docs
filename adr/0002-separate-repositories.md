@@ -2,8 +2,8 @@
 title: 저장소 분리와 문서 전용 저장소
 type: adr
 status: accepted
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-10-18
 read_when: "저장소를 왜 나눴는지, 문서를 어디에 두는지 확인할 때"
 related: [README.md, ../README.md]
 ---
@@ -44,6 +44,10 @@ accepted
 - 작업 상태(`checklist.md`)를 한 곳에 모을 수 없게 되었다. **항목별로 원본을 하나로 두는 방식**으로 해결한다. M-xx 상태는 member 저장소, B-xx 상태는 board 저장소에 있다([../plan/README.md](../plan/README.md))
 - 두 서비스에 걸친 변경(예: JWT Claim 스펙)을 한 커밋으로 묶을 수 없다. 계약 지점을 문서에 먼저 확정하고 각 저장소가 따르는 방식으로 대응한다([../api-contract.md §6](../api-contract.md))
 - `AGENTS.md`를 두 저장소에 복제해야 한다. 프로젝트 무관한 행동 원칙이라 거의 바뀌지 않아 비용이 낮다
+
+> **2026-10-18 (D-04): 사본이 넷이 됐다.** `sp-docs` 에도 `AGENTS.md` 를 둔다 — `D-xx` 를 하는 워커만 불변식 문서 없이 일하고 있었고, 정작 그 불변식을 **인용하는** 문서가 `sp-docs` 에 모여 있었다. **네 사본은 바이트 동일로 유지한다**(md5 `453823f9d80131612ad2debb78d68a55`). 한쪽을 고치면 넷을 고친다.
+>
+> **`sp-docs` 안에서는 `AGENTS.md` 로 가리킨다**(루트 문서) 또는 `../AGENTS.md`(`plan/`·`process/` 안). D-04 전에는 루트 문서 다섯이 `../AGENTS.md` 로 적어 **저장소 바깥**을 가리켰다 — 파일을 만드는 것만으로는 그 다섯이 참이 되지 않았다(실측).
 - 워커가 저장소 2~3개를 봐야 한다. 문서 저장소는 읽기 전용이라 부담이 작다
 
 ## 재검토 조건

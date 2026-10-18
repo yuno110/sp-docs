@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v44
+version: v45
 updated: 2026-10-18
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -339,7 +339,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 **`keyword` 는 부분 일치다.** `LIKE '%키워드%'` 이고 전방 일치가 아니다 — 그래서 `idx_post_title` 이 쓰이지 않는다([domain-model.md §4.3](domain-model.md)). 이 의미론은 외부에서 관측되므로 여기서 고정한다. 대소문자는 스키마 콜레이션이 `utf8mb4_general_ci` 라 구분하지 않는다([tech-stack.md §4.1](tech-stack.md)).
 
-**`keyword` 와 `searchType` 은 둘 다 있거나 둘 다 없어야 한다.** 한쪽만 오면 400 `C001` 이다 — `searchType` 만 온 경우와 `keyword` 만 온 경우가 **같은 판정이다.** 한쪽을 조용히 무시하면 사용자는 검색이 걸린 줄 알고 전체 목록을 받는다([../AGENTS.md](../AGENTS.md) 불변식 9의 silent degradation 이다).
+**`keyword` 와 `searchType` 은 둘 다 있거나 둘 다 없어야 한다.** 한쪽만 오면 400 `C001` 이다 — `searchType` 만 온 경우와 `keyword` 만 온 경우가 **같은 판정이다.** 한쪽을 조용히 무시하면 사용자는 검색이 걸린 줄 알고 전체 목록을 받는다([../AGENTS.md](AGENTS.md) 불변식 9의 silent degradation 이다).
 
 **공백만인 `keyword` 는 "없음" 으로 본다.** 정규화를 조합 검증보다 **먼저** 한다. 그래서 `keyword=` 만 오면 전체 목록(200)이고, `searchType=TITLE&keyword=` 는 400 `C001` 이다. **"없을 때" 와 "비어 있을 때" 가 같은 판정이 되도록 정규화로 합치는 것이고**, 두 경로에 각각 가드를 두는 것이 아니다([tech-stack.md §4.3](tech-stack.md) 이 설정값에서 같은 구분을 다룬다).
 
@@ -414,7 +414,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 **없는 게시글의 댓글 목록은 404 `P001` 이다.** 빈 페이지 200 이 아니다. 삭제된 게시글도 같다.
 
-> **같은 서비스가 같은 게시글에 두 가지 답을 하지 않는다.** `GET /posts/{id}` 가 404 인데 그 댓글 목록이 200 이면 모순이고, 없는 자원에 대해 "댓글이 없다" 고 답하는 것은 **사실이 아닌 답**이다([../AGENTS.md](../AGENTS.md) 불변식 9가 금지하는 silent degradation 의 성격이다). §4.4 가 존재 여부를 공개 정보로 두었으므로 404 를 내는 데 노출 비용도 없다.
+> **같은 서비스가 같은 게시글에 두 가지 답을 하지 않는다.** `GET /posts/{id}` 가 404 인데 그 댓글 목록이 200 이면 모순이고, 없는 자원에 대해 "댓글이 없다" 고 답하는 것은 **사실이 아닌 답**이다([../AGENTS.md](AGENTS.md) 불변식 9가 금지하는 silent degradation 의 성격이다). §4.4 가 존재 여부를 공개 정보로 두었으므로 404 를 내는 데 노출 비용도 없다.
 >
 > **비용은 상수 시간 조회 하나다.** 작성 경로가 이미 같은 판정을 하므로 판정 지점이 하나 늘지 않는다. 삭제된 게시글의 하위 댓글이 함께 논리 삭제되어([requirements/board.md §5](requirements/board.md) 규칙 3) 결과가 어차피 비는 것은 **그 답이 해롭지 않다는 설명이고 옳다는 근거가 아니다.**
 
@@ -568,7 +568,7 @@ public record FieldError(String field, String message) { }
 
 > **그래서 `C007` 핸들러는 응답의 `Content-Type`을 `application/json`으로 못박는다.** 그러지 않으면 핸들러 자신의 응답이 같은 협상에 걸려 또 빈 본문이 된다.
 
-**상태 코드보다 로그가 더 문제다.** 마지막 그물은 `log.error`로 스택트레이스를 남기므로, **두 경우 모두 ERROR 경보를 만든다**(실측 2건). 흔한 클라이언트 실수가 원인이 서버에 있는 500과 구별되지 않으면 경보가 쓸모를 잃는다([../AGENTS.md](../AGENTS.md) 불변식 9).
+**상태 코드보다 로그가 더 문제다.** 마지막 그물은 `log.error`로 스택트레이스를 남기므로, **두 경우 모두 ERROR 경보를 만든다**(실측 2건). 흔한 클라이언트 실수가 원인이 서버에 있는 500과 구별되지 않으면 경보가 쓸모를 잃는다([../AGENTS.md](AGENTS.md) 불변식 9).
 
 세 서비스가 `GlobalExceptionHandler`를 각자 복제하므로([adr/0007](adr/0007-shared-code-policy.md)) **셋 다 이 둘을 다룬다.** 형식 일치는 [plan/integration.md](plan/integration.md) I-04의 3자 비교에서 확인한다.
 
