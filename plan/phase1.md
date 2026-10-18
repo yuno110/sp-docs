@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v52
+version: v53
 updated: 2026-10-18
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2071,6 +2071,8 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] 기존 테스트가 깨지지 않는다 (**190개**. javadoc 만 고치므로 수가 변하지 않는다)
 
 > **`B-12` 가 board 쪽 같은 문장을 고친다.** 네 번째 문장은 **두 저장소에 바이트 동일**이다(M-12 워커 실측) — 복제 문장이므로 한쪽만 고치면 다른 쪽에 거짓이 남는다. **다섯째 문장은 board 에서는 `B-12` 가 끝난 뒤에야 참이 된다** — 그 순서가 맞다.
+>
+> **`RoleClaimConverter.java` 는 CRLF 다. M-12 리뷰 실측.** `sp-member` 의 java 가 전부 LF 가 아니다 — `src/**/*.java` 중 **16파일이 CRLF** 이고 이 항목이 손대는 파일이 그중 하나다. **`sed`·`awk`·`grep` 으로 고치면 CR 을 먹는다**(Git Bash 측정값). 파이썬 바이트 치환을 쓰고 **고치기 전에 줄끝을 세고 고친 뒤 다시 센다**.
 >
 > **테스트로 고정되지 않는다.** javadoc 이므로 변이로 잡을 수 없고, 완료 기준은 **읽어서** 판정한다. 측정으로 받칠 수 있는 것은 수량 주장 쪽이다 — `sp-auth/src/main` 의 `ROLE_` 0건에 **양성 대조를 세워** 보고한다.
 
