@@ -2,7 +2,7 @@
 title: 통합 검증
 type: plan
 status: living
-version: v21
+version: v22
 updated: 2026-10-18
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
@@ -265,7 +265,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 - [ ] 과거 게시글·**댓글**의 `writer_nickname`이 그대로 남아 있다
 
 **완료 기준 — 2단계까지 수행**
-- [ ] 프로필이 `deleted = true`, `nickname = null`이다
+- [ ] 프로필이 `deleted = true`, `nickname = null`이다. **컬럼으로 확인한다 — API 로는 세울 수 없다**(I-05 리뷰 실측: 조회 응답이 `"nickname":"탈퇴한 회원"` 으로 **가린다**. API 값으로 이 칸을 채우면 가려진 표시 문자열을 `null` 로 적는 것이다)
 - [ ] 같은 계정으로 프로필을 재생성할 수 없다 (409 `M007`)
 - [ ] 같은 이메일로 계정을 재생성할 수 없다 (409 `AU002`)
 - [ ] 과거 게시글이 남아 있고 닉네임도 그대로다
