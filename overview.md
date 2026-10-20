@@ -2,7 +2,7 @@
 title: 프로젝트 개요
 type: explanation
 status: living
-version: v5
+version: v6
 updated: 2026-10-20
 read_when: "프로젝트의 목표·범위·용어를 확인할 때. 처음 합류했을 때 가장 먼저"
 related: [architecture.md, plan/phase1.md, plan/phase2.md]
@@ -13,7 +13,7 @@ related: [architecture.md, plan/phase1.md, plan/phase2.md]
 
 회원 인증/인가와 게시판(게시글·댓글)을 제공하는 **REST API 백엔드 시스템**을 MSA로 구축한다. 프론트엔드와 완전히 분리된 서버로 JSON API만 제공한다.
 
-> **"분리"는 서버의 성질이고 "클라이언트가 없다"는 뜻이 아니다.** 2026-10-20 에 확인용 화면 저장소 `yuno110/sp-frontend` 가 생겼다 — 세 서비스가 엮여 도는지 브라우저에서 보기 위한 것이고 **제품 화면이 아니다**(§3.3). 서버는 그 화면을 서빙하지 않고 JSON 만 돌려준다.
+> **"분리"는 서버의 성질이고 "클라이언트가 없다"는 뜻이 아니다.** 프론트엔드는 `yuno110/sp-frontend` 에 **별 저장소로** 있다(§2). 서버는 그 화면을 서빙하지 않고 JSON 만 돌려주며, 화면은 세 서비스를 HTTP 로 호출한다 — **분리는 그 뜻이다.**
 
 ## 2. 서비스 구성
 
@@ -24,6 +24,8 @@ related: [architecture.md, plan/phase1.md, plan/phase2.md]
 | board-service | `yuno110/sp-board` | 게시글, 댓글 | 8082 | `sp_board` |
 
 **계정과 프로필이 갈라져 있다.** 그래서 가입은 3단계, 탈퇴는 2단계다([adr/0012](adr/0012-auth-as-separate-service.md)).
+
+**프론트엔드는 `yuno110/sp-frontend` 다**(포트 3000). 위 표에 넣지 않는 이유는 **서비스가 아니기 때문이다** — DB 스키마를 갖지 않고 내부 API 를 제공하지 않으며, 세 서비스를 HTTP 로 호출하는 **클라이언트**다. 1차에 게이트웨이가 없으므로 그 화면이 세 주소를 직접 안다([adr/0009](adr/0009-gateway-deferred.md)).
 
 서비스 경계와 통신 방식은 [architecture.md](architecture.md)를 본다.
 
@@ -46,12 +48,15 @@ Kafka 도입(닉네임 즉시 반영), Docker 컨테이너화, API Gateway, 좋�
 
 ### 3.3 범위 제외
 
-- **제품 프론트엔드 화면** — 사용자에게 내보낼 화면을 만들지 않는다. **단계로 묶지 않는다** — "1차에서" 라고 적으면 1차가 끝난 뒤 이 줄이 저절로 허용으로 읽힌다(같은 목록의 나머지 줄에도 단계 수식이 없다). 승격은 **명시적 결정**으로 하고 그때 이 줄을 고친다. **확인용 화면은 예외다**(아래)
 - 실시간 알림(WebSocket), 채팅
 - 소셜 로그인(OAuth2)
 - 결제, 정산
 
-> **확인용 화면은 범위 제외가 아니다.** `yuno110/sp-frontend` 가 2026-10-20 에 생겼다(첫 커밋 `4d65bdf`). **세 서비스가 실제로 엮여 도는지 눈으로 확인하는 도구**이고, 가입 3단계·작성 경로의 member 연동·에러 코드가 화면에 보이는 것이 목적이다. 제품 화면으로 승격하면 **이 줄과 §1 의 블록인용을 함께 고친다** — 그때는 범위가 달라지므로 별 항목으로 세운다([plan/phase1.md](plan/phase1.md) D-08).
+> **프론트엔드 화면은 범위 제외가 아니다.** 앞 판은 이 목록에 "프론트엔드 화면" 을 두었고, `yuno110/sp-frontend` 가 2026-10-20 에 **제품 화면으로 승격되면서** 그 줄을 지웠다([plan/phase1.md](plan/phase1.md) D-09). 그 저장소는 같은 날 확인용 도구로 시작했다(D-08) — **분류가 바뀐 것이고 코드가 바뀐 것이 아니다.**
+>
+> **화면 전용 요구사항 문서는 없다.** 기능은 [requirements/member.md](requirements/member.md)·[requirements/board.md](requirements/board.md)가 정하고 화면은 그것을 따른다. 화면 고유의 결정은 그 저장소의 `CLAUDE.md` 가 갖는다.
+>
+> **품질 기준은 아직 비어 있다.** e2e·접근성·반응형·토큰 보관 방식이 그렇다 — D-09 가 분류만 바꿨고 그쪽은 2차가 받는다.
 
 ## 4. 용어
 

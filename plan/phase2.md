@@ -2,8 +2,8 @@
 title: 2차 작업 계획 (개요)
 type: plan
 status: draft
-version: v1
-updated: 2026-09-15
+version: v2
+updated: 2026-10-20
 read_when: "2차 범위를 확인할 때. 1차 진행 중에는 참고용이며 작업 지시로 쓰지 않는다"
 related: [phase1.md, integration.md, ../adr/0010-kafka-for-nickname-sync.md, ../adr/0005-no-docker-in-mvp.md]
 ---
@@ -22,8 +22,11 @@ related: [phase1.md, integration.md, ../adr/0010-kafka-for-nickname-sync.md, ../
 | 3 | API Gateway | 1차 완료 | [../adr/0009](../adr/0009-gateway-deferred.md) |
 | 4 | 기능 확장 (좋아요·첨부·카테고리·대댓글) | 1차 완료 | [../requirements/](../requirements/) |
 | 5 | 운영 강화 (Resilience4j, 분산 추적) | 3 이후 | [../nfr.md §3](../nfr.md) |
+| 6 | **프론트엔드 제품 품질** | 1차 완료 | [phase1.md](phase1.md) D-09 · 아래 §7 |
 
 1과 2를 묶어서 진행한다. Kafka가 컨테이너를 필요로 하는 지점이기 때문이다.
+
+> **I-04 는 이미 `done` 이다.** §8 이 "I-04 가 `done` 이 되면 상세화한다" 고 적었고 그 조건은 2026-10-18 에 충족됐다. **이 문서는 아직 개요 수준이다** — 상세화를 안 한 것이고 조건을 기다리는 것이 아니다.
 
 ## 2. 컨테이너화
 
@@ -127,6 +130,14 @@ Spring Cloud Gateway를 도입한다. Boot 버전과 호환되는 릴리스 트�
 | 분산 추적 | Micrometer Tracing + Zipkin. `X-Request-Id` 전파를 대체 |
 | JWKS | **auth-service**가 `/.well-known/jwks.json` 제공, member·board가 공개키 자동 획득. **배포 지점 2곳이 사라진다** |
 
-## 7. 상세화 시점
+## 7. 프론트엔드 제품 품질
 
-1차의 I-04가 `done`이 되면 이 문서를 [phase1.md](phase1.md)와 같은 형식(산출물·참조·의존·완료 기준·검증)으로 상세화한다.
+`yuno110/sp-frontend` 는 2026-10-20 에 **확인용 도구로 만들어져 같은 날 제품 화면으로 승격됐다**([phase1.md](phase1.md) D-08·D-09). **승격은 분류만 바꿨다** — 그 항목이 품질 작업을 범위에서 뺐고 **여기가 그것을 받는 자리다.** 넘긴 쪽이 받을 자리를 적지 않으면 그 문장이 공허해진다.
+
+받는 것은 그 저장소의 `CLAUDE.md` 가 **"제품으로서 비어 있는 것"** 으로 적어 둔 목록이다. **그 목록이 정본이고 여기에 옮겨 적지 않는다** — 일부만 옮기면 빠진 것이 범위 밖으로 읽히고, 전부 옮기면 둘 중 어느 쪽이 맞는지 물어야 한다. **항목으로 쪼갤 때 그 목록을 열어서 센다.**
+
+**화면 전용 요구사항 문서는 만들지 않는다.** 기능은 [../requirements/member.md](../requirements/member.md)·[../requirements/board.md](../requirements/board.md)가 정하고 화면이 그것을 따른다(D-09 의 결정).
+
+## 8. 상세화 시점
+
+1차의 I-04가 `done`이 되면 이 문서를 [phase1.md](phase1.md)와 같은 형식(산출물·참조·의존·완료 기준·검증)으로 상세화한다. **그 조건은 2026-10-18에 충족됐고 상세화는 아직 하지 않았다** — 조건을 기다리는 상태가 아니다.
