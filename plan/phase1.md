@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v62
+version: v63
 updated: 2026-10-20
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2390,6 +2390,29 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `tools/check_refs.py` 통과. **통과가 링크의 참을 보증하지 않으므로** 더한 링크는 눈으로 본다
 
 > **승격이 되돌릴 수 있는 결정인지는 적어 두지 않는다.** 사용자의 지시이고 범위 결정이다. 다만 **품질 기준 없이 제품으로 분류되는 기간이 생긴다** — 그 기간의 위험(e2e 없음, 접근성 미검증)은 2차 항목이 닫을 때까지 열려 있고, `sp-frontend` 의 `README` 가 그것을 한계로 계속 적는다.
+
+---
+### D-10 정본 산문의 수·열거·해시를 금지한다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다 |
+| 참조 | [../process/review-policy.md §8](../process/review-policy.md), [../conventions.md §9.5](../conventions.md) |
+
+**`D-08`·`D-09` 의 리뷰 라운드가 전부 산문에서 막혔다.** 계약 정합성은 결함 0건이었고 걸린 것은 수·열거·해시·시점이었다. [../conventions.md §9.5](../conventions.md)가 **수량·유일성**을 이미 금지하는데 **열거·해시·"이미 ~했다" 는 그 목록에 없었다.**
+
+**산출물**
+- [../process/review-policy.md](../process/review-policy.md) §8.1 신설, `version` +1
+- 같은 문서의 낡은 수를 **그 규칙의 첫 적용 대상으로** 고친다 — 절 번호 검사 문단이 정본 편 수를 적고 있었고 `D-04` 가 문서를 더한 뒤로 틀렸다
+
+**완료 기준**
+- [ ] §8.1 이 **금지 목록과 대신 쓸 것**을 함께 적는다. 금지만 적으면 쓸 말이 없어 다시 수를 적는다
+- [ ] 그 절의 예가 **실제로 일어난 일**이다. 가공한 예를 들지 않는다
+- [ ] `review-policy.md` 에 정본 편 수를 적은 자리가 **없다**
+- [ ] `tools/check_refs.py` 통과
+
+> **이 절도 그 규칙을 지킨다.** 막힌 라운드가 몇 번인지 적지 않는다 — 세려면 `D-08`·`D-09` 절을 보면 된다.
 
 ---
 ## 7. 다음 단계
