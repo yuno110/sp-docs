@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v15
-updated: 2026-10-14
+version: v16
+updated: 2026-10-20
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -196,8 +196,10 @@ JWT Claim에 `jti`가 없고 `iat`가 초 단위이므로([../api-contract.md §
 | | |
 | --- | --- |
 | 보안 영향 | **없다.** 이전 토큰을 가진 자는 새 토큰을 가진 것과 같고, 그는 어차피 그것을 갖고 있었다 |
-| 실질 영향 | 로그인 직후 1초 안에 재발급하는 클라이언트가 없으므로 거의 발생하지 않는다 |
+| 실질 영향 | 거의 발생하지 않는다 — 다만 **근거가 "클라이언트가 없다" 가 아니다**(아래) |
 | 테스트 영향 | **있다.** 회전 전후를 비교하는 테스트는 발급 경로로 서로 다른 값을 만들 수 없다 ([../conventions.md §9.2](../conventions.md) 예외) |
+
+> **"재발급하는 클라이언트가 없다" 는 근거를 걷었다.** 2026-10-20 에 확인용 프론트엔드가 생겼고([../overview.md §3.3](../overview.md)) 그 화면에는 **손으로 누르는 재발급 버튼**이 있다 — 로그인 직후 1초 안에 누를 수 있다. 그래서 그 조건은 더 이상 "없다" 가 아니라 **"하지 않는다"** 다. 자동 재발급은 `exp` 경과 뒤에만 일어나므로 1초 창에 들어가지 않는다. **위의 보안 영향은 그대로 없다** — 이 한계가 걸리는 것은 회전 전후를 비교하는 **테스트**이고, 그 줄은 바뀌지 않는다. [plan/phase1.md](../plan/phase1.md) D-08 이 이 자리를 찾았다(그 항목의 리뷰어가 열거 밖에서 집었다).
 
 **1차에서 `jti`를 넣지 않는다.** [../api-contract.md §6](../api-contract.md)의 claim 집합은 세 서비스가 공유하는 계약이고 AU-04·AU-06이 `containsOnlyKeys`로 고정했다. 보안 이득이 없는 변경에 완료된 두 항목을 되돌릴 이유가 없다.
 
