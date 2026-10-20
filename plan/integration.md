@@ -2,8 +2,8 @@
 title: 통합 검증
 type: plan
 status: living
-version: v22
-updated: 2026-10-18
+version: v23
+updated: 2026-10-20
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
 ---
@@ -173,8 +173,8 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | 계정 생성·프로필 등록·게시글 작성을 1분 내 수행 | 세 `createdAt` 차이가 1분 이내 |
 | DB에서 직접 조회한 `created_at` | 현재 KST 시각과 일치 |
 | API 응답의 시각 문자열 | `Z`·`+09:00` 등 오프셋 없음 |
-| **가까운 시각에 게시글·댓글 여러 건 작성** | DB의 `created_at`이 **한 값으로 합쳐진다**(소수부가 없다 — `DATETIME`은 **반올림**한다, [../api-contract.md §7.1](../api-contract.md)). H2는 `DATETIME_PRECISION`이 6이라 **단위 테스트로는 재현되지 않는다** |
-| **그 동률 상태에서 목록 1·2페이지** | 중복·누락 **없음**([../api-contract.md §7.1](../api-contract.md)의 `id` 마지막 정렬 키). **이 조건을 실제로 만들 수 있는 곳은 여기뿐이다** |
+| **가까운 시각에 게시글·댓글 여러 건 작성** | DB의 `created_at`이 **한 값으로 합쳐진다**(소수부가 없다, [../api-contract.md §7.1](../api-contract.md)). **이 항목의 시점에는 H2가 `DATETIME_PRECISION` 6 이라 단위 테스트로 재현되지 않았다** — `D-11` 이 감사 시각을 초로 자른 뒤로는 단위 테스트에서도 동률이 생긴다([../api-contract.md §4.3](../api-contract.md)) |
+| **그 동률 상태에서 목록 1·2페이지** | 중복·누락 **없음**([../api-contract.md §7.1](../api-contract.md)의 `id` 마지막 정렬 키). **이 항목의 시점에는 그 조건을 실제 MySQL 에서만 만들 수 있었다** — `D-11` 뒤로는 단위 테스트도 만든다 |
 
 > **JVM 기본 시간대는 검증 대상이 아니다.** 개발 머신이 KST라 항상 통과하므로 아무것도 증명하지 못한다. 배포 시 `TZ=Asia/Seoul`을 거는 것은 2차 컨테이너화의 확인 항목이다([../plan/phase2.md](../plan/phase2.md)).
 
@@ -213,7 +213,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | **세 서비스 `fieldErrors` 1건 케이스** | **바인딩 수준** 오류에서 **셋 다 1건**이고 `field` 가 파라미터명이다 ([../api-contract.md §2.3 §4.1](../api-contract.md)). 경로는 auth `check-email` 의 형식 오류, member `check-nickname` 의 형식·길이, board 의 목록 `size=0`·`page=-1` 이다 — 셋 다 `HandlerMethodValidationException` 을 지난다 |
 | 각 서비스의 `ErrorCode` 열거 | 타 서비스 전용 접두어 없음 |
 | 세 서비스 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`. **board 에서만 관측된다** — 아래 블록인용 |
-| **세 서비스의 작성 응답 대 조회 응답 시각 모양** | **소수부가 갈린다** — 작성은 flush 전 엔티티라 소수부가 있고 조회는 `DATETIME` 이라 없다([../tech-stack.md §6](../tech-stack.md) I-01 실측). **그 갈림은 board 에서만 관측된다** — auth·member 의 작성 응답에는 시각 필드가 없다(아래 블록인용). 조회 경로끼리는 셋 다 소수부 없음으로 비교한다. 고정 패턴을 단언하지 않는다 |
+| **세 서비스의 작성 응답 대 조회 응답 시각 모양** | **이 항목의 시점에는 소수부가 갈렸다** — 작성은 flush 전 엔티티라 소수부가 있고 조회는 `DATETIME` 이라 없었다([../tech-stack.md §6](../tech-stack.md) I-01 실측). **`D-11` 이 그 갈림을 없앴다**([../api-contract.md §4.3](../api-contract.md)) — 지금은 작성·조회가 같은 값이다. 그래도 **고정 패턴을 단언하지 않는다**: SQL 로 심은 행은 감사를 거치지 않아 소수부가 남는다 |
 | 500 응답 본문 | **세 서비스 모두** 스택트레이스 없음. **500 은 유도해야 한다** — 아래 블록인용에 수단이 있다 |
 | **세 서비스의 로그 수준** | 클라이언트 오류는 `ERROR`가 **아니고** 마지막 그물은 `ERROR`다 ([../conventions.md §6.1](../conventions.md)). **`GlobalExceptionHandler` 가 남긴 줄로 센다** — 전체 로그로 세면 틀린다(Hibernate 의 `SqlExceptionHelper` 가 `ERROR` 를 따로 낸다. I-04 리뷰 실측). **절대 수치는 요청 집합에 따라 달라지므로 재현 대상이 아니다** — 두 극이 핸들러 단위로 성립하는지만 본다. **auth 는 이 단언을 자기 테스트에 갖지 않으므로 여기가 유일한 게이트다** |
 
