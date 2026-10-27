@@ -2,7 +2,7 @@
 title: 2차 작업 계획
 type: plan
 status: living
-version: v3
+version: v4
 updated: 2026-10-27
 read_when: "2차 범위를 확인할 때, 그리고 작업 항목(F-xx 등)을 고르거나 그 완료 기준을 볼 때. 항목이 있는 절은 작업 지시이고 없는 절은 개요다"
 related: [phase1.md, integration.md, ../adr/0010-kafka-for-nickname-sync.md, ../adr/0005-no-docker-in-mvp.md]
@@ -218,7 +218,7 @@ Spring Cloud Gateway를 도입한다. Boot 버전과 호환되는 릴리스 트�
 
 **완료 기준**
 - [ ] 로그인 뒤 `sessionStorage` 에 **Access Token 이 없다**
-- [ ] 새로고침 뒤에도 로그인 상태가 이어지고 **재발급 요청이 한 번** 나간다 — **StrictMode 에서도 한 번이다.** 같은 Refresh Token 으로 두 번 재발급하면 회전의 조건부 UPDATE 에 지고(§2.1), 실패 처리가 첫 번째가 받은 새 토큰까지 지운다
+- [ ] 새로고침 뒤에도 로그인 상태가 이어지고 **재발급 요청이 한 번** 나간다 — **StrictMode 에서도 한 번이다.** 같은 Refresh Token 으로 두 번 재발급하면 회전의 조건부 UPDATE 에 지고(§2.1), 실패 처리가 첫 번째가 받은 새 토큰까지 지운다(`F-02` 전의 실패 처리다 — 지금은 그 실패가 먼저 도착하면 세션이 끝난다, [phase1.md](phase1.md) `D-13`)
 - [ ] Refresh Token 이 없거나 거부되면 **보호된 경로**는 그려지지 않고 로그인으로 간다. 공개 경로는 보인다
 - [ ] 로그아웃 뒤 `sessionStorage` 에 토큰이 남지 않는다(탈퇴는 `F-04` 가 본다)
 - [ ] 프로덕션 `index.html` 의 CSP 가 `script-src` 에 `'unsafe-inline'`·`'unsafe-eval'` 을 갖지 않고, `connect-src` 가 **세 서비스의 환경값 주소**를 갖는다(프록시 모드면 `'self'`)

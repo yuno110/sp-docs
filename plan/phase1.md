@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v65
+version: v66
 updated: 2026-10-27
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2477,6 +2477,28 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] [phase2.md](phase2.md) §7 의 각 항목이 저장소·의존·참조·산출물·완료 기준·검증을 갖는다([README.md](README.md) §작업 항목 형식)
 - [ ] **부채 목록의 모든 줄이 어느 항목에 속하거나, 속하지 않는 이유와 받는 자리가 적혀 있다**(배포 오리진 → [phase2.md](phase2.md) §2). 목록을 열어서 대조한다
 - [ ] 프론트엔드 부채를 **열거하는 자리가 부채 목록 하나뿐이다** — 정본과 `sp-frontend/README.md` 는 그것을 가리킨다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] `tools/check_refs.py` 통과
+
+---
+### D-13 새로고침 재발급이 member.md §6.2 의 "1초 창" 서술을 거짓으로 만든다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | `F-02` ([phase2.md](phase2.md) §7.2 — 그 항목이 이 개정을 예고했다) |
+| 참조 | [../requirements/member.md §6.1·§6.2](../requirements/member.md) |
+
+`F-02` 가 Access Token 을 메모리로 옮기면서 **새로고침마다 재발급한다.** [../requirements/member.md §6.2](../requirements/member.md)의 블록인용이 "자동 재발급은 `exp` 경과 뒤에만 일어나므로 1초 창에 들어가지 않는다" 를 적고 있었다 — 새로고침의 재발급이 직전 발급과 같은 초에 들 수 있으므로 그 문장이 거짓이 된다.
+
+**그 문장이 틀렸던 것이 아니다.** `D-08` 시점에는 참이었다([../process/review-policy.md §8.1](../process/review-policy.md)). 그래서 지우지 않고 시점을 붙인다.
+
+**산출물**
+- [../requirements/member.md §6.2](../requirements/member.md) — 블록인용에 시점을 붙이고 2026-10-27 뒤의 사실을 적는다. 같은 초의 재발급이 거부되지 않는 근거는 §6.1 의 표다. 같은 블록인용의 수동 재발급 버튼이 `F-01` 뒤로 개발 빌드에만 있다는 것도 붙인다
+- [phase2.md](phase2.md) §7.2 `F-02` 완료 기준 — "실패 처리가 첫 번째가 받은 새 토큰까지 지운다" 는 `F-02` 전의 실패 처리다. `F-02` 가 결과를 보낸 Refresh Token 이 아직 스토어의 값일 때만 반영하게 바꿨으므로 시점을 붙인다. 기준의 요구(요청 한 번)는 바뀌지 않는다
+
+**완료 기준**
+- [ ] §6.2 가 지금의 화면 동작과 맞는다. 표의 보안 영향·테스트 영향 줄은 바뀌지 않는다 — 그 판단이 그대로인지 확인한다
 - [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
 - [ ] `tools/check_refs.py` 통과
 
