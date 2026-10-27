@@ -2,8 +2,8 @@
 title: 프로젝트 개요
 type: explanation
 status: living
-version: v6
-updated: 2026-10-20
+version: v7
+updated: 2026-10-27
 read_when: "프로젝트의 목표·범위·용어를 확인할 때. 처음 합류했을 때 가장 먼저"
 related: [architecture.md, plan/phase1.md, plan/phase2.md]
 ---
@@ -56,7 +56,7 @@ Kafka 도입(닉네임 즉시 반영), Docker 컨테이너화, API Gateway, 좋�
 >
 > **화면 전용 요구사항 문서는 없다.** 기능은 [requirements/member.md](requirements/member.md)·[requirements/board.md](requirements/board.md)가 정하고 화면은 그것을 따른다. 화면 고유의 결정은 그 저장소의 `CLAUDE.md` 가 갖는다.
 >
-> **품질 기준은 아직 비어 있다.** e2e·접근성·반응형·토큰 보관 방식이 그렇다 — D-09 가 분류만 바꿨고 그쪽은 2차가 받는다.
+> **제품 품질 작업은 끝나지 않았다.** D-09 가 분류만 바꿨고 그쪽은 2차가 받는다 — 무엇이 남았는지는 그 저장소의 `CLAUDE.md` 가 「제품으로서 비어 있는 것」으로 적고, 그것을 받는 자리는 [plan/phase2.md](plan/phase2.md) §7(배포 오리진은 §2)이다. **여기에 옮겨 적지 않는다** — 앞 판은 일부만 적었고, 부분 열거는 빠진 것을 범위 밖으로 읽히게 한다([process/review-policy.md §8.1](process/review-policy.md)).
 
 ## 4. 용어
 

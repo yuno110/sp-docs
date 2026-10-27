@@ -2,8 +2,8 @@
 title: 워커 오케스트레이션
 type: process
 status: rule
-version: v2
-updated: 2026-09-11
+version: v3
+updated: 2026-10-27
 read_when: "워커를 배치하거나 병렬 작업 범위를 정할 때"
 related: [dev-workflow.md, review-policy.md, ../plan/phase1.md]
 ---
@@ -179,7 +179,7 @@ git merge worktree-agent-auth
 CLAUDE.md 읽음
   → AGENTS.md (행동 원칙)
   → docs/checklist.md 에서 항목 확인, 상태를 doing으로
-  → sp-docs/plan/phase1.md 에서 그 항목의 상세 확인
+  → 그 항목을 정의한 sp-docs/plan/ 의 계획 문서에서 상세 확인
   → 항목의 "참조" 문서만 읽음
   → sp-docs/process/dev-workflow.md 절차대로 구현·테스트
   → git add -A (커밋하지 않음), 상태를 review로, 턴 종료
@@ -190,12 +190,12 @@ CLAUDE.md 읽음
 ### 5.2 리뷰 워커
 
 ```
-저장소: yuno110/<member|board>
+저장소: yuno110/<저장소>
 워크트리: <경로>
 작업 항목: <ID>
 
 리뷰 대상: git diff --cached (스테이징된 미커밋 변경)
-판정 기준: sp-docs/plan/phase1.md 의 <ID> — 산출물·완료 기준·검증 표
+판정 기준: 그 항목을 정의한 sp-docs/plan/ 의 계획 문서에서 <ID> — 산출물·완료 기준·검증 표
 절차: sp-docs/process/review-policy.md 를 따라 APPROVED 또는
       CHANGES_REQUESTED 로 판정하라. 테스트는 직접 실행해서 확인하라.
 ```
@@ -207,7 +207,7 @@ CLAUDE.md 읽음
 ### 5.3 수정 워커
 
 ```
-저장소: yuno110/<member|board>
+저장소: yuno110/<저장소>
 워크트리: <경로>
 작업 항목: <ID>
 
@@ -215,7 +215,8 @@ CLAUDE.md 읽음
 <finding 전문 그대로>
 
 지시: 위 finding을 해소하라. finding 범위 밖의 변경은 하지 않는다.
-      수정 후 ./gradlew test 를 통과시키고 git add -A 로 스테이징만 한다.
+      수정 후 그 저장소의 검증 명령(그 저장소 CLAUDE.md 가 정한다)을 통과시키고
+      git add -A 로 스테이징만 한다.
       커밋하지 않는다.
 절차: sp-docs/process/dev-workflow.md
 ```
@@ -305,8 +306,7 @@ TaskStop  review-<ID>-r2   (있었다면)
 git worktree list
 
 # 체크리스트
-cat member/docs/checklist.md
-cat board/docs/checklist.md
+cat */docs/checklist.md        # 저장소마다 하나씩 있다
 ```
 
 `blocked` 항목이 있으면 사유를 읽고 막힘을 푼다. 사유는 다음 작업자가 이어받을 수 있을 만큼 구체적이어야 한다([dev-workflow.md §4](dev-workflow.md)).

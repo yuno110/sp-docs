@@ -2,8 +2,8 @@
 title: simple 프로젝트 문서
 type: index
 status: rule
-version: v2
-updated: 2026-10-14
+version: v3
+updated: 2026-10-27
 read_when: "이 프로젝트에서 어떤 작업이든 시작하기 전. 어떤 문서를 읽어야 하는지 정할 때"
 related: [plan/README.md, process/dev-workflow.md]
 ---
@@ -21,9 +21,9 @@ related: [plan/README.md, process/dev-workflow.md]
 | `yuno110/sp-member` | member-service 코드 + `docs/checklist.md` | member 담당 워커 |
 | `yuno110/sp-board` | board-service 코드 + `docs/checklist.md` | board 담당 워커 |
 | `yuno110/sp-auth` | auth-service 코드 + `docs/checklist.md` | auth 담당 워커 |
-| `yuno110/sp-frontend` | 프론트엔드 화면 | 화면 담당 워커 |
+| `yuno110/sp-frontend` | 프론트엔드 화면 + `docs/checklist.md` | 화면 담당 워커 |
 
-**작업 항목의 상태는 각 서비스 저장소의 `docs/checklist.md`에 있다.** 이 저장소에는 상태를 적지 않는다. 이유는 [plan/README.md](plan/README.md) §상태의 위치를 본다.
+**작업 항목의 상태는 그 항목을 담당하는 저장소의 `docs/checklist.md`에 있다.** 정본 개정(`D-xx`)의 상태는 이 저장소의 `docs/checklist.md` 다. 그 밖의 문서에는 상태를 적지 않는다. 이유는 [plan/README.md](plan/README.md) §상태의 위치를 본다.
 
 ## 읽기 규칙
 
@@ -45,6 +45,8 @@ related: [plan/README.md, process/dev-workflow.md]
 | `P-xx` / `C-xx` | 게시글 / 댓글 **기능 요구사항** | [requirements/board.md](requirements/board.md) |
 | `AU-xx` / `M-xx` / `B-xx` | auth / member / board **작업 항목** | [plan/phase1.md](plan/phase1.md) |
 | `I-xx` | **통합 검증** 항목 | [plan/integration.md](plan/integration.md) |
+| `D-xx` | **정본 개정** 항목 | [plan/phase1.md](plan/phase1.md) §3·§6 |
+| `F-xx` | 프론트엔드 **작업 항목** | [plan/phase2.md](plan/phase2.md) §7 |
 | `C001`·`A001`·`AU002`·`M003`·`P001`·`CM001`·`S001` | **에러 코드** | [api-contract.md §8](api-contract.md) |
 
 **하이픈이 있으면 작업 항목, 없으면 에러 코드다.** `M-03`(작업 항목)과 `M003`(에러 코드), `AU-03`(작업 항목)과 `AU003`(에러 코드)은 서로 다른 것이다.
@@ -58,7 +60,7 @@ related: [plan/README.md, process/dev-workflow.md]
 | 작업 | 읽을 문서 |
 | --- | --- |
 | 지금 할 일 고르기·상태 갱신 | 담당 저장소의 `docs/checklist.md`, [plan/README.md](plan/README.md) |
-| 작업 항목의 범위·의존·완료 기준 | [plan/phase1.md](plan/phase1.md) |
+| 작업 항목의 범위·의존·완료 기준 | 그 항목을 정의한 계획 문서 — [plan/README.md](plan/README.md)의 문서 표가 어느 문서가 무엇을 갖는지 적는다 |
 | 구현·테스트·커밋 절차 | [process/dev-workflow.md](process/dev-workflow.md) |
 | 프로젝트 범위·용어 확인 | [overview.md](overview.md) |
 | 서비스 경계·통신·데이터 일관성 | [architecture.md](architecture.md) |
@@ -112,4 +114,4 @@ related: [상대 경로 목록]
 - 절 번호는 안정적인 앵커다. 절을 옮기거나 지울 때 번호를 재사용하지 않는다.
 - 표는 5열 이하로 두고 좌우 스크롤이 생기면 표를 쓰지 않는다.
 - 비밀 값(키, 비밀번호, 토큰)을 적지 않는다.
-- 진행 상태는 각 서비스 저장소의 `docs/checklist.md`에만 적는다. 이 저장소의 어떤 문서에도 상태를 적지 않는다.
+- 진행 상태는 항목을 담당하는 저장소의 `docs/checklist.md`에만 적는다(`D-xx` 는 이 저장소의 것이다). 그 밖의 문서에는 상태를 적지 않는다.

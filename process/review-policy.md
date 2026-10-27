@@ -2,8 +2,8 @@
 title: 리뷰 정책
 type: process
 status: rule
-version: v29
-updated: 2026-10-20
+version: v30
+updated: 2026-10-27
 read_when: "구현 결과를 리뷰하거나, 리뷰 워커를 만들거나, 정본 문서를 개정할 때"
 related: [dev-workflow.md, orchestration.md]
 ---
@@ -27,12 +27,12 @@ related: [dev-workflow.md, orchestration.md]
 ## 2. 리뷰 워커에게 주는 것
 
 ```
-저장소: yuno110/<member|board>
+저장소: yuno110/<저장소>
 워크트리: <경로>
 작업 항목: <ID>
 
 리뷰 대상: git diff --cached (스테이징된 미커밋 변경)
-판정 기준: sp-docs/plan/phase1.md 의 <ID> 항목 — 산출물·완료 기준·검증 표
+판정 기준: 그 항목을 정의한 sp-docs/plan/ 의 계획 문서에서 <ID> — 산출물·완료 기준·검증 표
 절차: sp-docs/process/review-policy.md
 ```
 
@@ -43,9 +43,9 @@ related: [dev-workflow.md, orchestration.md]
 ## 3. 리뷰 워커가 할 일
 
 1. `git diff --cached`로 변경 전체를 본다 (신규 파일 포함)
-2. `plan/phase1.md`의 해당 항목에서 **산출물·완료 기준·검증 표**를 읽는다
+2. 그 항목을 정의한 계획 문서(`plan/` 아래)에서 **산출물·완료 기준·검증 표**를 읽는다
 3. 항목의 "참조" 문서에서 값을 대조한다
-4. `./gradlew test`를 **직접 실행**한다. 구현 워커의 보고를 믿지 않는다
+4. 그 저장소의 검증 명령을 **직접 실행**한다 — 명령은 그 저장소의 `CLAUDE.md` 가 정한다. 구현 워커의 보고를 믿지 않는다
 5. §4 체크 항목을 확인한다
 6. §5 형식으로 판정을 낸다
 
@@ -58,7 +58,7 @@ related: [dev-workflow.md, orchestration.md]
 
 > **통합 항목(`plan/integration.md` I-01~I-05)은 예외다.** 그 검증표는 **실제 프로세스를 내리고 실제 DB에 쓰는 관측**으로만 성립하므로 구성상 테스트 코드가 될 수 없고, [../nfr.md §2](../nfr.md)가 "통합 검증 단계에서 **실제로 서비스를 내리고** 확인한다"로 그 방법을 직접 지시한다. 통합 항목의 리뷰어는 **보고가 참인지 재현**해서 판정한다 — 테스트 코드의 유무로 판정하지 않는다.
 >
-> 이 예외는 **통합 항목에만** 적용된다. `plan/phase1.md`의 `AU-xx`·`M-xx`·`B-xx`에는 위 항목이 그대로 적용된다(I-02 리뷰가 두 정본의 어긋남을 finding으로 올려 메운 것이다).
+> 이 예외는 **통합 항목에만** 적용된다. `plan/phase1.md` 의 `AU-xx`·`M-xx`·`B-xx` 에는 위 항목이 그대로 적용된다(I-02 리뷰가 두 정본의 어긋남을 finding으로 올려 메운 것이다). `plan/phase2.md` 의 `F-xx` 도 같다 — **`F` 의 e2e 는 실제 서비스를 치지만 검증은 테스트 코드이므로 예외에 들지 않는다.**
 - [ ] 테스트가 실제로 통과하는가 (직접 실행해서 확인)
 - [ ] `@Disabled`·주석 처리된 테스트가 없는가
 - [ ] 단언이 약화되지 않았는가 (예: 값 비교를 `notNull`로 바꾸기)
