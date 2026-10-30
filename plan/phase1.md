@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v66
-updated: 2026-10-27
+version: v67
+updated: 2026-10-30
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -2499,6 +2499,27 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 **완료 기준**
 - [ ] §6.2 가 지금의 화면 동작과 맞는다. 표의 보안 영향·테스트 영향 줄은 바뀌지 않는다 — 그 판단이 그대로인지 확인한다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] `tools/check_refs.py` 통과
+
+---
+### D-14 F-06 이 security.md §1.1 의 "CORS 어긋남을 지키는 것은 각 서비스의 테스트뿐" 을 낡게 만든다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | `F-06` ([phase2.md](phase2.md) §7.2 — 그 항목의 구현 워커가 찾았다) |
+| 참조 | [../security.md §1.1](../security.md) |
+
+[../security.md §1.1](../security.md)의 블록인용이 "이 값의 어긋남을 지키는 것은 각 서비스의 보안 기반 항목(AU-04·M-04·B-04) 테스트뿐이다" 를 현재형으로 적고 있었다. `F-06` 의 실제 서비스 e2e 에서 직접 모드로 빌드한 화면이 세 서비스에 직접 preflight 를 보내고, e2e 가 브라우저가 막은 요청과 허용되지 않은 preflight 를 실패로 치므로 그 문장이 거짓이 된다.
+
+**그 문장이 틀렸던 것이 아니다.** `F-06` 전에는 참이었다([../process/review-policy.md §8.1](../process/review-policy.md)). 그래서 지우지 않고 시점을 붙인다.
+
+**산출물**
+- [../security.md §1.1](../security.md) — 그 문장에 시점을 붙이고 2026-10-30 뒤의 사실을 적는다. e2e 가 지키는 범위(흐름이 부르는 요청이 통과하는가)와 지키지 않는 범위를 함께 적는다. 같은 블록인용의 「넷을 단언한 상태로」 를 「넷으로」 로 줄인다 — AU-04 의 CORS 테스트는 목록이 넷인지 단언하지 않는다
+
+**완료 기준**
+- [ ] §1.1 이 지금의 검증 수단과 맞는다. 표(허용 오리진·메서드·헤더·`allowCredentials`)는 바뀌지 않는다
 - [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
 - [ ] `tools/check_refs.py` 통과
 
