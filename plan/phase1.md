@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v67
-updated: 2026-10-30
+version: v68
+updated: 2026-11-04
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -2516,10 +2516,34 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **그 문장이 틀렸던 것이 아니다.** `F-06` 전에는 참이었다([../process/review-policy.md §8.1](../process/review-policy.md)). 그래서 지우지 않고 시점을 붙인다.
 
 **산출물**
-- [../security.md §1.1](../security.md) — 그 문장에 시점을 붙이고 2026-10-30 뒤의 사실을 적는다. e2e 가 지키는 범위(흐름이 부르는 요청이 통과하는가)와 지키지 않는 범위를 함께 적는다. 같은 블록인용의 「넷을 단언한 상태로」 를 「넷으로」 로 줄인다 — AU-04 의 CORS 테스트는 목록이 넷인지 단언하지 않는다
+- [../security.md §1.1](../security.md) — 그 문장에 시점을 붙이고 2026-10-30 뒤의 사실을 적는다. e2e 가 지키는 범위(흐름이 부르는 요청이 통과하는가)와 지키지 않는 범위를 함께 적는다. 같은 블록인용의 「넷을 단언한 상태로」 를 「넷으로」 로 줄인다 — 그때 AU-04 의 CORS 테스트는 목록이 넷인지 단언하지 않았다(`D-15` 가 더했다)
 
 **완료 기준**
 - [ ] §1.1 이 지금의 검증 수단과 맞는다. 표(허용 오리진·메서드·헤더·`allowCredentials`)는 바뀌지 않는다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] `tools/check_refs.py` 통과
+
+---
+### D-15 D-14 리뷰가 찾은 CORS 검증의 빈틈 [테스트 강화·문서 정정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-auth`, `yuno110/sp-frontend`, `yuno110/sp-docs` |
+| 의존 | `D-14` |
+| 참조 | [../security.md §1.1](../security.md) |
+
+`D-14` 의 리뷰가 찾았다. **auth 의 CORS 테스트는 `*` 가 없는지와 POST preflight 의 오리진만 봤다** — member·board 는 메서드·헤더 목록과 `allowCredentials` 를 단언하지만 auth 에서는 POST 를 빼거나 `*` 를 넣는 경우 말고는 그 값이 바뀌어도 아무 테스트도 깨지지 않았다. **`AU-04` 의 완료 기준이 "`*` 없음" 이었고 그 기준은 충족됐다** — 이 항목은 그 판정을 뒤집지 않고 더한다.
+
+`sp-frontend` 의 문서가 "CORS 가 막은 요청에 preflight 가 있으면 그 preflight 도 걸린다" 고 적었다. 요청 헤더가 일부만 허용되면 거짓이다 — 2026-11-04 에 board 를 띄워 쟀더니 `authorization,x-extra` 는 200 에 `Access-Control-Allow-Headers: authorization`, `x-extra` 만이면 403 이었다.
+
+**산출물**
+- `sp-auth` `SecurityConfigTest` — 메서드 넷, 헤더 둘, `allowCredentials` 가 `false` 인 것을 단언한다. 값은 바꾸지 않는다
+- `sp-frontend` `CLAUDE.md`·`e2e/live/fixtures.ts` 의 그 서술을 측정값에 맞춘다. 검사 코드는 바꾸지 않는다
+- 이 문서 `D-14` 절의 "AU-04 의 CORS 테스트" 문장에 시점을 붙인다
+
+**완료 기준**
+- [ ] `SecurityConfig` 의 메서드를 빼거나 더하고, 헤더를 더하고, `allowCredentials` 를 켜면 테스트가 실패한다
+- [ ] auth 의 전체 테스트와 sp-frontend 의 `pnpm typecheck` 가 통과한다
 - [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
 - [ ] `tools/check_refs.py` 통과
 
