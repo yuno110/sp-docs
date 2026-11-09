@@ -2,8 +2,8 @@
 title: auth를 별도 서비스로 분리
 type: adr
 status: accepted
-version: v2
-updated: 2026-10-14
+version: v3
+updated: 2026-11-09
 read_when: "서비스가 3개인 이유, 계정과 프로필이 갈라진 이유, 가입이 3단계, 탈퇴가 2단계인 이유가 궁금할 때"
 related: [0006-auth-inside-member-service.md, 0001-msa-adoption.md, 0003-writer-snapshot.md, ../architecture.md, ../domain-model.md, ../api-contract.md]
 ---
@@ -124,6 +124,8 @@ auth는 닉네임을 소유하지 않으므로 넣을 수 없다. 이것이 [000
 프로필 먼저를 택하면 `requirements/member.md` MR-10의 **비밀번호 재확인이 구조적으로 사라진다.** member가 비밀번호를 갖지 않기 때문이다. 그 경우 AccessToken을 탈취한 공격자가 `DELETE /api/v1/members/me` 한 번으로 피해자의 프로필을 비밀번호 없이 비가역으로 파괴할 수 있다. 계정 먼저는 이 경로를 막는다.
 
 **2단계는 1단계에서 이미 받아 둔 AccessToken으로 수행한다.** member는 계정 상태를 모르므로(오프라인 검증) 토큰이 유효한 동안 통과한다. 2단계가 끝내 수행되지 않으면 member DB에 프로필 행이 남지만, 그 계정으로 새 토큰을 얻을 수 없으므로 인증에는 쓰이지 않는다. 남는 실질 영향은 **닉네임이 선점된 채로 남는 것**이며, 이를 수용한다(§8).
+
+> **2026-11-09**: 이 AccessToken이 어느 토큰인지는 [../requirements/member.md §8](../requirements/member.md)이 정한다 — 1단계와 같은 로그인의 토큰이다. 결정은 바뀌지 않았다.
 
 **탈퇴 완료의 의미:** 2단계까지 끝나야 완료다. 1단계만 끝난 상태를 "탈퇴 완료"라고 응답하지 않는다. 다만 이것은 **서버 측 보장이 아니라 클라이언트 측 규약**이다. 서버는 클라이언트가 2단계를 완주하는지 강제할 수도 관측할 수도 없다.
 

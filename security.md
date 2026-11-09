@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v18
-updated: 2026-10-30
+version: v19
+updated: 2026-11-09
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -148,10 +148,12 @@ HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있
     <- 204
 
 [프로필 탈퇴]  member-service    탈퇴 2단계
-  DELETE /api/v1/members/me (1단계에서 쓰던 AT)
+  DELETE /api/v1/members/me (1단계와 같은 로그인의 AT)
     -> member.deleted = true, nickname = NULL
     <- 204
 ```
+
+탈퇴 2단계의 AT가 어느 토큰인지는 [requirements/member.md §8](requirements/member.md)이 정한다.
 
 **재발급이 `account.deleted`를 검사하지 않으면 탈퇴 경계가 무너진다.** 조회와 확인을 같은 트랜잭션에 두고 회전을 조건부 UPDATE로 하지 않으면, 탈퇴와 재발급이 겹칠 때 삭제한 RefreshToken이 되살아나 탈퇴 계정이 14일간 갱신할 수 있다([requirements/member.md §6](requirements/member.md)).
 

@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v18
-updated: 2026-10-27
+version: v19
+updated: 2026-11-09
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -141,7 +141,7 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-au
 
 **member는 이메일을 반환할 수 없다.** 소유하지 않기 때문이다. 화면 하나에 둘 다 필요하면 클라이언트가 두 번 호출한다. member가 auth를 호출해 합치지 않는다 — 호출 방향은 `board → member` 하나뿐이다([../adr/0012](../adr/0012-auth-as-separate-service.md) §1).
 
-`GET /api/v1/members/me`는 **프로필이 없으면 404 `M001`**이다. 이것은 오류가 아니라 가입 3단계 미완료를 뜻한다. 클라이언트는 프로필 등록 화면으로 보낸다.
+`GET /api/v1/members/me`는 **프로필이 없거나 탈퇴했으면 404 `M001`**이다([../api-contract.md §3.1](../api-contract.md)). 프로필이 없으면 오류가 아니라 가입 3단계 미완료를 뜻하고, 클라이언트는 프로필 등록으로 안내한다. 이 응답으로는 둘을 가를 수 없다 — 가르는 것은 `GET /api/v1/members/{accountId}`의 `deleted`다.
 
 ## 6. MR-05 상세 — 재발급의 경합
 
@@ -248,7 +248,7 @@ PATCH /api/v1/members/me   { "nickname": "새닉네임" }
 
 **순서를 바꾸지 않는다.** 프로필을 먼저 지우면 (a) member는 비밀번호를 갖지 않으므로 **재확인이 구조적으로 불가능해지고**, (b) 중간 실패 시 프로필이 비가역으로 파괴된 채 계정은 영구히 살아 있게 된다. 전체 비교는 [../adr/0012](../adr/0012-auth-as-separate-service.md) §5에 있다.
 
-**2단계는 1단계에서 쓰던 Access Token으로 수행한다.** member는 계정 상태를 모르므로(오프라인 검증) 토큰이 유효한 동안 통과한다.
+**2단계는 1단계와 같은 로그인의 Access Token으로 수행한다.** 클라이언트의 로그인이 그대로면 지금 토큰이고(기다리는 사이 재발급됐으면 받은 토큰이다 — 1단계가 보낸 토큰은 만료됐을 수 있다), 그 사이 그 로그인이 끝났거나(예: 로그아웃) 다른 로그인으로 바뀌었으면 1단계가 실제로 보낸 토큰이다(1단계가 만료(401 `A003`)로 재발급받아 다시 보냈으면 그때 받은 토큰이다). 다른 로그인의 토큰으로 보내면 그 계정의 프로필이 지워지므로, 그 토큰을 알 수 없으면 2단계를 보내지 않고 탈퇴를 실패로 끝낸다. member는 계정 상태를 모르므로(오프라인 검증) 토큰이 유효한 동안 통과한다.
 
 **탈퇴 완료는 2단계까지다.** 다만 이것은 클라이언트 측 규약이며 서버가 강제하지 못한다. 2단계가 수행되지 않으면 프로필 행이 남아 닉네임이 선점된 채로 남는다. 1차에는 이를 관측·정리하는 수단이 없다(알려진 제약).
 

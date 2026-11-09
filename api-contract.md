@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v47
-updated: 2026-10-20
+version: v48
+updated: 2026-11-09
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -248,7 +248,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | 탈퇴한 프로필 | 409 `M007` |
 
 - `PATCH /api/v1/members/me`는 **토큰을 반환하지 않는다.** Claim에 `nickname`이 없으므로 토큰이 낡을 이유가 없다([adr/0012](adr/0012-auth-as-separate-service.md) §3)
-- `GET /api/v1/members/me`는 **프로필이 없으면 404 `M001`**이다. 이것은 오류가 아니라 "가입 3단계가 아직"이라는 뜻이며, 클라이언트는 프로필 등록 화면으로 보낸다
+- `GET /api/v1/members/me`는 **프로필이 없거나 탈퇴했으면 404 `M001`**이다(§3.1). 프로필이 없으면 오류가 아니라 "가입 3단계가 아직"이라는 뜻이며, 클라이언트는 프로필 등록으로 안내한다. **이 응답으로는 둘을 가를 수 없다** — 가르는 것은 `GET /api/v1/members/{accountId}`의 `deleted`다(§3.1). 탈퇴한 프로필은 다시 등록할 수 없다(위 표의 `M007`)
 - `GET /api/v1/members/{accountId}`의 경로 변수는 **`accountId`다.** `member.id`는 외부에 노출하지 않는다
 - `DELETE /api/v1/members/me`는 멱등이다. 프로필 `deleted = true`, `nickname`은 NULL로 비운다
 
@@ -601,7 +601,7 @@ public record FieldError(String field, String message) { }
 
 `M002`·`M004`·`M005`는 auth로 이동했다(§8.4). **번호는 재사용하지 않는다.**
 
-`M001`은 "프로필이 아직 없음"에도 쓰인다. 오류가 아니라 가입 3단계 미완료를 뜻한다(§3).
+`M001`은 "프로필이 아직 없음"에도 쓰인다. 그 뜻이면 오류가 아니라 가입 3단계 미완료다(§3). **탈퇴한 프로필에 `M001`을 주는 요청도 있다** — §3.1의 「탈퇴한 프로필 — 엔드포인트별 결론」 표가 적는다.
 
 ### 8.3 board-service
 
@@ -703,11 +703,13 @@ public record FieldError(String field, String message) { }
 { "password": "Passw0rd!" }          // 비밀번호 재확인
 // 204   account.deleted = true + RefreshToken 삭제 (한 트랜잭션)
 
-// 2) DELETE /api/v1/members/me    (member, 1단계에서 쓰던 Access Token)
+// 2) DELETE /api/v1/members/me    (member, 1단계와 같은 로그인의 Access Token)
 // 204   프로필 deleted = true, nickname = NULL
 ```
 
 **순서를 바꾸지 않는다.** 이유는 [adr/0012](adr/0012-auth-as-separate-service.md) §5에 있다.
+
+2단계의 Access Token이 어느 토큰인지는 [requirements/member.md §8](requirements/member.md)이 정한다.
 
 ### 9.2 로그인
 
