@@ -2,8 +2,8 @@
 title: API 경로 버저닝
 type: adr
 status: accepted
-version: v1
-updated: 2026-09-11
+version: v2
+updated: 2026-11-11
 read_when: "경로에 /api/v1을 두는 이유가 궁금할 때"
 related: [README.md, ../api-contract.md]
 ---
@@ -54,3 +54,5 @@ accepted
 | 응답 구조·의미 변경 | 내부 구현 변경 |
 
 실무에서 v2까지 가는 경우는 드물고 대부분 하위 호환 변경으로 해결된다. `/v1`은 그럼에도 대비해 두는 저비용 보험이다.
+
+> **2026-11-11 `D-18` 이 이 표의 예외를 하나 두었다.** 2차의 댓글 목록([../api-contract.md §4.5](../api-contract.md))은 페이징 단위가 최상위 항목이 되고 `totalElements` 의 뜻이 바뀌며, 삭제된 댓글의 자리가 `writerId`·`writerNickname`·`content` 를 `null` 로 싣는다 — 위 표로는 **응답 구조·의미 변경**이다. 그래도 `/v1` 안에 둔다. 이 표의 근거는 업데이트하지 않는 클라이언트인데, 그때 이 API 를 부르는 클라이언트는 이 변경과 함께 바뀌는 `sp-frontend` 하나였다. **외부 클라이언트나 업데이트하지 않는 클라이언트가 생기면 이 예외를 다시 본다** — 그 뒤의 같은 종류 변경은 위 표를 따른다.

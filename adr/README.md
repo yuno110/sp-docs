@@ -2,8 +2,8 @@
 title: 결정 기록 (ADR)
 type: index
 status: rule
-version: v2
-updated: 2026-09-15
+version: v3
+updated: 2026-11-11
 read_when: "어떤 결정이 왜 내려졌는지 확인하거나, 새 결정을 기록할 때"
 related: [../README.md, ../overview.md]
 ---
@@ -27,6 +27,8 @@ related: [../README.md, ../overview.md]
 | [0010](0010-kafka-for-nickname-sync.md) | 2차 Kafka로 닉네임 동기화 | accepted |
 | [0011](0011-timezone-from-environment.md) | JVM 시간대는 실행 환경이 정한다 | accepted |
 | [0012](0012-auth-as-separate-service.md) | auth를 별도 서비스로 분리 | accepted |
+| [0013](0013-attachment-storage.md) | 첨부 파일 저장소 — 인터페이스 뒤의 로컬 디스크 | accepted |
+| [0014](0014-view-count-dedup.md) | 조회수 중복 판정 — DB 테이블과 접속 주소의 HMAC | accepted |
 
 ## 형식
 

@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v22
-updated: 2026-10-18
+version: v23
+updated: 2026-11-11
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -63,14 +63,18 @@ com.example.member
 com.example.board
 ├── BoardApplication.java
 ├── global
-│   ├── config          # SecurityConfig(인가·CORS), JpaConfig, QuerydslConfig, SwaggerConfig, WebConfig
+│   ├── config          # SecurityConfig(인가·CORS), JpaConfig, QuerydslConfig, SwaggerConfig, WebConfig, 스케줄링 활성화
 │   ├── common          # BaseTimeEntity, ApiResponse, PageResponse
 │   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
-│   └── security        # RoleClaimConverter, LoginMember(record), @CurrentMember
+│   └── security        # RoleClaimConverter, LoginMember(record), @CurrentMember, 선택적 인증의 리졸버
 ├── post
-│   ├── controller / service / repository / entity / dto / support
+│   ├── controller / service / repository / entity / dto / support   # 조회수 판정(post_view)도 여기
 ├── comment
 │   ├── controller / service / repository / entity / dto
+├── like
+│   ├── controller / service / repository / entity / dto
+├── attachment
+│   ├── controller / service / repository / entity / dto / storage   # storage: 저장소 인터페이스와 로컬 디스크 구현
 └── client
     └── MemberClient    # 내부 API 호출 (1차. 글·댓글 생성 경로)
 ```
@@ -82,10 +86,15 @@ com.example.board
 | `post.service` | `comment.repository.CommentRepository` | 게시글 삭제의 댓글 연쇄 (B-07) |
 | `comment.*` | `post.entity.Post`, `post.support.PostReader` | 연관관계 매핑, 게시글 존재 판정 (B-03·B-08) |
 | `comment.service` | `post.repository.PostRepository` | **`comment_count` 의 좁은 UPDATE** (B-10) |
+| `like.service` | `post.repository.PostRepository` | `like_count` 의 좁은 UPDATE — 그것이 `post` 행의 배타 락을 먼저 잡는다 ([domain-model.md §6.1](domain-model.md)) |
+| `attachment.*` | `post.entity.Post`, `post.support.PostReader`, `post.repository.PostRepository` | 글 존재·작성자 판정, `attachment_count` 의 조건부 UPDATE ([domain-model.md §6](domain-model.md)) |
+| `post.service` | `like.repository`, `attachment.repository` | 상세 응답의 `liked`·`attachments` ([api-contract.md §4.3](api-contract.md)) |
 
-**면제는 이 세 줄까지다.** 서로의 **Service**를 참조하지 않는다 — 업무 규칙이 두 곳으로 갈리고 트랜잭션 경계가 어느 쪽 것인지 흐려진다. 게시글 존재 판정은 `PostReader` 한 곳이고([plan/phase1.md §2.5](plan/phase1.md)의 공유 지점), 댓글 연쇄 삭제는 `CommentRepository`의 벌크 UPDATE 한 곳이다.
+**면제는 이 표까지다.** 서로의 **Service**를 참조하지 않는다 — 업무 규칙이 두 곳으로 갈리고 트랜잭션 경계가 어느 쪽 것인지 흐려진다. 게시글 존재 판정은 `PostReader` 한 곳이고([plan/phase1.md §2.5](plan/phase1.md)의 공유 지점), 댓글 연쇄 삭제는 `CommentRepository`의 벌크 UPDATE 한 곳이다.
 
-> **셋째 줄은 B-10이 만들었다.** `comment_count` 갱신이 엔티티 메서드에서 **좁은 UPDATE**로 바뀌면서(소실 갱신 때문이다 — [plan/phase1.md](plan/phase1.md) B-10) 그 문장이 `PostRepository`에 선언됐다. **`CommentRepository`에 두지 않은 이유**는 그 문장이 바꾸는 테이블이 `post`라서다 — `comment` 쪽에 숨기면 `PostRepository`를 읽는 사람이 `comment_count`가 어디서도 바뀌지 않는다고 결론한다. 방향은 첫 줄과 같은 모양이고 금지된 **Service 상호 참조는 아니다.**
+> **`like`·`attachment` 의 줄은 2026-11-11 `D-18` 이 더했다.** 이유는 처음 줄들과 같다 — 근거 행(`post_like`·`attachment`)과 `post` 의 집계가 **한 트랜잭션**이다. 집계를 바꾸는 문장을 `PostRepository` 에 두는 것도 아래 B-10 의 이유 그대로다. 조회수 판정(`post_view`)은 `post` 안에 둔다 — 상세 조회의 일부이고 다른 패키지가 쓰지 않는다. 1차의 이 문단은 "면제는 이 세 줄까지다" 였다.
+>
+> **`comment.service` → `PostRepository` 줄은 B-10이 만들었다.** `comment_count` 갱신이 엔티티 메서드에서 **좁은 UPDATE**로 바뀌면서(소실 갱신 때문이다 — [plan/phase1.md](plan/phase1.md) B-10) 그 문장이 `PostRepository`에 선언됐다. **`CommentRepository`에 두지 않은 이유**는 그 문장이 바꾸는 테이블이 `post`라서다 — `comment` 쪽에 숨기면 `PostRepository`를 읽는 사람이 `comment_count`가 어디서도 바뀌지 않는다고 결론한다. 방향은 첫 줄과 같은 모양이고 금지된 **Service 상호 참조는 아니다.**
 
 `LoginMember`는 `(accountId, role)`이다. **`nickname`은 없다.** 작성자 닉네임은 `MemberClient`로 얻는다.
 
@@ -153,7 +162,14 @@ public class PostService {
 | `NoResourceFoundException` | `C004` | |
 | `HttpMediaTypeNotSupportedException` | `C006` | |
 | `HttpMediaTypeNotAcceptableException` | `C007` | **응답의 `Content-Type`을 `application/json`으로 못박는다** — 안 하면 핸들러 자신의 응답이 같은 협상에 걸려 본문이 빈다 |
+| `MaxUploadSizeExceededException` | `C008` | **`fieldErrors` 빈 배열**. 413 |
+| `MultipartException` | `C001` | 같음. multipart 를 해석하지 못했다(예: 깨진 경계) |
+| `MissingServletRequestPartException` | `C001` | 같음. 필요한 파트(예: `file`)가 없다 |
 | `Exception` | `C005` | 마지막 그물 |
+
+**multipart 의 세 줄은 2026-11-11 `D-18` 이 더했다**(첨부 업로드, [api-contract.md §4.7](api-contract.md)). 크기 한도 위반은 **컨트롤러를 고르기 전**, `DispatcherServlet` 이 요청을 multipart 로 해석하는 단계에서 난다 — 그래서 컨트롤러의 검증으로는 다룰 수 없고 이 표에 있어야 한다. `MaxUploadSizeExceededException` 은 `MultipartException` 의 하위 타입이므로 둘 다 두면 더 구체적인 쪽이 고른다 — 상위만 두면 크기 위반이 `C001` 이 된다.
+
+> **지금은 셋 다 마지막 그물로 떨어질 것으로 본다**(코드 읽기 — 세 서비스의 `GlobalExceptionHandler` 에 multipart 핸들러가 없다). 그러면 한도(Boot 기본 개당 1MB)를 넘는 multipart 는 지금 **500 `C005` 와 ERROR 로그**가 된다. **측정 대상이다** — 핸들러를 넣기 전에 실제 서버에서 한 번 재서 이 추정을 확인하거나 뒤집는다. `MockMvc` 는 서블릿 컨테이너의 multipart 한도를 거치지 않으므로 그 응답을 재지 못한다([tech-stack.md §4.5](tech-stack.md)).
 
 **세 서비스가 이 표를 똑같이 구현한다.** 다만 **클래스 자체는 복제 대상이 아니다**(§7.2) — 서비스별 `ErrorCode`에 의존하므로 각자 쓴다. 같아야 하는 것은 **핸들러 집합·코드·로그 수준·응답 본문**이고, 그 일치를 [plan/integration.md](plan/integration.md) I-04가 3자 비교한다. **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
 

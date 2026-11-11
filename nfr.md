@@ -2,8 +2,8 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v10
-updated: 2026-10-18
+version: v11
+updated: 2026-11-11
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
 ---
@@ -33,6 +33,21 @@ related: [architecture.md, process/dev-workflow.md]
 > **교착 자체는 1차의 한계로 남긴다** — 이 절은 조회 p95만, §3은 타임아웃·서킷만 정한다. B-10과 B-11의 좁은 UPDATE는 소실 갱신을 **없앤다**(B-10 이 댓글 쓰기, B-11 이 조회수 증가 경로다). 교착도 줄 **수 있지만 측정하지 않았다** — InnoDB 행 락은 `SET` 절의 컬럼 수와 무관하고, 락 보유 구간이 짧아지는 쪽으로만 여지가 있다.
 
 
+> **"`comment_count`와 목록의 `totalElements`가 같다" 는 1차의 계약을 인용한 것이다.** 2026-11-11 `D-18` 이 답글을 설계하며 둘이 다른 것을 세게 됐다([api-contract.md §4.5](api-contract.md)) — 지켜야 할 등식은 이제 "`comment_count` = 답글을 포함한 활성 댓글 수" 다. 위 실측과 그 판정(결함)은 1차의 것으로 남는다.
+
+**2차 기능 확장이 `post` 한 행을 다투는 쓰기를 늘린다**(2026-11-11 `D-18`, [domain-model.md §6](domain-model.md)).
+
+| 집계 | 쓰는 요청 |
+| --- | --- |
+| `comment_count` | 댓글·답글 작성과 삭제 |
+| `view_count` | **상세 조회** 중 집계되는 것 |
+| `like_count` | 좋아요·취소 |
+| `attachment_count` | 첨부 올리기·지우기 |
+
+모두 좁은 UPDATE 이므로 소실 갱신은 없어야 한다. 같은 전환을 두 번 세는 중복 증감은 좁은 UPDATE 가 아니라 근거 행의 조건부 전환이 막는다([domain-model.md §6](domain-model.md)). 그 둘을 지키면 남는 것은 **같은 행의 락 대기와 교착**이고, 위 "교착 자체는 1차의 한계로 남긴다" 가 그대로 적용된다 — 인기 글 하나에 조회·좋아요·댓글이 몰리면 그 행이 줄을 세운다. **상세 조회의 쓰기 모양이 바뀐다** — 1차에는 요청마다 `post` 의 조회수 +1 이었고, 2차에서는 요청마다 판정 행(`post_view`)을 쓰고 집계될 때만 `post` 를 쓴다. 판정 순서의 교착 가능성은 [requirements/board.md §9](requirements/board.md)가 적고, 어느 것이 실제로 나는지는 실 MySQL 측정 대상이다([plan/phase2.md §5.4](plan/phase2.md)).
+
+> **글 수정·삭제가 집계를 되돌릴 수 있다**(추정). 엔티티 저장이 모든 컬럼을 싣는다면 수정 트랜잭션이 읽은 낡은 집계를 다시 쓴다 — [domain-model.md §6](domain-model.md)이 요건으로 막는다.
+
 ## 2. 장애 격리
 
 | 시나리오 | 기대 동작 |
@@ -61,6 +76,17 @@ related: [architecture.md, process/dev-workflow.md]
 
 - Stateless 설계로 서비스별 독립 수평 확장이 가능하다
 - 각 서비스가 `/actuator/health`를 제공한다
+
+> **첨부 파일이 로컬 디스크에 있는 동안은 board 를 여러 인스턴스로 늘릴 수 없다**(2026-11-11 `D-18`, [adr/0013](adr/0013-attachment-storage.md)). 한 인스턴스가 쓴 파일을 다른 인스턴스가 읽지 못한다 — 공유 볼륨을 붙이거나 객체 저장소로 옮기는 것이 그 ADR 의 재검토 조건이다. 조회수 판정(`post_view`)은 DB 에 있으므로 이 제약을 만들지 않는다([adr/0014](adr/0014-view-count-dedup.md)).
+
+**저장 용량**
+
+| 항목 | 기준 |
+| --- | --- |
+| 첨부 | 글당 활성 10개 × 개당 5MB 가 글 하나의 상한이다. **전체 쿼터는 없다** |
+| 남는 파일 | 첨부 삭제·글 삭제·실패한 업로드가 파일을 남긴다. **정리하지 않는다**(이번 범위 밖, [requirements/board.md §11](requirements/board.md)) — 디스크 사용량은 활성 첨부의 합보다 크다 |
+| `post_view` | 최근 24시간 + 정리 주기 안의 (조회자, 글) 쌍만큼이다. 정리가 멈추면 무한히 쌓인다 — 정리 작업의 실패를 로그로 드러낸다([tech-stack.md §4.5](tech-stack.md)) |
+| `post_like` | 회원 × 글 쌍만큼. 지운 글의 행도 남는다 |
 
 ## 5. 로깅·추적
 

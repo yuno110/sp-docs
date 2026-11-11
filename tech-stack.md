@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v33
+version: v34
 updated: 2026-11-11
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -108,6 +108,8 @@ spring:
 >
 > **그 "전부" 를 기계로 묶는 것은 없다.** board 의 `JwtAuthenticationTest` 가 인증 필요 경로를 `@CsvSource` 로 **손으로 유지하는 목록**으로 들고 있어, 새 핸들러가 그 목록에 추가되지 않으면 아무것도 빨개지지 않는다(B-09 리뷰어 지적). 전제를 적어 두는 것으로 받고, 세 서비스가 같은 답을 내는지는 I-04 가 응답으로 비교한다.
 >
+> **2026-11-11 `D-18` 이 board 에 두 가지를 더한다.** 새 인증 경로(좋아요·첨부 올리기·지우기, [api-contract.md §4](api-contract.md))도 `@CurrentMember` 를 받아야 위 집행이 성립하고, 위 손 목록에 들어가야 한다. 그리고 `GET /api/v1/posts/{id}` 가 **인증을 선택으로** 받으므로([api-contract.md §4.8](api-contract.md)) 토큰이 있을 때 계정을 꺼내는 **선택적 리졸버**가 생긴다 — **그 리졸버도 `@CurrentMember` 리졸버와 같은 검사를 한다**(`sub` 누락·숫자 아님, `role` 누락·열거 밖 → 401 `A002` — 열거 검사는 B-12 가 더했다). 토큰이 없을 때만 `null` 이고, 검사에 실패한 토큰을 `null` 로 낮추면 계약 밖 토큰이 익명으로 통과하는 새 통로가 된다.
+>
 > **그때도 권한이 올라가지는 않는다.** `RoleClaimConverter` 는 null 검사 없이 `ROLE_null` 을 조립하지만, board 에는 `hasRole`·`@PreAuthorize` 사용처가 없고 권한 판정을 서비스가 `LoginMember.role()` 문자열로 한다(실측). 그래서 지금의 비대칭은 **방어 깊이의 차이**이고 관측되는 계약의 차이가 아니다 — [plan/integration.md](plan/integration.md) I-04 가 그 동일성을 3자로 비교한다.
 
 ### 2.2 발급 — auth-service만
@@ -197,6 +199,8 @@ dependencies {
 | member | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` | 검증만 |
 | board | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` | 검증만 |
 
+**2026-11-11 `D-18` 의 첨부·조회수·좋아요는 의존성을 더하지 않는다**(§4.5).
+
 **`oauth2-jose`를 직접 선언하는 것은 auth 하나뿐이다.** member·board에 그 줄을 넣지 않는다.
 
 **다만 그것이 서명 역량을 막지는 못한다.** 검증 의존성이 `oauth2-jose`를 추이로 끌고 오므로 **세 서비스 모두 클래스패스에 서명 클래스를 갖는다**(§2.2의 측정값). 직접 선언을 금지하는 것은 **의도를 선언하지 않게 하는 것**이고, 실제 경계는 **개인키가 member·board에 없는 것**이다([security.md §2 §3](security.md)).
@@ -282,8 +286,8 @@ tasks.register('bcrypt') {
 | 분류 | 기본값 | 예 |
 | --- | --- | --- |
 | 편의값 | **둔다** | `DB_URL`, `DB_USERNAME`, `MEMBER_SERVICE_URL` |
-| 비밀값 | **두지 않는다** | `DB_PASSWORD`, `JWT_PRIVATE_KEY_LOCATION`, `INTERNAL_API_KEY`, `ADMIN_PASSWORD_HASH`(auth만) |
-| **정책값** | **두지 않는다** | `CORS_ALLOWED_ORIGINS` |
+| 비밀값 | **두지 않는다** | `DB_PASSWORD`, `JWT_PRIVATE_KEY_LOCATION`, `INTERNAL_API_KEY`, `ADMIN_PASSWORD_HASH`(auth만), `VIEW_COUNT_HMAC_SECRET`(board만, §4.5) |
+| **정책값** | **두지 않는다** | `CORS_ALLOWED_ORIGINS`, `ATTACHMENT_STORAGE_ROOT`(board만, §4.5) |
 
 **정책값은 비밀이 아니지만 기본값을 두지 않는다.** 임의 기본값을 두면 그 값이 정해진 정책인지 임시값인지 구분할 수 없고, 운영에 그대로 나갈 수 있다. 없으면 기동이 실패해야 한다.
 
@@ -352,7 +356,7 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 
 > `DB_PASSWORD`가 어디에도 없으면 `Access denied for user 'root'@'localhost' (using password: YES)`로 기동이 실패한다. **비밀번호가 틀린 게 아니라 값이 없는 것이다.** Spring이 해석되지 않은 placeholder를 리터럴로 남기기 때문이다.
 
-`JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다.
+`JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다. board 의 `ATTACHMENT_STORAGE_ROOT`·`VIEW_COUNT_HMAC_SECRET` 도 같다(2026-11-11 `D-18`, §4.5) — 템플릿(`.example`)에는 자리만 두고 값을 넣지 않는다.
 
 #### 두 YAML 소스는 블록이 아니라 키 단위로 합쳐진다
 
@@ -384,6 +388,49 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 
 - Swagger UI: `/swagger-ui.html` (운영 프로파일에서는 비활성화)
 - 헬스체크: `/actuator/health`
+
+### 4.5 board 의 업로드·조회수 설정
+
+**2026-11-11 `D-18` 이 더했다.** 첨부([requirements/board.md §11](requirements/board.md))와 조회수 판정([requirements/board.md §9](requirements/board.md))이 새 설정을 갖는다. 예(`application.yml`):
+
+```yaml
+spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB        # 개당 한도. 사용자 결정
+      max-request-size: 6MB     # 파일 하나 + multipart 머리
+server:
+  tomcat:
+    max-swallow-size: 10MB
+  forward-headers-strategy: none
+attachment:
+  storage-root: ${ATTACHMENT_STORAGE_ROOT}
+view-count:
+  hmac-secret: ${VIEW_COUNT_HMAC_SECRET}
+  cleanup-interval: PT1H
+```
+
+| 키 | 분류(§4.3) | 요건 |
+| --- | --- | --- |
+| `spring.servlet.multipart.max-file-size` | 정본 값 | **5MB.** 넘으면 413 `C008`([api-contract.md §8.1](api-contract.md)). Boot 기본값(1MB)이 사용자 결정보다 작으므로 반드시 적는다 |
+| `spring.servlet.multipart.max-request-size` | 정본 값 | 요청 하나에 파일 하나이므로 개당 한도보다 조금 크게 둔다. 넘으면 같은 413 |
+| `server.tomcat.max-swallow-size` | 정본 값 | 한도를 넘은 요청의 **나머지 본문을 읽어 버리는** 양이다. 이보다 크게 남으면 Tomcat 이 연결을 끊을 수 있고, 그러면 클라이언트는 413 대신 연결 오류를 볼 것으로 본다(**측정 대상**). 큰 사진을 실수로 고른 사용자가 413 을 받게 하려는 값이다 |
+| `server.forward-headers-strategy` | 정본 값 | **`none`.** `X-Forwarded-For` 로 `remoteAddr` 를 바꾸지 않는다 — 비로그인 조회자 식별이 그 값을 쓴다([security.md §9](security.md)). 클라우드 플랫폼을 감지하지 않는 로컬 기본값과 같지만 의도를 보이려고 적는다(Boot 는 클라우드 플랫폼을 감지하면 기본값이 `NATIVE` 다). 게이트웨이를 들이면 [adr/0014](adr/0014-view-count-dedup.md)를 다시 본다 |
+| `attachment.storage-root` | **정책값** | 기본값이 없다. **이미 있고 쓸 수 있는 디렉터리**여야 하며 아니면 **기동이 실패한다** — 서버가 만들지 않는다. 엉뚱한 곳에 디렉터리를 만들고 올라오는 것보다 실패가 낫다 |
+| `view-count.hmac-secret` | **비밀값** | 기본값이 없다. 비었거나 **설정값 문자열의 UTF-8 바이트 길이가 32보다 짧으면 기동이 실패한다**(Base64 로 디코드하지 않는다 — 키는 그 바이트 그대로다. 32 는 HMAC-SHA256 의 출력 길이이고 그보다 짧은 키는 강도를 낮춘다) |
+| `view-count.cleanup-interval` | 편의값 | 오래된 판정 행을 지우는 주기. 기본 1시간. 판정 결과에 영향이 없고 보존 기간의 상한을 정한다([security.md §9](security.md)) |
+
+**"기본값이 없으면 기동이 실패한다" 는 가드가 만든다.** §4.3 의 측정대로 주입 방식에 따라 미해석 `${…}` 리터럴이나 빈 문자열이 그대로 통과할 수 있다. 두 값은 **기동 시점에 검사하는 코드**를 두고, 그 실패를 테스트가 본다.
+
+**환경변수 이름과 속성 경로가 다르다**(위 「환경변수 이름은 속성 경로를 따른다」). 운영은 `application.yml` 의 placeholder 로 `ATTACHMENT_STORAGE_ROOT`·`VIEW_COUNT_HMAC_SECRET` 를 읽는다. `application-local.yml` 이 두 키를 리터럴로 덮으면 로컬에서는 그 환경변수가 쓰이지 않는다.
+
+**정리 작업은 board 의 첫 스케줄러다.** 스케줄링 활성화는 `global/config` 에 둔다([conventions.md §1.3](conventions.md)). 인스턴스가 여럿이면 각자 돌지만 지우는 조건이 같아 결과가 같다. 지우는 조건은 `viewed_at` 이므로 그 인덱스를 쓴다([domain-model.md §4.3](domain-model.md)).
+
+**의존성을 더하지 않는다.** HMAC 은 JDK(`javax.crypto.Mac`), 스케줄링은 이미 있는 `spring-context`, 형식 판정은 매직 바이트 비교다 — 판정 라이브러리(예: Tika)를 들이지 않는 것이 결정이다([requirements/board.md §11](requirements/board.md)).
+
+> **multipart 한도는 `MockMvc` 로 재지 못한다.** 한도는 서블릿 컨테이너가 요청을 해석할 때 집행하고, `MockMvc` 의 multipart 요청은 이미 해석된 모양으로 들어간다. 그래서 413 `C008`·연결 끊김·`max-swallow-size` 의 효과는 **실제 서버(내장 Tomcat 을 띄운 테스트나 기동한 서비스)** 에서 잰다. 핸들러가 `MaxUploadSizeExceededException` 을 `C008` 로 바꾸는 것은 `MockMvc` 로도 볼 수 있다 — 그 예외를 직접 던지게 하면 된다.
+
+> **테스트 프로파일은 임시 디렉터리와 테스트용 키를 준다.** 커밋되는 파일에 들어가므로 운영 값이 아니다. 저장 루트를 테스트마다 비운 임시 디렉터리로 주면 테스트가 서로의 파일을 보지 않는다.
 
 ## 5. 테스트 환경
 

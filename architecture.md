@@ -2,8 +2,8 @@
 title: 아키텍처
 type: explanation
 status: living
-version: v3
-updated: 2026-10-14
+version: v4
+updated: 2026-11-11
 read_when: "서비스 경계, 서비스 간 통신, 데이터 일관성 설계를 확인할 때"
 related: [domain-model.md, api-contract.md, adr/0001-msa-adoption.md, adr/0003-writer-snapshot.md, adr/0012-auth-as-separate-service.md]
 ---
@@ -26,6 +26,8 @@ related: [domain-model.md, api-contract.md, adr/0001-msa-adoption.md, adr/0003-w
   refresh_token                   내부 API (쓰기 경로에서만)
 ```
 
+> **그림의 테이블 이름은 1차의 것이다.** 2026-11-11 `D-18` 이 board 에 좋아요·조회 판정·첨부의 테이블을 더하고 첨부 파일을 디스크에 두기로 했다. 테이블은 [domain-model.md §4](domain-model.md)가, 파일 저장소는 [adr/0013](adr/0013-attachment-storage.md)이 정본이다. 호출 방향은 바뀌지 않는다 — 새 기능은 member 를 부르지 않는다.
+
 **호출 방향은 `board -> member` 하나뿐이다.** auth는 다른 서비스를 호출하지 않고, 다른 서비스도 auth를 런타임에 호출하지 않는다. 토큰 검증은 공개키로 오프라인 수행한다.
 
 1차에서는 API Gateway를 두지 않고 클라이언트가 세 서비스를 직접 호출한다([adr/0009](adr/0009-gateway-deferred.md)).
@@ -42,7 +44,7 @@ DB는 로컬에서 MySQL 1 인스턴스에 스키마 3개로 두고, 운영에�
 | 2 | API를 통한 통신 | 데이터가 필요하면 소유 서비스의 API를 호출하거나 스냅샷으로 복제한다 |
 | 3 | 독립 배포 | 각 서비스는 자체 저장소·빌드를 가지며 단독 배포된다 |
 | 4 | 장애 격리 | member 장애 시에도 게시글 **조회·수정·삭제**는 정상 동작해야 한다. **생성은 중단된다**(§4.3) |
-| 5 | Stateless | 세션 미사용. 모든 인스턴스가 동등하며 수평 확장 가능 |
+| 5 | Stateless | 세션 미사용. 모든 인스턴스가 동등하며 수평 확장 가능. **예외: board 의 첨부 파일이 로컬 디스크에 있는 동안은 인스턴스가 동등하지 않다**(2026-11-11 `D-18`, [adr/0013](adr/0013-attachment-storage.md)) |
 | 6 | 최종 일관성 | 서비스에 걸친 작업은 2PC 대신 순서와 멱등으로 다룬다. 중간 실패가 안전한 쪽으로 떨어지게 순서를 정한다(§4.4) |
 
 ## 3. 서비스 내부 계층 (공통)

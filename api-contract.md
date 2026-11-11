@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v49
+version: v50
 updated: 2026-11-11
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -24,6 +24,7 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | `/api/v1/members/**` | member | `http://localhost:8081` |
 | `/api/v1/posts/**` | board | `http://localhost:8082` |
 | `/api/v1/comments/**` | board | `http://localhost:8082` |
+| `/api/v1/attachments/**` | board | `http://localhost:8082` |
 | `/internal/v1/members/**` | member | 서비스 간 호출 전용. 외부 노출 금지 |
 
 업무 API가 아닌 경로(`/swagger-ui/**`, `/v3/api-docs/**`, `/actuator/**`)의 인가는 [security.md §5.1.1](security.md)이 정본이다. **선언하지 않으면 Boot 기본 필터가 401로 막는다.**
@@ -312,6 +313,13 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | GET | `/api/v1/posts/{postId}/comments` | 댓글 목록 | - | 200 |
 | PUT | `/api/v1/comments/{id}` | 댓글 수정 | O (본인) | 200 |
 | DELETE | `/api/v1/comments/{id}` | 댓글 삭제 | O (본인/ADMIN) | 204 |
+| PUT | `/api/v1/posts/{id}/like` | 좋아요 (§4.6) | O | 200 |
+| DELETE | `/api/v1/posts/{id}/like` | 좋아요 취소 (§4.6) | O | 200 |
+| POST | `/api/v1/posts/{postId}/attachments` | 첨부 업로드 (§4.7) | O (글 작성자) | 201 |
+| GET | `/api/v1/attachments/{id}` | 첨부 내려받기 (§4.7) | - | 200 |
+| DELETE | `/api/v1/attachments/{id}` | 첨부 삭제 (§4.7) | O (글 작성자) | 204 |
+
+**좋아요·첨부의 줄은 2026-11-11 `D-18` 이 더한 계약이다**([plan/phase2.md §5](plan/phase2.md)) — 구현은 `D-20` 이 세울 항목의 일이다. 게시글·댓글의 줄은 그대로이고 그 요청·응답이 받는 필드가 늘었다(§4.1·§4.3·§4.5). 필드를 더한 것은 [adr/0008](adr/0008-api-versioning.md)의 하위 호환 변경이다. **댓글 목록은 아니다** — 페이징 단위가 최상위 항목이 되고 `totalElements` 의 뜻이 바뀌며 삭제된 댓글의 자리가 `null` 필드로 온다(§4.5). ADR 0008 의 기준으로 구조·의미의 변경이지만 그래도 `/v1` 안에 둔다 — 근거와 재검토 조건은 그 ADR 의 2026-11-11 블록인용에 있다. `GET /api/v1/posts/{id}` 는 인증을 **선택으로** 받는다(§4.8).
 
 **`GET /posts/me` 의 인가 규칙을 `GET /posts/{id}` 보다 먼저 선언한다.** MVC 라우팅은 리터럴 세그먼트를 경로 변수보다 구체적으로 보므로 선언 순서와 무관하지만(M-10 리뷰 측정값), **`SecurityConfig` 의 `authorizeHttpRequests` 는 선언 순서대로 평가한다.** `{id}` 를 먼저 선언하면 `permitAll` 이 `/posts/me` 를 먼저 잡아 **요청이 인증 없이 디스패치된다.**
 
@@ -336,6 +344,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | `sort` | enum | `latest` | `latest`(최신순), `views`(조회순) |
 | `searchType` | enum | - | `TITLE`, `CONTENT`, `TITLE_CONTENT`, `WRITER` |
 | `keyword` | string | - | `searchType`과 함께 전달 |
+| `category` | enum | - | `NOTICE`, `FREE`, `QNA`. 없으면 모든 카테고리(2026-11-11 `D-18`, [requirements/board.md §8](requirements/board.md)) |
 
 `sort`는 화이트리스트 Enum으로 받는다. 임의 컬럼명을 직접 노출하지 않는다. **`latest`는 `created_at DESC, id DESC`이고 `views`는 `view_count DESC, id DESC`다** — 2차 키의 근거는 §7.1에 있다.
 
@@ -349,7 +358,9 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 **반면 `searchType`·`keyword` 조합 위반은 `fieldErrors` 가 빈 배열이다.** 한 필드의 오류가 아니라 **요청 수준** 규칙이어서 담을 필드가 하나로 정해지지 않는다. §2.3 이 가른 요청 수준과 바인딩 수준의 구분이 여기서 갈린다.
 
-**`GET /posts/me` 는 `page`·`size`·`sort` 만 받는다.** `searchType`·`keyword` 는 **없다** — [requirements/board.md §1](requirements/board.md) 의 P-08 이 "`writer_id` 기준 페이징" 만 요구한다. 기본값·상한·하한과 `fieldErrors` 판정은 위와 같고, 응답 모양도 목록과 같다(§4.3). **조회 키는 JWT 의 `sub` 다** — 쿼리 파라미터로 `writerId` 를 받지 않는다([requirements/board.md §3](requirements/board.md) 규칙 3).
+**`category` 는 다른 조건과 AND 로 걸린다.** 검색·정렬과 함께 쓸 수 있다. **잘못된 값은 400 `C002`** 다 — enum 바인딩의 실패이고(`MethodArgumentTypeMismatchException`, [conventions.md §6.1](conventions.md)) `sort` 의 잘못된 값과 같은 길이다. 같은 enum 이 작성·수정 **본문**에 오면 JSON 해석 실패라 400 `C001` 이다(§4.4) — 들어온 자리가 코드를 가른다. 생략하면 공지(`NOTICE`)도 들어간다. 화면의 공지 고정은 `category=NOTICE` 로 따로 받는다.
+
+**`GET /posts/me` 는 `page`·`size`·`sort` 만 받는다.** `searchType`·`keyword`·`category` 는 **없다** — [requirements/board.md §1](requirements/board.md) 의 P-08 이 "`writer_id` 기준 페이징" 만 요구한다. 기본값·상한·하한과 `fieldErrors` 판정은 위와 같고, 응답 모양도 목록과 같다(§4.3). **조회 키는 JWT 의 `sub` 다** — 쿼리 파라미터로 `writerId` 를 받지 않는다([requirements/board.md §3](requirements/board.md) 규칙 3).
 
 > **`size` 의 규칙이 코드에서 갈리는 것은 결함이 아니다.** 하한(1 미달)은 400 이고 상한(50 초과)은 절삭이라 정본([requirements/board.md §4](requirements/board.md))에서 이미 갈려 있다. 하한을 파라미터 제약으로 두고 절삭을 정규화로 두는 구현은 그 갈림을 그대로 비춘 것이다. **하나로 합치려고 절삭을 400 으로 바꾸거나 하한을 절삭으로 바꾸지 않는다.**
 
@@ -362,17 +373,32 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | 글·댓글 수정 | 아니오 | 없음 |
 | 글·댓글 삭제 | 아니오 | 없음 |
 | 관리자 삭제 | 아니오 | 없음 |
+| 답글 작성 | 예 — 댓글 생성이다 | **있음** (§5) |
+| 좋아요·취소 (§4.6) | **아니오** | 없음 |
+| 첨부 업로드·삭제 (§4.7) | **아니오** | 없음 |
+
+**좋아요와 첨부가 프로필을 요구하지 않는 것은 "생성에는 프로필이 필요하다" 와 어긋나지 않는다.** 프로필 요구는 작성자 스냅샷 취득의 부수 효과이고([requirements/board.md §7](requirements/board.md)) 그 둘은 닉네임을 저장하지 않으므로 member 를 부를 이유가 없다. 그래서 프로필이 없거나 탈퇴한 계정도 토큰이 유효한 동안 좋아요를 누를 수 있다 — 탈퇴의 잔여 노출([security.md §5.3](security.md))과 같은 창이다. 첨부는 자기 글에만 올리므로 통상 그 글을 쓸 때 프로필이 있었다.
 
 수정·삭제가 member에 의존하지 않는 것은 "수정 시 스냅샷을 갱신하지 않는다"에서 따라온다. **member 장애 시 새 글만 막히고 기존 글의 수정·삭제는 계속 된다.**
 
 ### 4.3 게시글 응답의 두 모양
 
-**목록 항목과 상세가 다른 모양이다.** 목록은 §9.3 의 예시가 정본이고, 상세는 거기에 `content` 를 더한 것이다.
+**목록 항목과 상세가 다른 모양이다.** 목록은 §9.3 의 예시가 정본이고, 상세는 거기에 `content`·`liked`·`attachments` 를 더한 것이다(§9.6).
 
 | | 반환 | 근거 |
 | --- | --- | --- |
-| 목록 항목 (`GET /posts`, `GET /posts/me`) | `id`·`title`·`writerId`·`writerNickname`·`viewCount`·`commentCount`·`createdAt` | §9.3 |
-| 상세 (`GET /posts/{id}`) | 위 일곱 + **`content`** | 본문은 상세에서만 필요하다 |
+| 목록 항목 (`GET /posts`, `GET /posts/me`) | `id`·`title`·`category`·`writerId`·`writerNickname`·`viewCount`·`commentCount`·`likeCount`·`createdAt` | §9.3 |
+| 상세 (`GET /posts/{id}`) | 목록 항목의 키 + **`content`**·**`liked`**·**`attachments`** | 본문·내 좋아요 여부·첨부는 상세에서만 필요하다 |
+
+> **`category`·`likeCount`·`liked`·`attachments` 는 2026-11-11 `D-18` 이 더했다.** 그 전의 목록 항목과 상세는 이 표에서 그 키들을 뺀 것이었다 — 1차 항목(B-05·B-11 등)이 응답 키 집합을 그 시점의 계약으로 단언했다. 응답에 필드를 더하는 것은 하위 호환 변경이다([adr/0008](adr/0008-api-versioning.md)).
+
+| 키 | 값 |
+| --- | --- |
+| `category` | `NOTICE`·`FREE`·`QNA`([requirements/board.md §8](requirements/board.md)) |
+| `likeCount` | `post.like_count`([domain-model.md §4.1](domain-model.md)) |
+| `liked` | **요청에 유효한 Access Token 이 있으면 그 계정이 이 글을 눌렀는지(boolean), 없으면 `null`.** 키는 언제나 있다 — 비로그인 응답에서 키를 빼지 않는다. `false` 와 `null` 이 다르다: `false` 는 "이 계정은 누르지 않았다", `null` 은 "누구인지 모른다" |
+| `attachments` | 활성 첨부의 배열, **올린 순서**(`id` 오름차순). 없으면 빈 배열. 원소는 §4.7 의 첨부 모양이다. 글이 지워지면 글 자체가 404 이므로 이 배열을 볼 일이 없다 |
+| `viewCount` | 상세에서는 **이 요청의 조회 판정이 반영된 값**이다(§4.8) |
 
 **`content` 를 목록에서 빼는 이유는 크기다.** 본문은 10,000자까지 허용되므로([requirements/board.md §4](requirements/board.md)) 한 페이지 50건이면 500,000자가 된다.
 
@@ -406,25 +432,43 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 > **선후를 관측하려면 행이 남아 있어야 한다.** 행이 **없는** id 로는 두 순서가 같은 답을 낸다 — 비교할 `writer_id` 가 없으므로 권한 판정을 앞에 둔 구현도 404 밖에 낼 수 없다. **삭제된 글**(행은 있고 보이지만 않는 상태)에서만 두 순서가 서로 다른 답을 낸다. 그래서 이 선후를 검증하는 테스트는 **soft delete 된 행**을 쓴다.
 
-> **비공개 자원이면 반대가 맞다.** 존재 여부가 공개가 아닌 자원에서는 404 를 먼저 내는 것이 존재를 알려주는 누출이 된다. 1차의 board 에는 그런 자원이 없다 — §4.2 가 조회를 전부 공개로 두었다. 새로 생기면 이 절을 다시 본다.
+> **비공개 자원이면 반대가 맞다.** 존재 여부가 공개가 아닌 자원에서는 404 를 먼저 내는 것이 존재를 알려주는 누출이 된다. 1차의 board 에는 그런 자원이 없다 — §4.2 가 조회를 전부 공개로 두었다. 새로 생기면 이 절을 다시 본다. **2026-11-11 `D-18` 이 다시 봤다 — 그때 더한 자원도 공개다.** 첨부는 비로그인에 서빙되고(§4.7), 좋아요는 자기 것(`liked`)만 응답하며 누가 눌렀는지는 어느 응답에도 없다. 그래서 첨부 삭제도 없는 것(404 `AT001`)이 먼저다.
 
 **`POST /api/v1/posts` 와 `PUT /api/v1/posts/{id}` 의 응답도 상세와 같은 모양이다.** 모양은 둘뿐이고 쓰기 응답이 세 번째를 만들지 않는다 — member 가 §3.1 에서 `POST /api/v1/members`·`PATCH /api/v1/members/me` 를 `GET /me` 와 같은 모양으로 못박은 것과 같다. 방금 만들거나 고친 글은 본문까지 돌려주는 것이 자연스럽다.
 
+**작성·수정 본문의 `category` 는 선택이다**(§4.1 의 enum). 작성에서 생략하면 `FREE`, 수정에서 생략하면 지금 값을 유지한다. 잘못된 값은 JSON 해석 실패라 400 `C001` 이다. **공지를 다루는 요청자가 ADMIN 이 아니면 403 `P003`** 이다 — 규칙과 판정 순서는 [requirements/board.md §8](requirements/board.md)이 적는다. 작성 응답의 `liked` 는 `false`, `attachments` 는 빈 배열이다 — 첨부는 글을 만든 뒤 올린다(§4.7). 수정 응답의 `liked` 는 요청한 계정의 실제 상태다(§4.3 의 `liked` 행).
+
 > **댓글 응답의 모양은 §4.5 에 있다.** 이 절은 게시글만 다룬다.
 
-### 4.5 댓글 응답의 한 모양
+### 4.5 댓글 응답의 모양
 
-**세 엔드포인트가 같은 모양을 돌려준다.** `POST /posts/{postId}/comments`(201), `GET /posts/{postId}/comments` 의 각 항목, `PUT /comments/{id}`(200) 다.
+**댓글 하나의 모양은 하나다.** `POST /posts/{postId}/comments`(201), `PUT /comments/{id}`(200), 그리고 목록의 답글이 그 모양이다. **`GET /posts/{postId}/comments` 의 각 항목(최상위 댓글)은 거기에 `replies` 를 더한 것이다**(§9.7).
 
 | | 반환 |
 | --- | --- |
-| 댓글 | `id`·`writerId`·`writerNickname`·`content`·`createdAt` — **다섯 키** |
+| 댓글 | `id`·`parentId`·`writerId`·`writerNickname`·`content`·`deleted`·`createdAt` |
+| 목록의 최상위 항목 | 댓글의 키 + **`replies`** — 그 댓글의 활성 답글 배열, 등록순. 원소는 댓글 모양이고 `replies` 를 갖지 않는다. 답글이 없으면 빈 배열 |
 
-**게시글처럼 두 모양으로 가르지 않는다.** 게시글이 목록과 상세를 가른 이유는 `content` 의 크기였다(§4.3 — 본문 10,000자에 한 페이지 50건). 댓글 `content` 는 500자이므로 한 페이지 20건이 10,000자이고 가를 이유가 없다.
+> **이 절의 1차 판은 세 엔드포인트가 `id`·`writerId`·`writerNickname`·`content`·`createdAt` 한 모양을 돌려준다고 적었다.** 2026-11-11 `D-18` 이 대댓글([requirements/board.md §12](requirements/board.md))을 설계하며 `parentId`·`deleted` 를 더하고 목록 최상위에 `replies` 를 더했다. 1차 항목(B-08)이 단언한 키 집합은 그 시점의 계약이다.
 
-**`deleted` 를 넣지 않는다.** [requirements/board.md §5](requirements/board.md) 규칙 1이 "삭제된 게시글·댓글은 목록·상세에서 제외한다" 로 정했으므로 **돌아온 댓글은 항상 활성이다.** 같은 절의 규칙 2("삭제된 댓글은 "삭제된 댓글입니다"로 표시할 수 있도록 행을 남긴다")는 **행을 남기는 이유**이고 1차의 응답 요구가 아니다 — 표시가 필요해지는 것은 대댓글이 생기는 2차다([requirements/board.md §2](requirements/board.md) C-05).
+**`parentId`** 는 답글이면 부모 댓글의 `id`, 최상위면 `null` 이다.
 
-> **그래서 `post.comment_count` 와 목록의 `totalElements` 가 같다** — **[B-10](plan/phase1.md)·[B-11](plan/phase1.md)이 끝난 뒤에 그렇다.** 동시 쓰기에서 집계 증가가 소실되는 결함이 둘 있었다([nfr.md §1](nfr.md)). 삭제된 댓글을 목록에 실으면 둘이 어긋나고, 클라이언트가 어느 쪽을 믿어야 하는지를 정해야 한다. 2차에서 표시를 넣을 때 그 결정이 따라온다 — 1차에서 미리 하지 않는다.
+**`deleted` 를 넣는다.** 목록에는 **활성 답글이 있는 삭제된 최상위 댓글**이 자리로 남는다. 그 자리는 `deleted: true` 이고 **`writerId`·`writerNickname`·`content` 가 `null`** 이다 — 지운 내용과 작성자를 가린다. `id`·`parentId`·`createdAt`·`replies` 는 그대로다. 「삭제된 댓글입니다」 문구는 화면이 그린다. 작성·수정 응답과 답글은 언제나 `deleted: false` 다 — 삭제된 댓글의 수정·삭제는 404 `CM001` 이고, 지운 답글은 목록에 싣지 않는다.
+
+> **1차의 이 절은 "`deleted` 를 넣지 않는다" 였다.** [requirements/board.md §5](requirements/board.md) 규칙 1이 삭제된 댓글을 목록에서 빼서 돌아온 댓글이 언제나 활성이었고, 같은 절의 규칙 2 는 행을 남기는 이유였다. 그 판은 "표시가 필요해지는 것은 대댓글이 생기는 2차다" 로 이 개정을 예고했다.
+
+**`post.comment_count` 와 목록의 `totalElements` 는 다른 것을 센다.**
+
+| | 세는 것 |
+| --- | --- |
+| `comment_count` (게시글 응답의 `commentCount`) | **답글을 포함한 활성 댓글 수**([domain-model.md §5](domain-model.md)) |
+| 댓글 목록의 `totalElements` | **최상위 항목의 수** — 활성 최상위 댓글과 활성 답글이 있는 삭제된 최상위 댓글 |
+
+> **1차의 이 절은 "`post.comment_count` 와 목록의 `totalElements` 가 같다 — B-10·B-11 이 끝난 뒤에 그렇다" 였다.** 삭제된 댓글을 목록에 실으면 둘이 어긋나므로 "2차에서 표시를 넣을 때 그 결정이 따라온다" 고 적었고, 위 표가 그 결정이다. **B-10·B-11 이 고친 소실 갱신은 여전히 결함이다** — 지켜야 할 등식이 "`comment_count` = 답글을 포함한 활성 댓글 수" 로 옮겨 갈 뿐이다([nfr.md §1](nfr.md)).
+
+**작성 본문은 `content` 와 선택 필드 `parentId` 다.** `parentId` 가 없거나 `null` 이면 최상위 댓글이다. 부모가 없거나, 다른 글의 댓글이거나, 삭제됐으면 **404 `CM001`**, 부모가 답글이면 **400 `CM003`** 이다. 판정 순서와 확인–커밋 창은 [requirements/board.md §12](requirements/board.md)가 적는다.
+
+**본문 크기로 두 모양을 가르지 않는다.** 게시글이 목록과 상세를 가른 이유는 `content` 의 크기였다(§4.3 — 본문 10,000자에 한 페이지 50건). 댓글 `content` 는 500자이므로 가를 이유가 없다. 목록 최상위의 `replies` 는 크기가 아니라 구조 때문에 붙는다 — 답글 수에 상한이 없으므로 한 페이지의 크기는 답글 수에 비례한다([requirements/board.md §12](requirements/board.md)).
 
 **`postId` 를 넣지 않는다.** 작성·목록은 `/posts/{postId}/comments` 경로가 그것을 이미 담고, 수정은 클라이언트가 목록에서 받은 댓글을 고치는 것이다. 게시글 응답이 작성자 외의 참조를 담지 않는 것과 같다.
 
@@ -436,7 +480,76 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 >
 > **비용은 상수 시간 조회 하나다.** 작성 경로가 이미 같은 판정을 하므로 판정 지점이 하나 늘지 않는다. 삭제된 게시글의 하위 댓글이 함께 논리 삭제되어([requirements/board.md §5](requirements/board.md) 규칙 3) 결과가 어차피 비는 것은 **그 답이 해롭지 않다는 설명이고 옳다는 근거가 아니다.**
 
-**목록 파라미터는 게시글과 같은 규칙에 기본값만 다르다.** `page`(기본 0)와 `size`(**기본 20**, 최대 50, 초과 시 절삭)뿐이다 — `sort`·`searchType`·`keyword` 는 없다. 정렬이 등록순 하나이기 때문이다(§7.1). 하한 위반은 §4.1 과 같은 판정이다 — 바인딩이 성공한 뒤의 범위 위반이므로 400 `C001` 에 `fieldErrors` **1건**이고 `field` 는 파라미터명이다(§2.3). 상한과 하한이 코드에서 갈리는 것이 결함이 아닌 이유도 §4.1 의 블록인용과 같다.
+**목록 파라미터는 게시글과 같은 규칙에 기본값만 다르다.** `page`(기본 0)와 `size`(**기본 20**, 최대 50, 초과 시 절삭)뿐이다 — `sort`·`searchType`·`keyword` 는 없다. 정렬이 등록순 하나이기 때문이다(§7.1). **페이징의 단위는 최상위 항목이다** — 답글은 그 항목에 딸려 오고 `size` 에 세지 않는다. 최상위와 답글 모두 `created_at ASC, id ASC` 다. 하한 위반은 §4.1 과 같은 판정이다 — 바인딩이 성공한 뒤의 범위 위반이므로 400 `C001` 에 `fieldErrors` **1건**이고 `field` 는 파라미터명이다(§2.3). 상한과 하한이 코드에서 갈리는 것이 결함이 아닌 이유도 §4.1 의 블록인용과 같다.
+
+### 4.6 좋아요
+
+**`PUT` 이 누르고 `DELETE` 가 취소한다. 둘 다 멱등이고 본문이 없다.** 응답은 둘 다 200 이며 그 요청 뒤의 상태다(§9.8).
+
+| 키 | 뜻 |
+| --- | --- |
+| `liked` | 요청한 계정이 지금 그 글을 눌렀는가. `PUT` 이면 언제나 `true`, `DELETE` 면 언제나 `false` |
+| `likeCount` | 그 글의 좋아요 수 |
+
+- 이미 누른 글에 `PUT`, 누르지 않은 글에 `DELETE` 도 200 이다 — 상태가 이미 요청과 같을 뿐이다. 201·204 를 쓰지 않는 것은 두 메서드의 응답을 한 모양으로 두기 위해서다
+- 없는·삭제된 글은 둘 다 **404 `P001`** 이다. **프로필은 필요 없다**(§4.2) — `S002` 가 나지 않는다
+- 규칙과 근거는 [requirements/board.md §10](requirements/board.md), 락의 순서는 [domain-model.md §6](domain-model.md)
+
+### 4.7 첨부
+
+**올리기는 글을 만든 뒤 파일 하나씩이다.** 글 작성(`POST /posts`)은 JSON 그대로다([requirements/board.md §11](requirements/board.md)).
+
+| 동작 | 요청 | 성공 |
+| --- | --- | --- |
+| 올리기 | `POST /api/v1/posts/{postId}/attachments`, `multipart/form-data`, 파트 이름 **`file`** 하나 | 201, 첨부 하나의 모양 |
+| 지우기 | `DELETE /api/v1/attachments/{id}` | 204 |
+| 내려받기 | `GET /api/v1/attachments/{id}`, 인증 없음 | 200, **봉투가 아니라 파일의 바이트** |
+
+**첨부 하나의 모양** — 올리기 응답과 상세 응답의 `attachments` 원소가 같다.
+
+| 키 | 뜻 |
+| --- | --- |
+| `id` | 첨부 id. 내려받기 경로가 이것으로 만들어진다 |
+| `originalFilename` | 올린 파일명(경로 부분과 제어 문자를 버린 것) |
+| `contentType` | **서버가 매직 바이트로 판정한 형식**(`image/jpeg`·`image/png`·`image/gif`·`image/webp`). 올린 요청의 `Content-Type` 이 아니다 |
+| `size` | 바이트 수 |
+| `createdAt` | 올린 시각 |
+
+**URL 키를 두지 않는다.** 내려받기 경로는 `/api/v1/attachments/{id}` 로 정해져 있고, 서버가 절대 URL 을 만들면 자기 오리진을 알아야 한다(화면이 board 를 직접 부를 때와 개발 서버의 프록시를 거칠 때 다르다 — 게이트웨이가 없다, [adr/0009](adr/0009-gateway-deferred.md)). 화면이 board 의 기준 주소에 붙여 만든다. 저장 이름(`storage_key`)은 응답에 나가지 않는다.
+
+**내려받기 응답은 봉투(§7)가 아니다.** 성공이면 본문이 파일 자체이고 헤더는 [security.md §8](security.md)이 정한다. **실패는 봉투다** — 없는 첨부, 삭제된 첨부, 지워진 글의 첨부는 모두 404 `AT001` 이다. 저장소에 파일이 없을 때(행은 있는데 파일이 사라졌다)도 `AT001` 로 둔다 — 화면에서 둘의 차이가 쓸모없고, 운영이 알아야 할 일이므로 서버는 WARN 을 남긴다.
+
+**올리기의 실패**
+
+| 경우 | 응답 |
+| --- | --- |
+| `multipart/form-data` 가 아니다 | 415 `C006` — 매핑이 `consumes` 로 multipart 를 선언한다 |
+| `file` 파트가 없거나 비었다(0바이트) | 400 `C001` |
+| 파일이 개당 한도를, 또는 요청 전체가 요청 한도를 넘는다 | 413 `C008`(§8.1) — 한도 값은 [tech-stack.md §4.5](tech-stack.md) |
+| 없는·삭제된 글 | 404 `P001` |
+| 그 글의 작성자가 아니다 | 403 `P002` |
+| 네 형식이 아니다 | 400 `AT002` |
+| 파일명이 규칙 밖이다 | 400 `C001` |
+| 그 글의 활성 첨부가 이미 10개다 | 409 `AT003` |
+
+판정 순서는 [requirements/board.md §11](requirements/board.md)이 적는다. 크기 위반은 컨트롤러에 닿기 전 multipart 해석 단계에서 나므로 매핑이 [conventions.md §6.1](conventions.md)에 있다.
+
+**지우기의 실패**는 없는·이미 지운 첨부(그 글이 지워졌어도 같다) 404 `AT001` → 그 글의 작성자가 아니면 403 `P002` 다(§4.4).
+
+### 4.8 상세 조회의 선택적 인증과 조회수 판정
+
+**`GET /api/v1/posts/{id}` 는 인증을 선택으로 받는다.** 1차에는 응답이 토큰을 쓰지 않았다(실린 토큰의 검증은 1차에도 필터가 했다 — 코드 읽기) — 공개 조회에 계정이 필요 없었다. 2026-11-11 `D-18` 부터는 두 가지에 토큰을 쓴다.
+
+| 쓰는 곳 | 토큰이 없으면 | 토큰이 유효하면 | 토큰이 유효하지 않으면 |
+| --- | --- | --- | --- |
+| 조회수 판정의 조회자 | 접속 주소의 HMAC | 그 계정 | **401** — 익명으로 낮추지 않는다 |
+| `liked` | `null` | 그 계정이 눌렀는가(`true`·`false`) | 위와 같다 |
+
+**잘못된 토큰을 익명으로 낮추지 않는다.** 낮추면 만료된 토큰을 든 화면이 401 을 받지 못해 재발급 흐름이 돌지 않고, 응답의 `liked` 가 `null` 로 바뀌어 "로그아웃된 것처럼" 보인다. 다른 보호 경로와 같은 401 이 나가야 화면의 처리가 하나로 남는다.
+
+**`viewCount` 는 판정이 반영된 값이다** — 판정이 커밋된 뒤에 시작된 읽기의 값이다. 24시간 안의 재조회는 집계하지 않고 지금의 값을 돌려준다. 판정 규칙은 [requirements/board.md §9](requirements/board.md)가, 저장소의 선택은 [adr/0014](adr/0014-view-count-dedup.md)가 적는다.
+
+> **1차의 상세 조회는 요청마다 `view_count` 를 +1 했다**(P-05, B-11 이 좁은 UPDATE 로 고쳤다). 1차 항목들의 조회수 기준(P-05 의 「상세 조회 시 +1」)은 그 시점의 계약이다.
 
 ## 5. 내부 API (외부 미노출)
 
@@ -572,6 +685,7 @@ public record FieldError(String field, String message) { }
 | `C005` | 500 | 서버 내부 오류가 발생했습니다. |
 | `C006` | 415 | 지원하지 않는 미디어 타입입니다. |
 | `C007` | 406 | 응답할 수 있는 형식이 없습니다. |
+| `C008` | 413 | 요청 크기가 허용 한도를 넘었습니다. |
 | `A001` | 401 | 인증이 필요합니다. |
 | `A002` | 401 | 유효하지 않은 토큰입니다. |
 | `A003` | 401 | 만료된 토큰입니다. |
@@ -592,6 +706,8 @@ public record FieldError(String field, String message) { }
 
 세 서비스가 `GlobalExceptionHandler`를 각자 복제하므로([adr/0007](adr/0007-shared-code-policy.md)) **셋 다 이 둘을 다룬다.** 형식 일치는 [plan/integration.md](plan/integration.md) I-04의 3자 비교에서 확인한다.
 
+**`C008` 은 2026-11-11 `D-18` 이 더했다.** 첨부 업로드(§4.7)가 처음으로 큰 요청 본문을 받는다. 한도를 넘는 multipart 는 컨트롤러에 닿기 전에 해석 단계에서 예외가 되므로 위 둘과 같은 자리의 문제다 — 다루지 않으면 마지막 그물로 떨어질 것으로 본다(**측정 대상** — 매핑과 측정할 것은 [conventions.md §6.1](conventions.md)). 크기 위반은 업로드만의 것이 아니므로(어느 서비스든 multipart 를 받으면 같은 예외가 난다) board 접두어가 아니라 공통 코드로 둔다. **셋 다 다룬다**는 위 문장이 `C008` 에도 적용된다 — multipart 를 받지 않는 auth·member 도 같은 핸들러를 갖는다.
+
 ### 8.2 member-service
 
 | 코드 | HTTP | 메시지 |
@@ -611,12 +727,19 @@ public record FieldError(String field, String message) { }
 | --- | --- | --- |
 | `P001` | 404 | 게시글을 찾을 수 없습니다. |
 | `P002` | 403 | 게시글에 대한 권한이 없습니다. |
+| `P003` | 403 | 공지를 작성하거나 변경할 권한이 없습니다. |
 | `CM001` | 404 | 댓글을 찾을 수 없습니다. |
 | `CM002` | 403 | 댓글에 대한 권한이 없습니다. |
+| `CM003` | 400 | 답글에는 답글을 달 수 없습니다. |
+| `AT001` | 404 | 첨부 파일을 찾을 수 없습니다. |
+| `AT002` | 400 | 허용하지 않는 파일 형식입니다. |
+| `AT003` | 409 | 게시글당 첨부 파일 수를 넘었습니다. |
 | `S001` | 503 | 일시적으로 서비스 연동에 실패했습니다. |
 | `S002` | 403 | 활성 프로필이 필요합니다. |
 
 `S002`는 글·댓글 **생성** 시 활성 프로필이 없을 때다 — 미등록과 탈퇴 둘 다다. 판정 규칙은 §5.1에 있다. 2026-11-11 `D-17` 전의 메시지는 「프로필 등록이 필요합니다.」였고 탈퇴한 프로필에는 맞지 않았다(탈퇴한 프로필은 다시 등록할 수 없다, §3).
+
+**`P003`·`CM003`·`AT` 접두어는 2026-11-11 `D-18` 이 더했다.** `P003` 은 공지 권한이다 — `P002`(남의 글)와 가르는 것은 [requirements/board.md §8](requirements/board.md)이 적는다. `CM003` 은 두 단계 답글이다([requirements/board.md §12](requirements/board.md)). `AT` 는 첨부(attachment)다 — 없는 첨부 `AT001`, 형식 `AT002`, 개수 `AT003`(상태 충돌이라 409). **첨부의 크기 위반은 `AT` 가 아니라 `C008`(§8.1)이고**, 업로드에서 글이 없거나 작성자가 아니면 글의 코드(`P001`·`P002`)다 — 판정 대상이 글이기 때문이다(§4.7).
 
 ### 8.4 auth-service
 
@@ -738,9 +861,9 @@ public record FieldError(String field, String message) { }
   "data": {
     "content": [
       {
-        "id": 12, "title": "공지사항입니다",
+        "id": 12, "title": "공지사항입니다", "category": "NOTICE",
         "writerId": 3, "writerNickname": "관리자",
-        "viewCount": 152, "commentCount": 3,
+        "viewCount": 152, "commentCount": 3, "likeCount": 4,
         "createdAt": "2026-09-11T10:00:00"
       }
     ],
@@ -752,6 +875,8 @@ public record FieldError(String field, String message) { }
 ```
 
 시각은 KST 기준이며 오프셋을 표기하지 않는다([tech-stack.md §6](tech-stack.md)).
+
+`category`·`likeCount` 는 2026-11-11 `D-18` 이 더한 키다(§4.3).
 
 ### 9.4 에러
 
@@ -775,3 +900,101 @@ public record FieldError(String field, String message) { }
 ```
 
 판정은 [requirements/member.md §6.4](requirements/member.md)가 적는다.
+
+### 9.6 게시글 상세
+
+```json
+// GET /api/v1/posts/12   (board, Authorization 선택)  -> 200
+{
+  "success": true,
+  "data": {
+    "id": 12, "title": "공지사항입니다", "category": "NOTICE",
+    "content": "점검 안내입니다.",
+    "writerId": 3, "writerNickname": "관리자",
+    "viewCount": 153, "commentCount": 3, "likeCount": 4,
+    "liked": true,
+    "attachments": [
+      { "id": 7, "originalFilename": "map.png", "contentType": "image/png",
+        "size": 482113, "createdAt": "2026-11-11T09:30:00" }
+    ],
+    "createdAt": "2026-09-11T10:00:00"
+  },
+  "error": null
+}
+// 토큰이 없으면 "liked": null. 키 집합은 같다 (§4.3·§4.8)
+```
+
+### 9.7 댓글 목록 (답글 포함)
+
+```json
+// GET /api/v1/posts/12/comments?page=0&size=20  -> 200
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": 40, "parentId": null,
+        "writerId": null, "writerNickname": null, "content": null,
+        "deleted": true, "createdAt": "2026-11-11T10:00:00",
+        "replies": [
+          { "id": 41, "parentId": 40, "writerId": 5, "writerNickname": "이몽룡",
+            "content": "답글입니다.", "deleted": false, "createdAt": "2026-11-11T10:05:00" }
+        ]
+      },
+      {
+        "id": 42, "parentId": null, "writerId": 5, "writerNickname": "이몽룡",
+        "content": "두 번째 댓글", "deleted": false, "createdAt": "2026-11-11T10:10:00",
+        "replies": [
+          { "id": 43, "parentId": 42, "writerId": 3, "writerNickname": "관리자",
+            "content": "답글입니다.", "deleted": false, "createdAt": "2026-11-11T10:15:00" }
+        ]
+      }
+    ],
+    "page": 0, "size": 20, "totalElements": 2, "totalPages": 1,
+    "first": true, "last": true
+  },
+  "error": null
+}
+// 40 은 지워졌지만 활성 답글이 있어 자리로 남았다 (§4.5)
+// 활성 댓글은 41·42·43 이라 §9.6 의 commentCount 는 3 이고, totalElements 는 최상위 항목 수 2 다
+```
+
+### 9.8 좋아요
+
+```json
+// PUT /api/v1/posts/12/like     (board, Authorization: Bearer ...)  본문 없음
+// 200   이미 눌렀어도 같다
+{ "success": true, "data": { "liked": true, "likeCount": 5 }, "error": null }
+
+// DELETE /api/v1/posts/12/like  -> 200   누르지 않았어도 같다
+{ "success": true, "data": { "liked": false, "likeCount": 4 }, "error": null }
+```
+
+### 9.9 첨부 올리기
+
+```
+POST /api/v1/posts/12/attachments   (board, Authorization: Bearer ...)
+Content-Type: multipart/form-data; boundary=...
+
+--...
+Content-Disposition: form-data; name="file"; filename="map.png"
+Content-Type: image/png
+
+<바이트>
+```
+
+```json
+// 201
+{
+  "success": true,
+  "data": { "id": 7, "originalFilename": "map.png", "contentType": "image/png",
+            "size": 482113, "createdAt": "2026-11-11T09:30:00" },
+  "error": null
+}
+
+// 409   그 글의 활성 첨부가 이미 10개
+{ "success": false, "data": null,
+  "error": { "code": "AT003", "message": "게시글당 첨부 파일 수를 넘었습니다.", "fieldErrors": [] } }
+```
+
+내려받기(`GET /api/v1/attachments/7`)는 봉투가 아니라 파일 바이트다. 헤더는 [security.md §8](security.md).

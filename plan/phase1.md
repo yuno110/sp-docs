@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v70
+version: v71
 updated: 2026-11-11
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -1369,6 +1369,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 ## 6. board-service 작업 항목
 
+> **이 절의 응답 키 집합·집계·조회수 기준은 1차의 계약이다.** 예: B-05 가 단언한 상세 응답의 여덟 키, B-08 의 댓글 「다섯 키」, B-10 이 인용한 「`comment_count`와 목록의 `totalElements`가 같다」, P-05 의 「상세 조회 시 +1」. 2026-11-11 `D-18` 이 2차 기능 확장을 설계하며 키를 더하고 그 등식과 조회수 규칙을 바꿨다([../api-contract.md §4.3](../api-contract.md)·§4.5·§4.8). **그 항목들의 판정을 뒤집지 않는다** — 지금의 계약은 정본이 적는다.
+
 ### B-01 프로젝트 스캐폴딩 [기반]
 
 | | |
@@ -2644,6 +2646,41 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | 프로필 미등록·탈퇴한 프로필로 글·댓글 작성 | 403 `S002`, 메시지 「활성 프로필이 필요합니다.」 |
 | 화면에서 로그아웃 | 요청 본문에 그 세션의 Refresh Token 이 있다 |
 | 마이그레이션 뒤 `refresh_token` — 실 MySQL | 직전 토큰 컬럼이 `token` 과 같은 폭·문자셋이고, 회전 시각 컬럼이 `DATETIME(6)` 이며, 두 새 컬럼이 NULL 을 허용한다 |
+
+---
+### D-18 2차 기능 확장 — 사용자 결정 기록과 board 기능 설계 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다** — 1차 항목의 판정을 뒤집지 않고 그 뒤에 생긴 결정을 더한다([../process/review-policy.md §8.1](../process/review-policy.md)) |
+| 참조 | [phase2.md §5](phase2.md), [../requirements/board.md §8](../requirements/board.md)~§12, [../domain-model.md §4](../domain-model.md)·§6·§7, [../api-contract.md §4](../api-contract.md)·§8·§9, [../security.md §5.2](../security.md)·§8·§9, [../tech-stack.md §4.5](../tech-stack.md), [../adr/0013](../adr/0013-attachment-storage.md)·[0014](../adr/0014-view-count-dedup.md) |
+
+**사용자가 2026-11-11 에 2차의 기능 확장([phase2.md §5](phase2.md))을 시작하며 정책을 정했다.** 이 항목은 그 결정을 기록하고 **board 쪽 기능**(카테고리·조회수 중복 판정·좋아요·첨부·답글)을 정본에 설계한다. 인증 쪽 기능(이메일 인증·로그인 잠금·계정 열거 방어 등)의 설계는 `D-19`, 구현 작업 항목과 마이그레이션 번호는 `D-20` 이 한다. **이 항목은 코드를 바꾸지 않는다.**
+
+**사용자 결정 (2026-11-11)** — 전부는 [phase2.md §5.1](phase2.md)이 적는다. board 쪽은 첨부(인터페이스 + 로컬 디스크, 글 하단 갤러리, 글당 10개·개당 5MB, 이미지 네 형식, 매직 바이트, EXIF 유지), 조회수(24시간 1회, 로그인은 계정·비로그인은 IP 의 HMAC, DB 테이블), 카테고리(공지·자유·질문, 공지는 ADMIN), 답글(1단계, 지운 부모는 활성 답글이 있을 때만 자리로 남는다)이다. 사용자가 정하지 않은 값은 오케스트레이터 기본값과 이 항목이 정한 값이며, 어느 쪽인지 [phase2.md §5.1](phase2.md)이 가른다.
+
+**산출물**
+- [phase2.md §5](phase2.md) — 사용자 결정·오케스트레이터 기본값(§5.1), 정본 위치(§5.2), 화면 영향(§5.3), 동시성과 측정 대상(§5.4). 작업 항목 표는 `D-20` 이 더한다
+- [../requirements/board.md](../requirements/board.md) — 요구 표의 개정과 §8(카테고리)·§9(조회수)·§10(좋아요)·§11(첨부)·§12(답글)
+- [../domain-model.md](../domain-model.md) — 새 컬럼·테이블·인덱스(§4), 답글의 `comment_count` 의미(§5), 집계 컬럼의 좁은 UPDATE 와 락 순서(§6), 마이그레이션이 할 것(§7 — 번호는 `D-20`)
+- [../api-contract.md](../api-contract.md) — 경로 배정(§1), 엔드포인트·응답 모양(§4, 새 §4.6~§4.8), 새 에러 코드(§8.1 `C008`, §8.3 `P003`·`CM003`·`AT`), 예시(§9)
+- [../security.md](../security.md) — 권한 매트릭스(§5.2), 업로드·서빙 통제(§8), 비로그인 조회자 식별의 개인정보(§9)
+- [../conventions.md](../conventions.md) — 패키지(§1.3), multipart 예외 매핑(§6.1 — 세 서비스 공통)
+- [../tech-stack.md](../tech-stack.md) — 선택적 리졸버의 claim 검사(§2.1), 환경값 분류(§4.3), 업로드·조회수 설정(§4.5)
+- [../nfr.md](../nfr.md) §1·§4, [../architecture.md](../architecture.md) §1·§2, [../README.md](../README.md) ID 표
+- 새 ADR — [../adr/0013](../adr/0013-attachment-storage.md)(첨부 저장소), [../adr/0014](../adr/0014-view-count-dedup.md)(조회수 판정). [../adr/README.md](../adr/README.md) 목록
+- 이 절 머리(§6)의 블록인용 — 1차 board 항목의 응답 키·집계 기준이 그 시점의 계약이라는 것
+
+**완료 기준**
+- [ ] [phase2.md §5.1](phase2.md)의 사용자 결정이 사용자가 정한 그대로이고, 오케스트레이터 기본값·이 항목이 정한 값과 갈려 있다
+- [ ] 설계한 기능마다 규칙·응답·에러 코드·저장 모양이 정본의 한 자리에 있고, 다른 자리는 그곳을 가리킨다
+- [ ] 동시성의 요건(좁은 UPDATE, 락 순서, UNIQUE 를 최종 판정으로, 제약 위반이 트랜잭션을 rollback-only 로 만드는 문제)이 요건으로 적혀 있고, 실 MySQL 에서 재야 할 것이 측정 대상으로 적혀 있다 — 추정을 사실로 적지 않는다
+- [ ] 새 에러 코드가 [../api-contract.md §8](../api-contract.md)에 있고 그 코드를 쓰는 문장이 같은 코드를 적는다
+- [ ] 새 환경값이 [../tech-stack.md §4.3](../tech-stack.md)의 분류를 따른다 — 비밀값·정책값에 기본값이 없고 기동 가드가 요구된다
+- [ ] 이 개정이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 1차의 사실을 적은 문장은 지우지 않고 시점을 붙인다
+- [ ] 인증 쪽 절(`D-19`)과 작업 항목 표·마이그레이션 번호(`D-20`)를 건드리지 않는다
+- [ ] `tools/check_refs.py` 통과
 
 ---
 ## 7. 다음 단계
