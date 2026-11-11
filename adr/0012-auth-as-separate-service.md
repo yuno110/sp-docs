@@ -2,8 +2,8 @@
 title: auth를 별도 서비스로 분리
 type: adr
 status: accepted
-version: v3
-updated: 2026-11-09
+version: v4
+updated: 2026-11-11
 read_when: "서비스가 3개인 이유, 계정과 프로필이 갈라진 이유, 가입이 3단계, 탈퇴가 2단계인 이유가 궁금할 때"
 related: [0006-auth-inside-member-service.md, 0001-msa-adoption.md, 0003-writer-snapshot.md, ../architecture.md, ../domain-model.md, ../api-contract.md]
 ---
@@ -171,6 +171,8 @@ board는 **글·댓글 생성 시에만** member의 내부 API를 호출하고 �
 재발급은 RefreshToken 조회와 상태 확인을 같은 트랜잭션에서 하고, 회전은 조건부 UPDATE(affected rows 확인)로 처리한다. 그렇지 않으면 탈퇴와 재발급이 겹칠 때 삭제된 RefreshToken이 되살아나, 탈퇴한 계정이 14일간 토큰을 갱신할 수 있다.
 
 이것은 새 범위가 아니다. `plan/phase1.md` M-06 완료 기준의 "탈퇴 회원은 로그인할 수 없다"가 auth로 이동한 것이다.
+
+> **2026-11-11 `D-17` 이 회전하지 않는 성공 경로를 더했다** — 직전 Refresh Token 을 회전 뒤 10초 안에 제시하면 다시 회전하지 않고 지금 저장된 토큰을 돌려준다. 이 절의 결정(상태 검사, 조건부 UPDATE 회전)은 그대로이고 그 경로에도 상태 검사가 걸린다. 그 경로가 탈퇴와 겹칠 때의 요건은 [requirements/member.md §6.3](../requirements/member.md)이 적는다.
 
 ## 결과
 

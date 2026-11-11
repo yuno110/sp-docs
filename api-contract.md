@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v48
-updated: 2026-11-09
+version: v49
+updated: 2026-11-11
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -52,7 +52,9 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 
 재발급의 응답 본문은 **로그인과 같은 `TokenResponse`**다(§9.2). 재발급 거부는 만료만 `A003`이고 나머지는 전부 `A002`다(§8.5) — 세션 없음·저장값 불일치·탈퇴 계정을 가르지 않는다.
 
-`POST /api/v1/auth/logout`은 **멱등이다.** 저장된 Refresh Token이 없어도 204다.
+**직전 Refresh Token 에는 회전 뒤 10초의 유예가 있다**(2026-11-11 `D-17`). 저장값과 다르지만 직전 토큰과 같고 유예 안이면 거부하지 않고 200 `TokenResponse` 로 **새 Access Token 과 지금 저장된 Refresh Token(그대로)**을 준다 — 다시 회전하지 않는다. 유예 밖의 직전 토큰은 저장값 불일치와 같은 `A002` 다. 판정 규칙은 [requirements/member.md §6.3](requirements/member.md)이 적는다. 그 전에는 직전 토큰도 저장값 불일치로 거부했다.
+
+`POST /api/v1/auth/logout`은 인증과 함께 **본문으로 `{ "refreshToken": "..." }` 을 받는다**(§9.5). 그 계정의 행을 **저장된 토큰이나 직전 토큰이 제시값과 같을 때만** 지운다([requirements/member.md §6.4](requirements/member.md)). **멱등이다** — 맞지 않거나 저장된 Refresh Token이 없어도 아무것도 하지 않고 204다. `refreshToken` 필드가 누락·`null`·빈 문자열이면 400 `C001` 이고 `fieldErrors` 에 `refreshToken` 이다. 2026-11-11 `D-17` 전에는 본문을 받지 않고 Access Token 의 `sub` 로 그 계정의 행을 지웠다.
 
 **로그인은 400을 쓰지 않는다.** 자격증명 누락·빈 값·형식 오류도 **401 `AU003`**이다.
 
@@ -612,9 +614,9 @@ public record FieldError(String field, String message) { }
 | `CM001` | 404 | 댓글을 찾을 수 없습니다. |
 | `CM002` | 403 | 댓글에 대한 권한이 없습니다. |
 | `S001` | 503 | 일시적으로 서비스 연동에 실패했습니다. |
-| `S002` | 403 | 프로필 등록이 필요합니다. |
+| `S002` | 403 | 활성 프로필이 필요합니다. |
 
-`S002`는 글·댓글 **생성** 시 활성 프로필이 없을 때다. 판정 규칙은 §5.1에 있다.
+`S002`는 글·댓글 **생성** 시 활성 프로필이 없을 때다 — 미등록과 탈퇴 둘 다다. 판정 규칙은 §5.1에 있다. 2026-11-11 `D-17` 전의 메시지는 「프로필 등록이 필요합니다.」였고 탈퇴한 프로필에는 맞지 않았다(탈퇴한 프로필은 다시 등록할 수 없다, §3).
 
 ### 8.4 auth-service
 
@@ -761,3 +763,15 @@ public record FieldError(String field, String message) { }
   "error": { "code": "AU002", "message": "이미 사용 중인 이메일입니다.", "fieldErrors": [] }
 }
 ```
+
+### 9.5 로그아웃
+
+```json
+// POST /api/v1/auth/logout   (auth, Authorization: Bearer <Access Token>)
+{ "refreshToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6..." }
+
+// 204   본문 없음. 제시한 토큰이 그 계정의 저장값이나 직전 토큰과 같으면 그 행을 지우고, 아니면 아무것도 하지 않는다
+// 400   refreshToken 필드가 누락·null·빈 문자열이면 C001, fieldErrors 에 refreshToken
+```
+
+판정은 [requirements/member.md §6.4](requirements/member.md)가 적는다.

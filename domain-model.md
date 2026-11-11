@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v15
-updated: 2026-10-20
+version: v16
+updated: 2026-11-11
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -59,9 +59,9 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 |    email        UQ  |-------------| FK account_id     UQ  |
 |    password         |             |    token          UQ  |
 |    role             |             |    expires_at         |
-|    deleted          |             +-----------------------+
-|    created_at       |
-|    updated_at       |
+|    deleted          |             |    previous_token     |
+|    created_at       |             |    rotated_at         |
+|    updated_at       |             +-----------------------+
 +---------------------+
 ```
 
@@ -87,8 +87,18 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | accountId | Long | NOT NULL, UNIQUE |
 | token | String(1024). 테이블 문자셋이 **ascii**다 | NOT NULL, UNIQUE |
 | expiresAt | LocalDateTime | NOT NULL |
+| previousToken | String(1024). `token` 과 같은 폭·문자셋(ascii) | NULL 허용 |
+| rotatedAt | LocalDateTime. 컬럼은 `DATETIME(6)` | NULL 허용 |
 
 계정당 1행이다. 재로그인 시 갱신(upsert)한다. `account_id`에 FK 제약을 둔다(같은 서비스 내이므로 허용).
+
+**행 하나가 세션 하나다.** 계정당 1행이므로 같은 계정의 새 로그인은 옛 세션의 행을 새 세션의 값으로 바꾼다. 그래서 그 행을 지우는 로그아웃은 **어느 세션의 요청인지**를 본다 — 제시한 Refresh Token 이 이 행의 `token` 이나 `previousToken` 과 같을 때만 지운다([requirements/member.md §6.4](requirements/member.md)). 2026-11-11 `D-17` 전에는 로그아웃이 그 계정의 행을 통째로 지워, 늦게 처리된 옛 세션의 로그아웃이 새 세션의 Refresh Token 을 지울 수 있었다.
+
+**`previousToken`·`rotatedAt` 은 재발급의 재사용 유예에 쓴다**([requirements/member.md §6.3](requirements/member.md), `D-17` 이 더했다). 재발급의 회전이 성공하면 같은 UPDATE 가 `previousToken` 에 제시된 토큰을, `rotatedAt` 에 그 회전 시각을 넣는다. **로그인은 둘을 비운다** — 새 세션이므로 옛 세션의 토큰이 유예로 새 세션을 얻지 못하게 한다. 두 컬럼에는 인덱스를 두지 않는다 — 재발급은 검증한 Refresh Token 의 `sub` 로, 로그아웃은 Access Token 의 `sub` 로 행을 찾는다.
+
+**`rotatedAt` 은 `DATETIME(6)` 이고, 앱 시계(`LocalDateTime.now()`)의 값을 마이크로초로 잘라 넣는다.** MySQL 은 6자리를 넘는 소수부를 반올림하므로 앱이 먼저 자른다 — 반올림되면 저장값이 실제 회전보다 늦을 수 있다. **유예의 판정 시각은 회전 시각을 기록한 것과 같은 앱 시계의 값이고 자르지 않는다**(DB 의 `NOW()` 를 쓰지 않는다). 판정은 「판정 시각 ≤ `rotatedAt` + 10초」 다. 그래서 **유예는 회전부터 10초에서 1마이크로초 미만 짧을 수 있고 앱 시계 기준으로 길어지지 않는다.**
+
+§1.1 의 초 단위와 `D-11` 의 초 자르기는 감사 시각(`created_at`·`updated_at`)의 규칙이고, `rotatedAt` 은 감사 시각이 아니라 10초 판정의 입력이다 — 초로 자르면 유예가 회전부터 최대 1초 짧아진다.
 
 #### `token` 길이가 1024이고 ascii인 이유 — 측정값
 
@@ -126,11 +136,11 @@ InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바�
 
 **순서가 뒤집히면 실패한다.** utf8mb4 상태에서 먼저 넓히면 `1024 × 4 = 4096`바이트가 되어 `ERROR 1071`이다. **ascii로 바꾼 뒤 넓힌다.**
 
-`refresh_token`의 문자 컬럼은 `token` 하나뿐이므로 테이블 단위와 컬럼 단위의 결과가 같다. **그 테이블에 문자 컬럼을 더 두지 않는다** — 두게 되면 ascii가 그것에도 걸린다.
+`AU-03R` 당시 `refresh_token`의 문자 컬럼은 `token` 하나뿐이어서 테이블 단위와 컬럼 단위의 결과가 같았다. **그 테이블에 JWT 가 아닌 문자 컬럼을 두지 않는다** — 두게 되면 ascii가 그것에도 걸린다. `D-17` 이 더한 `previous_token` 은 같은 JWT 를 담으므로 ascii 가 맞다. **그 컬럼은 테이블 문자셋을 물려받는 구문으로 더한다** — 컬럼 단위 `CHARACTER SET` 구문을 H2 가 거부했다(위 표).
 
 > **이 프로젝트에서 테이블 문자셋을 기본값과 다르게 두는 유일한 곳이다.** 나머지는 스키마 기본값(utf8mb4)을 따른다([tech-stack.md §4.1](tech-stack.md)).
 
-**재발급은 이 행 조회와 `account.deleted` 확인을 같은 트랜잭션에서 한다.** 회전은 조건부 UPDATE(affected rows 확인)로 처리한다. 그렇지 않으면 탈퇴와 재발급이 겹칠 때 삭제된 행이 되살아난다([adr/0012](adr/0012-auth-as-separate-service.md) §8).
+**재발급은 이 행 조회와 `account.deleted` 확인을 같은 트랜잭션에서 한다.** 회전은 조건부 UPDATE(affected rows 확인)로 처리한다. 그렇지 않으면 탈퇴와 재발급이 겹칠 때 삭제된 행이 되살아난다([adr/0012](adr/0012-auth-as-separate-service.md) §8). 재사용 유예는 행을 쓰지 않는다 — 그 판정이 읽는 값의 요건은 [requirements/member.md §6.3](requirements/member.md)이 적는다.
 
 ### 2.3 인덱스
 

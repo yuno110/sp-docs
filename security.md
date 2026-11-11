@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v19
-updated: 2026-11-09
+version: v20
+updated: 2026-11-11
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -16,7 +16,7 @@ related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 | 비밀번호 저장 | BCrypt (`strength = 10`). **auth-service만 취급** |
 | 인증 방식 | JWT Bearer Token, Stateless (`SessionCreationPolicy.STATELESS`) |
 | Access Token | 만료 30분. `Authorization: Bearer {token}` |
-| Refresh Token | 만료 14일. **`sp_auth` 저장**, 재발급 시 회전(Rotation) |
+| Refresh Token | 만료 14일. **`sp_auth` 저장**, 재발급 시 회전(Rotation). 직전 토큰에 회전 뒤 10초의 재사용 유예(§4.2) |
 | CSRF | Stateless REST API이므로 비활성화 |
 | CORS | 허용 오리진은 **환경이 정한다**(§1.1). 메서드·헤더·credentials는 §1.1이 고정한다. `*` 금지 |
 | SQL Injection | JPA·QueryDSL 파라미터 바인딩. 네이티브 쿼리 문자열 결합 금지 |
@@ -116,7 +116,7 @@ HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있
     -> account.deleted = false 확인          <- 탈퇴 계정 거부
     -> 개인키(RS256)로 Access/Refresh 서명
        Claim: { sub, role, iss, iat, exp }   <- api-contract.md §6.  nickname 없음
-    -> RefreshToken sp_auth upsert
+    -> RefreshToken sp_auth upsert          <- 직전 토큰·회전 시각을 비운다
     <- TokenResponse
 
 [프로필 등록]  member-service    가입 3단계
@@ -140,6 +140,15 @@ HS256을 쓰지 않는 이유는 [adr/0004](adr/0004-rs256-over-hs256.md)에 있
     -> 서명·만료 검증 + sp_auth 저장값 일치 확인
     -> account.deleted = false 확인          <- 같은 트랜잭션에서
     -> 새 Access/Refresh 발급, 조건부 UPDATE로 회전(Rotation)
+       같은 UPDATE가 직전 토큰·회전 시각을 기록
+    -> 저장값과 다르지만 직전 토큰이고 유예 안이면     <- §4.2
+       회전하지 않고 새 AT + 지금 저장된 Refresh
+
+[로그아웃]  auth-service
+  POST /api/v1/auth/logout (Authorization: Bearer AT) { refreshToken }
+    -> account_id = Claim.sub
+    -> 저장된 토큰이나 직전 토큰이 refreshToken과 같을 때만 그 행 삭제
+    <- 204   (맞지 않거나 행이 없어도)
 
 [계정 탈퇴]  auth-service        탈퇴 1단계
   DELETE /api/v1/accounts/me (password)
@@ -202,6 +211,20 @@ boolean ok = (account != null)
 **그래도 §4.1을 유지한다.** 둘 다 비용이 거의 없고(`matches` 한 번), 중복 확인은 가입 UX가 요구하는 기능이라 1차에서 없앨 수 없다. **제한이 걸리는 순간 로그인이 유일한 누출 경로가 되므로, 그때 급히 넣는 것보다 지금 들어 있는 것이 낫다.**
 
 **2차 — 중복 확인 엔드포인트에 rate limit을 건다**([plan/phase2.md §5](plan/phase2.md)). 그 전까지 계정 열거는 **감수하는 노출이다.**
+
+### 4.2 Refresh Token 재사용 유예의 대가
+
+[requirements/member.md §6.3](requirements/member.md)이 직전 Refresh Token 에 회전 뒤 **10초**의 유예를 둔다(2026-11-11 `D-17`, 사용자 결정). 회전 응답을 잃은 클라이언트의 세션이 끝나지 않게 하려는 것이다.
+
+**대가 — 유예 안에서는 탈취된 직전 토큰도 지금 세션의 토큰을 얻는다.** 유예 응답이 새 Access Token 과 **지금 저장된 Refresh Token** 을 주므로, 직전 토큰을 가진 자는 정당한 클라이언트와 같은 세션을 이어받는다. 유예 밖이면 그 토큰은 `A002` 다.
+
+| | |
+| --- | --- |
+| 노출이 생기는 조건 | 직전 토큰을 가졌고, 회전 뒤 10초 안에 재발급을 보낸다 |
+| 노출이 생기지 않는 경우 | 로그인 뒤(직전 토큰을 비운다), 행을 지운 로그아웃([requirements/member.md §6.4](requirements/member.md))·비밀번호 변경·계정 탈퇴 뒤(행이 없다), 그 뒤 회전이 한 번 더 일어난 뒤(직전 토큰이 바뀐다) |
+| 시각의 경계 | 판정 시각이 회전 시각을 기록한 것과 같은 앱 시계의 자르지 않은 값이고 회전 시각을 마이크로초로 잘라 저장하므로, 유예는 회전부터 10초에서 1마이크로초 미만 짧을 수 있고 앱 시계 기준으로 길어지지 않는다([domain-model.md §2.2](domain-model.md)). 앱 시계는 벽시계라 뒤로 조정되면 실제 경과로는 10초를 넘을 수 있다 |
+
+**재사용 탐지는 두지 않는다.** 이 정본은 1차부터 옛 Refresh Token 의 제시를 `A002` 로 거부할 뿐 그것을 탈취의 신호로 보고 세션을 폐기하지 않는다. `D-17` 도 그것을 더하지 않는다 — 유예 밖의 직전 토큰과 그보다 앞의 토큰은 여전히 `A002` 로 거부만 되고 지금 세션은 그대로다.
 
 ## 5. 인가
 

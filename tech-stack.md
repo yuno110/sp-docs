@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v32
-updated: 2026-10-20
+version: v33
+updated: 2026-11-11
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -514,7 +514,7 @@ spring:
 | MySQL 서버 | `SET PERSIST time_zone='+09:00'` (§4.1) | 로컬 1회 / 운영 DBA |
 | JDBC URL | `serverTimezone=Asia/Seoul` | `application.yml` |
 | Hibernate | `spring.jpa.properties.hibernate.jdbc.time_zone: Asia/Seoul` | `application.yml` |
-| 컬럼 타입 | `DATETIME` (`TIMESTAMP` 아님 — 자동 UTC 변환 회피) | 마이그레이션 |
+| 컬럼 타입 | `DATETIME` (`TIMESTAMP` 아님 — 자동 UTC 변환 회피). 감사 시각은 초 단위다. 초보다 섬세해야 하는 컬럼은 [domain-model.md](domain-model.md)가 그 근거와 함께 정밀도를 적는다 — 예: §2.2 의 `rotated_at` | 마이그레이션 |
 | Java 타입 | `LocalDateTime` | 엔티티 |
 | API 응답 | 오프셋 미표기 (아래) | **`LocalDateTime` 타입 + Jackson 기본값** |
 

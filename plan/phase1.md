@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v69
-updated: 2026-11-09
+version: v70
+updated: 2026-11-11
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -179,7 +179,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | 서비스 | 기반 | 기능 |
 | --- | --- | --- |
-| **auth** | `V1__create_account.sql`, `V2__create_refresh_token.sql` (AU-03) | `V3__seed_admin_account.sql` (AU-05)<br>`V4__widen_refresh_token.sql` (**AU-03R**) |
+| **auth** | `V1__create_account.sql`, `V2__create_refresh_token.sql` (AU-03) | `V3__seed_admin_account.sql` (AU-05)<br>`V4__widen_refresh_token.sql` (**AU-03R**)<br>`V5__add_refresh_token_previous.sql` (**D-17**) |
 | **member** | `V1__create_member.sql` (M-03) | `V2__seed_admin_profile.sql` (M-05) |
 | board | `V1__create_post.sql`, `V2__create_comment.sql` (B-03) | 없음 |
 
@@ -375,6 +375,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | --- | --- |
 | `rotate(...)` 또는 동등한 연산 | **조건부 UPDATE로 affected rows를 확인한다.** 0행이면 실패로 처리 |
 | `deleteByAccountId(Long)` | 로그아웃·비밀번호 변경·탈퇴가 쓴다 |
+
+> 회전의 0행 처리와 로그아웃의 삭제에 관한 위 표의 요구는 2026-11-11 `D-17` 전의 계약이다. 지금의 계약은 [../requirements/member.md §6.3·§6.4](../requirements/member.md)가 적는다.
 
 **완료 기준**
 - [ ] 기동 시 Flyway가 `account`, `refresh_token` 테이블을 생성한다
@@ -645,7 +647,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 **`RefreshToken.renew()`를 쓰지 않는다.** AU-06이 로그인용으로 추가한 엔티티 메서드다. 회전에 쓰면 탈퇴와 겹칠 때 지운 행이 되살아난다 — 그것이 조건부 UPDATE를 쓰는 이유다. 엔티티 javadoc에도 경고가 있다.
 
-**`useAffectedRows=true`를 JDBC URL에 넣지 않는다.** "0행이면 실패" 판정이 found rows에 의존한다([../requirements/member.md §6.1](../requirements/member.md)).
+**`useAffectedRows=true`를 JDBC URL에 넣지 않는다.** "0행이면 회전 실패" 판정이 found rows에 의존한다([../requirements/member.md §6.1](../requirements/member.md)).
 
 **AU-06이 남긴 경합이 여기서 닫힌다.** 로그인은 `authenticate()` 후 탈퇴가 커밋되면 탈퇴 계정 행을 INSERT할 수 있다. **재발급이 `account.deleted`를 같은 트랜잭션에서 검사하는 한 무해하다** — 그 검사가 이 항목의 완료 기준이다.
 
@@ -680,6 +682,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 | **서명 변조된 Access Token으로 보호 경로 접근** | **401 `A002`** |
 | **만료된 Access Token으로 보호 경로 접근** | **401 `A003`** |
 | 토큰 없이 보호 경로 접근 | 401 `A001` |
+
+> **2026-11-11 `D-17` 이 이 항목의 계약 일부를 바꿨다.** 재발급 거부·0행 실패·로그아웃 삭제에 관한 위 기준과 표는 `D-17` 전의 계약이고 **이 항목의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 지금의 계약은 [../requirements/member.md §6.3·§6.4](../requirements/member.md)가 적는다.
 
 ---
 
@@ -1418,7 +1422,7 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 쓴다. **복제본이 3벌이 되므로** 형식 일치는 I-04에서 3자 비교한다.
 
-**`S002`(403, "프로필 등록이 필요합니다.")가 새로 필요하다.** 글·댓글 생성 시 활성 프로필이 없을 때 쓴다([../api-contract.md §5.1](../api-contract.md)). `S001`(503)은 내부 API 호출 실패에 쓴다.
+**`S002`(403)가 새로 필요하다.** 메시지는 [../api-contract.md §8.3](../api-contract.md)이 정한다 — 이 항목 당시의 "프로필 등록이 필요합니다." 는 2026-11-11 `D-17` 이 「활성 프로필이 필요합니다.」 로 바꿨다. 글·댓글 생성 시 활성 프로필이 없을 때 쓴다([../api-contract.md §5.1](../api-contract.md)). `S001`(503)은 내부 API 호출 실패에 쓴다.
 
 **완료 기준**
 - [ ] `ApiResponse`, `ErrorResponse`, `PageResponse`, `BaseTimeEntity`가 auth·member-service와 **구조가 동일**하다
@@ -2581,6 +2585,65 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `F-04` 의 탈퇴 예외가 사용자 결정대로 적혀 있고, 그 경우에 거짓이 되는 `F-04` 의 문장마다 단서가 있다
 - [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
 - [ ] `tools/check_refs.py` 통과
+
+---
+### D-17 Refresh Token 재사용 유예, 로그아웃이 지우는 행, `S002` 메시지 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` · `yuno110/sp-auth` · `yuno110/sp-board` · `yuno110/sp-frontend` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다** — 1차 항목의 판정을 뒤집지 않고 그 뒤에 생긴 결정을 더한다([../process/review-policy.md §8.1](../process/review-policy.md)) |
+| 참조 | [../requirements/member.md §6.3·§6.4](../requirements/member.md), [../domain-model.md §2.2](../domain-model.md), [../api-contract.md §2.1](../api-contract.md)·§8.3·§9.5, [../security.md §4.2](../security.md), §2.4 |
+
+**사용자가 2026-11-11 에 아래 결함을 고치기로 정했다.** 정본 쪽은 이 항목이 개정했고, 코드는 구현 워커가 한다. **구현 워커는 정본을 고치지 않는다**([../process/review-policy.md §8](../process/review-policy.md)).
+
+1. **회전 응답을 잃으면 세션이 끝난다.** 예: 빠른 새로고침 두 번 — 첫 페이지의 재발급이 회전을 커밋했는데 응답이 페이지 이탈로 버려지면 둘째 페이지가 옛 Refresh Token 을 보내 `A002` 를 받는다. → 직전 토큰에 회전 뒤 10초의 유예([../requirements/member.md §6.3](../requirements/member.md))
+2. **늦은 로그아웃이 새 세션을 지운다.** 로그아웃이 `sub` 로 그 계정의 행을 통째로 지우므로, 같은 계정의 새 로그인이 행을 바꾼 뒤 옛 세션의 로그아웃이 처리되면 새 세션의 Refresh Token 이 지워진다. → 로그아웃은 본문의 Refresh Token 이 그 행의 저장값이나 직전 토큰과 같을 때만 지운다([../requirements/member.md §6.4](../requirements/member.md))
+3. **`S002` 메시지가 탈퇴한 프로필에 맞지 않는다.** 「프로필 등록이 필요합니다.」 는 미등록에만 참이다 — 탈퇴한 프로필은 다시 등록할 수 없다. → 「활성 프로필이 필요합니다.」([../api-contract.md §8.3](../api-contract.md))
+
+**산출물**
+- **정본** — 이 항목이 개정했다. 컬럼과 그 저장 방식은 [../domain-model.md §2.2](../domain-model.md), 판정 규칙과 구현 요건은 [../requirements/member.md §6.3·§6.4](../requirements/member.md), 계약은 [../api-contract.md §2.1](../api-contract.md)·§8.3·§9.5, 보안 대가는 [../security.md §4.2](../security.md)가 적는다. 이 결정이 낡게 만든 자리에는 시점을 붙였다
+- **`sp-auth`** — `refresh_token` 에 직전 토큰·회전 시각 컬럼을 더하는 마이그레이션(§2.4 가 배정한 `V5`). 직전 토큰 컬럼은 테이블 문자셋을 물려받는 구문으로, 회전 시각 컬럼은 `DATETIME(6)` 으로 더한다([../domain-model.md §2.2](../domain-model.md)) — 테스트 DB(H2)가 그 정의를 받는지는 구현이 확인한다. 회전·유예·로그인·로그아웃이 위 정본대로 동작하게 하는 코드와 로그아웃 요청 DTO. 이 결정으로 낡는 주석·문서와 테스트를 근거의 모양으로 찾아 고친다 — 예: "이미 회전된 토큰의 재사용" 을 0행의 경우로 적는 주석, "로그아웃은 본문을 받지 않는다·저장된 Refresh Token 을 지운다" 는 서술. **적용된 마이그레이션 파일은 주석도 고치지 않는다**(§2.4) — 체크섬이 바뀌어 기동이 실패한다
+- **`sp-board`** — `S002` 의 메시지와 그것을 단언하는 테스트, 그 메시지를 옮겨 적은 주석·문서
+- **`sp-frontend`** — 로그아웃 요청이 본문에 **로그아웃을 시작한 세션의** Refresh Token 을 싣는다. 서버의 `S002` 메시지를 옮겨 적은 테스트 픽스처와 "프로필이 없으면 `S002`" 처럼 미등록만 적는 주석(예: `src/features/board/api.ts` 의 `createPost` 주석)을 미등록·탈퇴 둘 다로 고친다. 화면에 보이는 사용자 문장은 `F-03` 의 것이고 이 항목이 바꾸지 않는다
+
+**완료 기준**
+- [ ] 유예 안의 직전 토큰이 200 `TokenResponse` 를 받고, 그 Refresh Token 이 지금 저장된 값과 같으며 행의 값(토큰·직전 토큰·회전 시각)이 바뀌지 않는다
+- [ ] 유예 밖의 직전 토큰과, 저장값·직전 토큰 어느 쪽과도 다른 토큰이 `A002` 다. 계정이 탈퇴했으면 유예 안이어도 `A002` 다
+- [ ] **같은 토큰으로 동시에 보낸 재발급 두 건이 실 MySQL 에서 둘 다 200 이다** — 한쪽은 회전, 한쪽은 유예다. H2 만으로 판정하지 않는다([../requirements/member.md §6.3](../requirements/member.md)의 요건)
+- [ ] 회전은 조건부 UPDATE **하나**가 새 토큰·직전 토큰·회전 시각을 함께 쓴다
+- [ ] 회전 시각은 앱 시계의 값을 마이크로초로 잘라 넣고, 유예 판정은 같은 앱 시계의 자르지 않은 값으로 한다([../domain-model.md §2.2](../domain-model.md))
+- [ ] 로그인이 직전 토큰·회전 시각을 비운다
+- [ ] 로그아웃이 [../requirements/member.md §6.4](../requirements/member.md)대로 지우거나 지우지 않는다. 대조가 삭제의 조건이다
+- [ ] `S002` 의 메시지가 [../api-contract.md §8.3](../api-contract.md)과 같다
+- [ ] 화면의 로그아웃이 본문에 Refresh Token 을 보낸다
+- [ ] 이 항목이 고친 저장소의 기존 테스트가 통과한다(`sp-frontend` 는 그 저장소 `CLAUDE.md` 「작업 규칙」의 명령). 바뀐 계약 때문에 깨지는 테스트는 새 계약으로 고치고 **단언을 약화하지 않는다**
+- [ ] 이 변경이 거짓으로 만드는 문장이 정본·주석에 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 케이스 | 기대 |
+| --- | --- |
+| 회전 직후 직전 토큰으로 재발급 — 유예 안 | 200. 새 Access Token, Refresh Token 은 지금 저장된 값. 행 불변 |
+| 직전 토큰으로 재발급 — 판정 시각이 저장된 회전 시각 + 10초 직전 / 직후 | 직전은 200, 직후는 401 `A002`. 시계를 주입할 수 있게 하는 것은 구현 몫이다 |
+| 유예 응답을 받은 뒤 같은 직전 토큰으로 다시 — 첫 회전 시각 기준으로 유예 밖 | 401 `A002`. 유예 응답이 창을 밀지 않는다 |
+| 같은 토큰으로 재발급 두 건을 동시에 — 실 MySQL | 둘 다 200. 둘의 Refresh Token 이 같고 저장값과 같다 |
+| 10초 안에 회전 두 번 뒤 처음 토큰 | 401 `A002` |
+| 회전 뒤 다시 로그인하고 옛 세션의 직전 토큰으로 재발급 | 401 `A002`. 로그인이 직전 토큰을 비웠다 |
+| 회전 뒤 계정 탈퇴, 직전 토큰으로 재발급 — 유예 안 | 401 `A002`. 행이 되살아나지 않는다 |
+| 로그아웃 — 본문이 저장된 토큰 | 204. 행 삭제 |
+| 로그아웃 — 본문이 직전 토큰(유예 밖이어도) | 204. 행 삭제 |
+| 로그아웃 — 본문이 어느 쪽과도 다른 토큰 | 204. 행 그대로 |
+| 로그아웃 — 본문이 JWT 가 아닌 문자열 | 204. 행 그대로(401·400 아님) |
+| 로그아웃 — 본문이 만료된 저장/직전 토큰 문자열 | 204. 행 삭제. 만료 JWT 를 만드는 방법은 구현 몫이다 |
+| 로그아웃 — `refreshToken` 누락·빈 문자열 | 400 `C001`. 행 그대로 |
+| 로그아웃 — 행이 없음 | 204 |
+| 로그아웃 — A 의 Access Token, 본문이 B 의 저장된 토큰 | 204. B 의 행 그대로 |
+| 로그인 A → 같은 계정 로그인 B → A 의 로그아웃이 늦게 도착 | 204. B 의 행이 남고 B 의 Refresh Token 으로 재발급이 된다 |
+| 프로필 미등록·탈퇴한 프로필로 글·댓글 작성 | 403 `S002`, 메시지 「활성 프로필이 필요합니다.」 |
+| 화면에서 로그아웃 | 요청 본문에 그 세션의 Refresh Token 이 있다 |
+| 마이그레이션 뒤 `refresh_token` — 실 MySQL | 직전 토큰 컬럼이 `token` 과 같은 폭·문자셋이고, 회전 시각 컬럼이 `DATETIME(6)` 이며, 두 새 컬럼이 NULL 을 허용한다 |
 
 ---
 ## 7. 다음 단계
