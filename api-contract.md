@@ -2,7 +2,7 @@
 title: API 계약
 type: spec
 status: frozen
-version: v50
+version: v51
 updated: 2026-11-11
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
@@ -36,8 +36,8 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | 접두어 | 무엇 |
 | --- | --- |
 | `auth` | 세션·토큰 행위 — 로그인, 재발급, 로그아웃 |
-| `accounts` | **계정 리소스** — 생성, 이메일 중복 확인, 계정 조회, 비밀번호 변경, 계정 탈퇴 |
-| `members` | **프로필 리소스** — 등록, 닉네임 중복 확인, 조회·수정, 프로필 탈퇴 |
+| `accounts` | **계정 리소스** — 생성, 이메일 중복 확인, 계정 조회, 비밀번호 변경, 계정 탈퇴. 2차에 이메일 인증·비밀번호 재설정·계정 목록(ADMIN) |
+| `members` | **프로필 리소스** — 등록, 닉네임 중복 확인, 조회·수정, 프로필 탈퇴. 2차에 프로필 일괄 조회(ADMIN) |
 
 **계정과 프로필은 다른 리소스다.** 이메일·비밀번호·권한은 `accounts`, 닉네임은 `members`다.
 
@@ -59,6 +59,20 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 
 **로그인은 400을 쓰지 않는다.** 자격증명 누락·빈 값·형식 오류도 **401 `AU003`**이다.
 
+**로그인의 응답** — 2026-11-11 `D-19` 가 잠금·이메일 인증·요청 수 제한의 줄을 더했다. 판정 순서는 [requirements/member.md §12.1](requirements/member.md)이 정본이다.
+
+| 경우 | 응답 |
+| --- | --- |
+| 그 IP 의 로그인 요청이 한도를 넘었다 | **429 `C009`**, `Retry-After`([security.md §10](security.md)) |
+| 이메일·비밀번호의 누락·빈 값 | 401 `AU003` |
+| 이메일이 100자를 넘는다 | 401 `AU003`. 계정을 조회하지 않고 세지 않는다([requirements/member.md §12.1](requirements/member.md)) |
+| 그 이메일이 잠겨 있다 — **비밀번호가 맞든 틀리든** | **401 `AU005`** |
+| 없는 이메일·탈퇴 계정·비밀번호 불일치 | 401 `AU003`. **그 실패로 연속 5회가 되면 401 `AU005`** |
+| 비밀번호가 맞고 이메일이 미인증이다 | **403 `AU006`** |
+| 성공 | 200 `TokenResponse`(§9.2) |
+
+**`AU005` 는 없는 이메일에도 똑같이 나온다** — 카운터가 계정이 아니라 이메일에 걸린다. **`AU006` 은 비밀번호가 맞은 뒤에만 나온다** — 그 응답이 알려주는 것(이 이메일과 비밀번호의 계정이 있다)은 비밀번호를 아는 사람만 얻는다. 1차의 로그인은 이 표에서 누락·빈 값의 `AU003`, 없는 이메일·탈퇴 계정·비밀번호 불일치의 `AU003`, 성공만 가졌다.
+
 `LoginRequest`에 형식 검증을 걸지 않는다. 생성 쪽 규칙([requirements/member.md §2](requirements/member.md))을 복제하면 **규칙이 바뀌는 순간 기존 사용자가 잠긴다** — 옛 규칙으로 만든 비밀번호가 올바른데도 400으로 거부되고, 본인에게는 그것을 고칠 방법이 없다. 게다가 자격증명 필드의 형식 검증은 막을 수 있는 것이 없다. **형식이 틀린 비밀번호는 그냥 틀린 비밀번호이고, 대조가 그것을 끝낸다.**
 
 > **이전 판은 근거를 "숨기려던 것이 드러난다"로 적었다. 그것은 성립하지 않아 정정했다.** `C001`과 `AU003`으로 갈리는 것은 MR-04가 숨기려는 사실(이메일의 존재)을 누출하지 않는다 — 비밀번호 정책은 공개되어 있으므로 "정책을 만족한다"는 정보량이 0이다. 규칙은 그대로 두고 근거만 바꿨다.
@@ -76,6 +90,13 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | GET | `/api/v1/accounts/me` | 내 계정 조회 (이메일·가입일) | O | 200 |
 | PATCH | `/api/v1/accounts/me/password` | 비밀번호 변경 | O | 204 |
 | DELETE | `/api/v1/accounts/me` | **계정 탈퇴 (탈퇴 1단계)** | O | 204 |
+| POST | `/api/v1/accounts/email-verification` | 인증 메일 재발송 (§2.4) | - | 202 |
+| POST | `/api/v1/accounts/email-verification/confirm` | 이메일 인증 확인 (§2.4) | - | 204 |
+| POST | `/api/v1/accounts/password-reset` | 비밀번호 재설정 메일 요청 (§2.4) | - | 202 |
+| POST | `/api/v1/accounts/password-reset/confirm` | 비밀번호 재설정 확인 (§2.4) | - | 204 |
+| GET | `/api/v1/accounts` | **계정 목록 (§2.5)** | O (ADMIN) | 200 |
+
+**위 다섯 줄은 2026-11-11 `D-19` 가 더한 계약이다**([plan/phase2.md §5](plan/phase2.md)) — 구현은 `D-20` 이 세울 항목의 일이다. `POST /api/v1/accounts` 의 요청·응답(201, 중복이면 409 `AU002`)은 그대로이고, 커밋 뒤에 인증 메일이 나간다([requirements/member.md §11.2](requirements/member.md)). 그 계정은 인증 전에 로그인할 수 없다(§2.1 의 표).
 
 `GET /api/v1/accounts/me`는 **이메일과 가입일 둘만 반환한다**([requirements/member.md §5](requirements/member.md) MR-07).
 
@@ -229,6 +250,74 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 **이 엔드포인트는 경합을 막지 못한다.** 확인과 생성 사이에 다른 사용자가 같은 값을 쓸 수 있다. 최종 판정은 UNIQUE 제약이고, 생성 요청이 409를 돌려준다. 중복 확인은 편의 기능이다.
 
+**두 엔드포인트에 IP 단위 요청 수 제한이 있다**(2026-11-11 `D-19`). 넘으면 **429 `C009`** 와 `Retry-After` 다 — 값과 근거는 [security.md §10](security.md). **응답의 모양은 그대로다.** 제한은 열거를 막지 못하고 비용만 올린다(같은 절).
+
+### 2.4 이메일 인증과 비밀번호 재설정
+
+**2026-11-11 `D-19`.** 규칙·판정 순서·트랜잭션은 [requirements/member.md §11](requirements/member.md)이 정본이다. 네 엔드포인트 모두 **무인증**이다.
+
+**요청 두 개 — 재발송과 재설정 요청.** 본문은 `{ "email": "..." }` 이고 `email` 은 생성과 같은 규칙이다([requirements/member.md §2](requirements/member.md)).
+
+| 경우 | 응답 |
+| --- | --- |
+| `email` 누락·빈 값·형식·길이 위반 | 400 `C001`, `fieldErrors` 에 `email` |
+| IP 단위 또는 이메일 단위 요청 수 제한을 넘었다 | 429 `C009`, `Retry-After`([security.md §10](security.md)) |
+| **그 밖의 모든 경우** — 계정이 없다·탈퇴했다·인증됐다·아니다 | **202.** 본문은 `{ "success": true, "data": null, "error": null }` |
+
+**202 가 계정의 상태를 말하지 않는다.** 메일이 나가는지는 계정의 상태가 정하지만([requirements/member.md §11.2](requirements/member.md)·§11.3) 응답의 상태·본문·시간은 그것으로 갈리지 않는다. 202 인 이유는 일을 받았을 뿐 끝내지 않았기 때문이다 — 메일은 응답 뒤에 따로 나간다.
+
+**확인 두 개.** 본문은 `{ "token": "..." }`, 재설정 확인은 `{ "token": "...", "newPassword": "..." }` 다. 성공은 204 이고 본문이 없다. **둘 다 토큰을 주지 않는다** — 로그인은 따로 한다.
+
+| 경우 | 응답 |
+| --- | --- |
+| `token` 누락·빈 값 | 400 `C001`, `fieldErrors` 에 `token` |
+| `newPassword` 가 비밀번호 규칙 위반(재설정 확인만) | 400 `C001`, `fieldErrors` 에 `newPassword`. **토큰을 쓰지 않는다** |
+| 토큰이 없다·만료됐다·이미 쓰였다·목적이 다르다·그 계정이 탈퇴했다 | **400 `AU007`** — 사유를 가르지 않는다 |
+| 성공 | 204 |
+
+**`token` 에 형식 검증을 걸지 않는다.** 길이·문자 집합이 틀린 토큰은 그냥 맞지 않는 토큰이고 조회가 그것을 끝낸다 — §2.1 이 자격증명 필드에 같은 판단을 했다. **400 인 이유**는 요청 본문의 값이 틀린 것이고 요청자가 인증되지 않았기 때문이다. 404·410 으로 가르면 없음과 만료가 갈린다.
+
+**`SecurityConfig` 에서 네 경로를 메서드와 함께 하나씩 `permitAll` 로 선언한다.** `/api/v1/accounts/**` 같은 넓은 무인증 규칙을 두지 않는다 — 인가 규칙은 선언 순서대로 평가되므로(§4 의 `/posts/me` 문단) 그 규칙이 `/api/v1/accounts/me` 의 규칙보다 앞에 놓이면 내 계정 경로가 무인증으로 열린다. 그 순서 함정은 1차부터 auth 의 `SecurityConfig` 에 주석으로 있다(코드 읽기). `POST /api/v1/accounts` 의 `permitAll` 도 메서드를 붙인 그대로 둔다 — 그래야 `GET /api/v1/accounts`(§2.5)가 인증 경로로 남는다.
+
+### 2.5 계정 목록 (ADMIN)
+
+**2026-11-11 `D-19`.** MR-13 의 계정 쪽이다([requirements/member.md §13](requirements/member.md)). 닉네임은 member 의 일괄 조회(§3.2)로 따로 받는다.
+
+`GET /api/v1/accounts`
+
+| 파라미터 | 타입 | 기본 | 설명 |
+| --- | --- | --- | --- |
+| `page` | int | 0 | 0부터 |
+| `size` | int | 20 | 최대 50. 초과 시 50으로 절삭 |
+| `sort` | enum | `latest` | `latest`(`created_at DESC, id DESC`), `email`(`email ASC, id ASC`) |
+| `email` | string | - | **부분 일치**(`LIKE '%값%'`). 공백만이면 없음으로 본다. 최대 100자 |
+| `role` | enum | - | `USER`, `ADMIN` |
+| `deleted` | boolean | - | 없으면 둘 다 |
+
+응답은 §7.1 의 페이징 모양이고 `content` 의 원소는 아래다(§9.12).
+
+| 키 | 뜻 |
+| --- | --- |
+| `id` | `account.id` (= `accountId`). member 의 일괄 조회에 넘기는 값이다 |
+| `email` | `account.email` |
+| `role` | `USER`·`ADMIN` |
+| `deleted` | 탈퇴 여부 |
+| `createdAt` | `account.created_at`. 오프셋을 표기하지 않는다([tech-stack.md §6](tech-stack.md)) |
+| `emailVerified` | `email_verified_at` 이 있으면 `true` |
+| `locked` | 그 이메일의 로그인 잠금이 지금 걸려 있으면 `true`([domain-model.md §2.5](domain-model.md)) |
+
+| 경우 | 응답 |
+| --- | --- |
+| 토큰이 없다 | 401 `A001` |
+| ADMIN 이 아니다 | **403 `A004`** — Service 계층이 Claim 의 `role` 값으로 판정한다(auth 는 enum, member 는 문자열)([security.md §5.1](security.md)) |
+| `page` 음수·`size` 1 미만·`email` 100자 초과 | 400 `C001`, `fieldErrors` 1건(§4.1 의 하한 위반과 같은 판정) |
+| `sort`·`role`·`deleted` 의 값이 틀렸다 | 400 `C002` — 바인딩 실패다(§4.1 의 `category` 와 같다) |
+
+- **파라미터 검증이 ADMIN 판정보다 먼저 날 수 있다.** 검증은 컨트롤러 앞에서 돌고 ADMIN 판정은 Service 에 있다. ADMIN 이 아닌 요청자가 틀린 파라미터를 보내면 403 대신 400 을 받는다 — 어느 응답도 목록의 내용을 드러내지 않으므로 순서를 강제하지 않는다
+- **`password`·`email_verified_at` 의 시각·잠금 시각을 싣지 않는다.** 관리 화면에 필요한 것은 상태다
+- 정렬 키의 마지막에 `id` 를 두는 이유는 §7.1 이다. 동적 조건은 QueryDSL 로 조합한다 — auth 의 첫 QueryDSL 사용이다([conventions.md §1.1](conventions.md)의 `QuerydslConfig`)
+- `email` 의 부분 일치는 인덱스를 쓰지 않는다 — board 의 `keyword` 와 같다([domain-model.md §4.3](domain-model.md)의 `idx_post_title` 문단)
+
 ## 3. member-service API
 
 | Method | Path | 설명 | 인증 | 성공 |
@@ -239,6 +328,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | PATCH | `/api/v1/members/me` | 닉네임 수정 | O | 200 |
 | DELETE | `/api/v1/members/me` | **프로필 탈퇴 (탈퇴 2단계)** | O | 204 |
 | GET | `/api/v1/members/{accountId}` | 특정 회원 프로필 | - | 200 |
+| GET | `/api/v1/members?accountIds=` | **프로필 일괄 조회 (ADMIN, §3.2)** — 2026-11-11 `D-19` | O (ADMIN) | 200 |
 
 - `POST /api/v1/members`는 **인증이 필요하다.** `account_id`는 검증된 JWT의 `sub`에서만 가져온다. 요청 본문의 식별자를 신뢰하지 않는다
 - **`accountId` 기준으로 멱등이다.** 응답만 유실된 클라이언트가 재시도해도 중복 생성·덮어쓰기가 없다
@@ -298,6 +388,30 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 **마스킹 규칙은 하나다.** `"탈퇴한 회원"`은 §5의 내부 API와 **같은 응답 시 변환**이며 저장값은 NULL이다([domain-model.md §3.1](domain-model.md)). 두 군데서 다르게 변환하지 않는다.
 
 > **없는 `accountId`에 404를 쓰는 것은 여기까지다.** §5.1이 금지한 것은 **내부 API**에서 404를 업무 의미로 쓰는 것이다 — board가 그것을 "프로필 없음"으로 읽으면 경로 오설정이 업무 오류로 위장된다. 공개 조회는 클라이언트를 상대하므로 404가 맞다. **두 경로를 같게 맞추지 않는다.**
+
+### 3.2 프로필 일괄 조회 (ADMIN)
+
+**2026-11-11 `D-19`.** MR-13 의 프로필 쪽이다([requirements/member.md §13](requirements/member.md)). 화면이 계정 목록(§2.5)의 한 페이지에서 받은 id 들로 부른다.
+
+`GET /api/v1/members?accountIds=1,2,3` — 같은 이름을 되풀이해도 된다(`accountIds=1&accountIds=2`).
+
+```json
+// -> 200
+{ "success": true,
+  "data": { "members": [
+    { "accountId": 1, "nickname": "관리자", "createdAt": "2026-09-11T10:05:00", "deleted": false },
+    { "accountId": 3, "nickname": "탈퇴한 회원", "createdAt": "2026-10-01T09:00:00", "deleted": true }
+  ] },
+  "error": null }
+```
+
+- **원소는 `GET /api/v1/members/{accountId}` 와 같은 모양이다**(§3.1). 탈퇴한 프로필은 `"탈퇴한 회원"`·`deleted: true` 다 — 마스킹 규칙은 하나다
+- **없는 `accountId` 는 결과에서 뺀다.** 404 가 아니다 — 프로필이 없는 계정(가입 3단계 미완료)이 정상이라 화면이 「프로필 없음」 으로 그린다. 같은 id 를 여러 번 주면 한 번만 싣는다. 순서는 `accountId` 오름차순이다
+- **`accountIds` 는 1개 이상 50개 이하다.** 50 은 계정 목록의 최대 `size` 다. 넘으면 **400 `C001`**(`fieldErrors` 에 `accountIds`)이고 **절삭하지 않는다** — 목록의 `size` 와 달리 잘린 id 의 프로필이 조용히 빠지면 화면이 「프로필 없음」 과 구별하지 못한다. 누락은 400 `C001`(`fieldErrors` 빈 배열, §2.3), 숫자가 아닌 값은 400 `C002`
+- 토큰이 없으면 401 `A001`, ADMIN 이 아니면 **403 `A004`**(Service 계층이 `role` 값으로 판정한다 — auth 는 enum, [security.md §5.1](security.md))
+- **`SecurityConfig` 에 `GET /api/v1/members` 를 인증 경로로 선언한다.** `GET /api/v1/members/{accountId}` 의 `permitAll` 은 세그먼트가 하나 더 있어야 걸리므로 이 경로를 열지 않는다 — 선언하지 않아도 마지막 규칙(`anyRequest().authenticated()`)이 막지만, 경로마다 규칙을 두는 1차의 방식을 따른다
+- 내부 API(§5)를 쓰지 않는 이유 — 그것은 서비스 간 호출 전용이고 API 키로 보호된다. 사람의 요청은 JWT 로 판정한다
+- **이 값은 공개 조회로도 한 건씩 얻는다**(`GET /{accountId}` 는 무인증이다). ADMIN 으로 묶는 이유는 [requirements/member.md §13](requirements/member.md)이 적는다
 
 ## 4. board-service API
 
@@ -686,6 +800,7 @@ public record FieldError(String field, String message) { }
 | `C006` | 415 | 지원하지 않는 미디어 타입입니다. |
 | `C007` | 406 | 응답할 수 있는 형식이 없습니다. |
 | `C008` | 413 | 요청 크기가 허용 한도를 넘었습니다. |
+| `C009` | 429 | 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요. — auth·member 만(아래 문단) |
 | `A001` | 401 | 인증이 필요합니다. |
 | `A002` | 401 | 유효하지 않은 토큰입니다. |
 | `A003` | 401 | 만료된 토큰입니다. |
@@ -707,6 +822,12 @@ public record FieldError(String field, String message) { }
 세 서비스가 `GlobalExceptionHandler`를 각자 복제하므로([adr/0007](adr/0007-shared-code-policy.md)) **셋 다 이 둘을 다룬다.** 형식 일치는 [plan/integration.md](plan/integration.md) I-04의 3자 비교에서 확인한다.
 
 **`C008` 은 2026-11-11 `D-18` 이 더했다.** 첨부 업로드(§4.7)가 처음으로 큰 요청 본문을 받는다. 한도를 넘는 multipart 는 컨트롤러에 닿기 전에 해석 단계에서 예외가 되므로 위 둘과 같은 자리의 문제다 — 다루지 않으면 마지막 그물로 떨어질 것으로 본다(**측정 대상** — 매핑과 측정할 것은 [conventions.md §6.1](conventions.md)). 크기 위반은 업로드만의 것이 아니므로(어느 서비스든 multipart 를 받으면 같은 예외가 난다) board 접두어가 아니라 공통 코드로 둔다. **셋 다 다룬다**는 위 문장이 `C008` 에도 적용된다 — multipart 를 받지 않는 auth·member 도 같은 핸들러를 갖는다.
+
+**`C009` 는 2026-11-11 `D-19` 가 더했다.** 요청 수 제한([security.md §10](security.md))을 넘은 요청이다. 응답에 **`Retry-After`(초)** 를 싣고 `fieldErrors` 는 빈 배열이다. 매핑은 [conventions.md §6.1](conventions.md).
+
+**공통 코드로 둔 이유** — 뜻이 서비스와 무관하다. 어느 서비스에서 나든 「요청이 너무 많다」 이고 화면의 복구도 같다(기다렸다 다시). 접두어는 어느 서비스의 업무에서 난 오류인지를 가르는데 이 코드는 업무가 아니라 요청의 빈도를 말한다 — `C008` 이 크기에 대해 같은 판단을 했다. 서비스마다 다른 코드를 두면 화면이 같은 뜻의 코드를 둘 들고, 같은 종류의 오류에 서비스마다 같은 본문을 돌려준다는 [plan/integration.md](plan/integration.md) I-04 의 원칙과 어긋난다.
+
+**`C008` 과 다른 점 — 셋 다 다루지 않는다.** `C008` 은 프레임워크가 어느 서비스에서든 던질 수 있는 예외라 셋 다 핸들러를 둔다(위 문단). `C009` 는 서비스가 자기 제한기에서 던지는 예외라 **제한기를 가진 서비스만** 그 매핑을 갖는다 — 2026-11-11 의 설계에서는 auth·member 다. board 에는 제한 대상이 없어 그 예외가 생기지 않고, 처음 제한기를 들일 때 같은 매핑을 더한다. **그래서 `C009` 의 본문·헤더 비교는 auth·member 둘의 비교다** — 쓰이지 않는 핸들러를 board 에 두어 3자 비교를 채우지 않는다.
 
 ### 8.2 member-service
 
@@ -749,8 +870,13 @@ public record FieldError(String field, String message) { }
 | `AU002` | 409 | 이미 사용 중인 이메일입니다. |
 | `AU003` | 401 | 이메일 또는 비밀번호가 일치하지 않습니다. |
 | `AU004` | 400 | 현재 비밀번호가 일치하지 않습니다. |
+| `AU005` | 401 | 로그인 시도가 많아 잠시 로그인할 수 없습니다. |
+| `AU006` | 403 | 이메일 인증이 필요합니다. |
+| `AU007` | 400 | 링크가 유효하지 않거나 만료되었습니다. |
 
 `AU002`·`AU003`·`AU004`는 각각 이전의 `M002`·`M004`·`M005`다.
+
+**`AU005`~`AU007` 은 2026-11-11 `D-19` 가 더했다.** `AU005` 는 로그인 잠금이다 — 비밀번호가 맞든 틀리든, 계정이 있든 없든 같다(§2.1). 메시지에 잠금 시간을 적지 않는다 — 값이 바뀌어도 메시지가 거짓이 되지 않게 한다. `AU006` 은 비밀번호가 맞은 미인증 계정이다. 403 인 이유는 자격증명은 맞았고 그 계정이 아직 로그인을 허락받지 않았기 때문이다. `AU007` 은 메일 링크의 토큰 오류 전부다(§2.4) — 「링크」 라고 적는 것은 사용자가 그 토큰을 링크로만 보기 때문이고, 401 인 `A002`(유효하지 않은 토큰)와 섞이지 않게 한다.
 
 ### 8.5 `A001`·`A002`·`A003`을 가르는 경계
 
@@ -820,6 +946,8 @@ public record FieldError(String field, String message) { }
 ```
 
 **1단계만 끝난 상태는 정상이다.** 로그인·재발급·로그아웃·계정 탈퇴가 모두 가능하고, 글 작성만 `S002`로 막힌다.
+
+> **2026-11-11 `D-19` 부터 1)과 2) 사이에 이메일 인증이 낀다**(§9.10). 인증 전에 맞는 비밀번호로 한 2)는 403 `AU006` 이다. 위 문단의 「1단계만 끝난 상태」 는 그 뒤로 **1단계와 인증이 끝난 상태**를 말한다 — 인증 전에는 로그인이 안 되므로 재발급·로그아웃·탈퇴에 쓸 토큰이 없다. 단계 번호를 바꾸지 않는 이유는 [requirements/member.md §4](requirements/member.md)가 적는다.
 
 ### 9.1.1 탈퇴 (계정 → 프로필)
 
@@ -998,3 +1126,75 @@ Content-Type: image/png
 ```
 
 내려받기(`GET /api/v1/attachments/7`)는 봉투가 아니라 파일 바이트다. 헤더는 [security.md §8](security.md).
+
+### 9.10 이메일 인증 (가입 뒤)
+
+```json
+// 1) POST /api/v1/accounts   -> 201 (§9.1 과 같다). 커밋 뒤 인증 메일이 나간다
+//    메일의 링크: {FRONTEND_BASE_URL}/verify-email#token=<토큰>
+
+// 2) 화면이 fragment 의 토큰을 읽어 보낸다
+// POST /api/v1/accounts/email-verification/confirm   (auth, 무인증)
+{ "token": "<토큰>" }
+// 204   본문 없음. 토큰을 주지 않는다 — 로그인은 따로 한다
+// 400   AU007  없음·만료·이미 씀·탈퇴 계정을 가르지 않는다
+
+// 인증 전의 로그인
+// POST /api/v1/auth/login   -> 403
+{ "success": false, "data": null,
+  "error": { "code": "AU006", "message": "이메일 인증이 필요합니다.", "fieldErrors": [] } }
+
+// 재발송
+// POST /api/v1/accounts/email-verification   (auth, 무인증)
+{ "email": "user@example.com" }
+// 202   계정이 없거나·탈퇴했거나·이미 인증됐어도 같다
+{ "success": true, "data": null, "error": null }
+```
+
+### 9.11 비밀번호 재설정
+
+```json
+// 1) POST /api/v1/accounts/password-reset   (auth, 무인증)
+{ "email": "user@example.com" }
+// 202   계정이 없거나 탈퇴했어도 같다 (그때는 메일이 나가지 않는다)
+{ "success": true, "data": null, "error": null }
+//    메일의 링크: {FRONTEND_BASE_URL}/reset-password#token=<토큰>   (30분)
+
+// 2) POST /api/v1/accounts/password-reset/confirm   (auth, 무인증)
+{ "token": "<토큰>", "newPassword": "NewPassw0rd!" }
+// 204   비밀번호 교체 + Refresh Token 삭제 + 잠금 해제 + (미인증이면) 인증. 한 트랜잭션
+// 400   C001  newPassword 규칙 위반 — 토큰은 쓰이지 않는다
+// 400   AU007 토큰 오류 전부
+```
+
+### 9.12 회원 목록 (ADMIN)
+
+```json
+// 1) GET /api/v1/accounts?page=0&size=20&sort=latest&email=example   (auth, ADMIN 의 Access Token)  -> 200
+{
+  "success": true,
+  "data": {
+    "content": [
+      { "id": 3, "email": "user@example.com", "role": "USER", "deleted": true,
+        "createdAt": "2026-10-01T08:59:00", "emailVerified": true, "locked": false },
+      { "id": 1, "email": "admin@example.com", "role": "ADMIN", "deleted": false,
+        "createdAt": "2026-09-11T10:00:00", "emailVerified": true, "locked": false }
+    ],
+    "page": 0, "size": 20, "totalElements": 2, "totalPages": 1,
+    "first": true, "last": true
+  },
+  "error": null
+}
+
+// 2) GET /api/v1/members?accountIds=3,1   (member, 같은 토큰)  -> 200 (§3.2 의 예시)
+//    화면이 accountId 로 합친다. 2)에 없는 id 는 프로필 없음이다
+```
+
+### 9.13 요청 수 제한
+
+```json
+// GET /api/v1/accounts/check-email?email=user@example.com   -> 429
+// Retry-After: 37
+{ "success": false, "data": null,
+  "error": { "code": "C009", "message": "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.", "fieldErrors": [] } }
+```

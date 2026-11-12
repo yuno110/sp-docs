@@ -2,7 +2,7 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v11
+version: v12
 updated: 2026-11-11
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
@@ -57,12 +57,15 @@ related: [architecture.md, process/dev-workflow.md]
 | **board 다운** | 로그인·회원 기능 정상. 게시판만 불가 |
 | 내부 API 호출 실패 (쓰기 경로) | **저장하지 않고 503.** 폴백할 스냅샷이 아직 없다 |
 | 내부 API 호출 실패 (조회 경로) | 해당 없음. 조회는 내부 API를 호출하지 않는다 |
+| **SMTP 다운·느림** | 가입은 201 이지만 인증 메일이 나가지 않는다. **새 계정은 인증할 수 없어 로그인하지 못한다.** 재설정·재발송은 202 이지만 메일이 없다 — 잠긴 사용자가 재설정으로 풀 수 없다. 이미 인증된 계정의 로그인과 다른 모든 기능은 영향이 없다. 2026-11-11 `D-19` 의 설계 |
 
 **쓰기 경로에는 폴백이 없다.** 저장할 닉네임을 만들어낼 수 없으므로 실패를 드러낸다([architecture.md §4.3.1](architecture.md)). 이전 v1의 "스냅샷 값으로 폴백"은 조회 경로에 대한 서술이었고, 그 경로는 애초에 호출하지 않으므로 사문화됐다.
 
 **auth 다운이 게시글 작성을 막지 않는다.** 검증이 공개키로 오프라인 수행되기 때문이다. 반대로 **member 다운은 막는다** — 닉네임을 얻을 수 없기 때문이다.
 
 이 기준은 통합 검증 단계에서 실제로 서비스를 내리고 확인한다([plan/integration.md](plan/integration.md) I-02).
+
+**SMTP 는 auth 의 바깥 의존이다**(2026-11-11 `D-19`, [adr/0016](adr/0016-mail-and-verification-gate.md)). 메일은 커밋 뒤 따로 나가므로 SMTP 가 죽어도 API 응답은 실패하지 않는다 — **대신 가입과 계정 회복이 조용히 멈춘다.** 발송 실패가 WARN 이상의 로그로 드러나야 한다. 다시 보내는 장치는 없다 — 사용자가 재발송·재설정을 다시 요청한다([requirements/member.md §11.5](requirements/member.md)). 이 줄은 I-02 의 시나리오가 아니다 — I-02 는 1차의 세 서비스를 내린다.
 
 ## 3. 회복탄력성
 
@@ -71,11 +74,15 @@ related: [architecture.md, process/dev-workflow.md]
 | 서비스 간 호출 타임아웃 | connect 1초 / read 3초 (`board -> member` 하나뿐) |
 | 타임아웃 미지정 | 금지. 기본값(무제한)으로 두지 않는다 |
 | 서킷 브레이커 | 2차 범위 |
+| SMTP 타임아웃 | 연결 5초 / 읽기 10초 / 쓰기 10초([tech-stack.md §4.7](tech-stack.md)). 발송은 요청 스레드 밖이라 API 응답 시간에 들지 않는다. 2026-11-11 `D-19` |
+| 메일 발송 대기열 | 상한을 둔다. 넘치면 버리고 WARN([tech-stack.md §4.7](tech-stack.md)) |
 
 ## 4. 확장성·가용성
 
 - Stateless 설계로 서비스별 독립 수평 확장이 가능하다
 - 각 서비스가 `/actuator/health`를 제공한다
+
+> **요청 수 제한의 카운터는 인스턴스 메모리에 있다**(2026-11-11 `D-19`, [adr/0015](adr/0015-rate-limit-without-gateway.md)). auth·member 를 여러 인스턴스로 늘리면 한도가 인스턴스 수만큼 곱해진다 — 늘리는 것을 막지는 않지만 제한의 값이 바뀐다. 로그인 잠금은 DB(`login_attempt`)에 있어 이 제약이 없다.
 
 > **첨부 파일이 로컬 디스크에 있는 동안은 board 를 여러 인스턴스로 늘릴 수 없다**(2026-11-11 `D-18`, [adr/0013](adr/0013-attachment-storage.md)). 한 인스턴스가 쓴 파일을 다른 인스턴스가 읽지 못한다 — 공유 볼륨을 붙이거나 객체 저장소로 옮기는 것이 그 ADR 의 재검토 조건이다. 조회수 판정(`post_view`)은 DB 에 있으므로 이 제약을 만들지 않는다([adr/0014](adr/0014-view-count-dedup.md)).
 
@@ -87,6 +94,9 @@ related: [architecture.md, process/dev-workflow.md]
 | 남는 파일 | 첨부 삭제·글 삭제·실패한 업로드가 파일을 남긴다. **정리하지 않는다**(이번 범위 밖, [requirements/board.md §11](requirements/board.md)) — 디스크 사용량은 활성 첨부의 합보다 크다 |
 | `post_view` | 최근 24시간 + 정리 주기 안의 (조회자, 글) 쌍만큼이다. 정리가 멈추면 무한히 쌓인다 — 정리 작업의 실패를 로그로 드러낸다([tech-stack.md §4.5](tech-stack.md)) |
 | `post_like` | 회원 × 글 쌍만큼. 지운 글의 행도 남는다 |
+| `login_attempt` | 최근 24시간 안에 로그인에 실패한 이메일만큼. 없는 이메일도 행을 만든다 — 많은 이메일로 실패를 보내면 그만큼 늘고 로그인의 IP 한도가 그 속도를 묶는다. 정리가 멈추면 쌓인다([domain-model.md §2.5](domain-model.md)). 2026-11-11 `D-19` |
+| `account_token` | 계정 × 목적마다 대개 1행. 만료된 행은 정리한다([domain-model.md §2.4](domain-model.md)) |
+| 제한기의 메모리 | 규칙마다 고정 크기의 버킷 배열이다. 키 수와 무관하다([security.md §10](security.md)) |
 
 ## 5. 로깅·추적
 

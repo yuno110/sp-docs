@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v34
+version: v35
 updated: 2026-11-11
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -195,11 +195,13 @@ dependencies {
 
 | 서비스 | 추가 | 왜 |
 | --- | --- | --- |
-| auth | `org.springframework.security:spring-security-oauth2-jose`<br>`org.springframework.boot:spring-boot-starter-oauth2-resource-server` | **서명**(`NimbusJwtEncoder`) + 자기 발급 토큰 검증 |
+| auth | `org.springframework.security:spring-security-oauth2-jose`<br>`org.springframework.boot:spring-boot-starter-oauth2-resource-server`<br>`org.springframework.boot:spring-boot-starter-mail` | **서명**(`NimbusJwtEncoder`) + 자기 발급 토큰 검증. 메일은 2026-11-11 `D-19`(아래) |
 | member | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` | 검증만 |
 | board | `org.springframework.boot:spring-boot-starter-oauth2-resource-server` | 검증만 |
 
 **2026-11-11 `D-18` 의 첨부·조회수·좋아요는 의존성을 더하지 않는다**(§4.5).
+
+**2026-11-11 `D-19` 가 auth 에 하나를 더한다 — `org.springframework.boot:spring-boot-starter-mail`.** 이메일 인증·비밀번호 재설정 메일을 SMTP 로 보낸다(§4.7, [adr/0016](adr/0016-mail-and-verification-gate.md)). 버전은 Boot BOM 이 정한다. **요청 수 제한은 라이브러리를 들이지 않는다**(예: Bucket4j·Resilience4j 를 쓰지 않는다) — 고정 창 하나에 카운터 배열 하나라 직접 쓰는 것이 의존성보다 작다(§4.6, [adr/0015](adr/0015-rate-limit-without-gateway.md)). member 는 아무것도 더하지 않는다.
 
 **`oauth2-jose`를 직접 선언하는 것은 auth 하나뿐이다.** member·board에 그 줄을 넣지 않는다.
 
@@ -286,8 +288,8 @@ tasks.register('bcrypt') {
 | 분류 | 기본값 | 예 |
 | --- | --- | --- |
 | 편의값 | **둔다** | `DB_URL`, `DB_USERNAME`, `MEMBER_SERVICE_URL` |
-| 비밀값 | **두지 않는다** | `DB_PASSWORD`, `JWT_PRIVATE_KEY_LOCATION`, `INTERNAL_API_KEY`, `ADMIN_PASSWORD_HASH`(auth만), `VIEW_COUNT_HMAC_SECRET`(board만, §4.5) |
-| **정책값** | **두지 않는다** | `CORS_ALLOWED_ORIGINS`, `ATTACHMENT_STORAGE_ROOT`(board만, §4.5) |
+| 비밀값 | **두지 않는다** | `DB_PASSWORD`, `JWT_PRIVATE_KEY_LOCATION`, `INTERNAL_API_KEY`, `ADMIN_PASSWORD_HASH`(auth만), `VIEW_COUNT_HMAC_SECRET`(board만, §4.5), `MAIL_USERNAME`·`MAIL_PASSWORD`(auth만, §4.7) |
+| **정책값** | **두지 않는다** | `CORS_ALLOWED_ORIGINS`, `ATTACHMENT_STORAGE_ROOT`(board만, §4.5), `MAIL_HOST`·`MAIL_PORT`·`MAIL_FROM`·`FRONTEND_BASE_URL`(auth만, §4.7) |
 
 **정책값은 비밀이 아니지만 기본값을 두지 않는다.** 임의 기본값을 두면 그 값이 정해진 정책인지 임시값인지 구분할 수 없고, 운영에 그대로 나갈 수 있다. 없으면 기동이 실패해야 한다.
 
@@ -303,6 +305,8 @@ member-service:
 ```
 
 `MEMBER_SERVICE_URL`은 board만 쓴다. **auth는 다른 서비스의 주소를 알지 않는다.**
+
+> **2026-11-11 `D-19` 부터 auth 는 주소 둘을 안다 — 어느 것도 서비스가 아니다.** SMTP 서버(`MAIL_HOST`)와 메일 링크가 가리킬 화면의 기준 주소(`FRONTEND_BASE_URL`)다(§4.7). auth 는 그 주소로 서비스 API 를 부르지 않는다 — 앞 문장은 그대로 참이다. 화면의 주소는 링크의 문자열로만 쓰인다.
 
 **비밀 값(JWT 개인키, DB 비밀번호)은 기본값을 두지 않는다.** `${DB_PASSWORD}`처럼 기본값 없이 쓴다. 없으면 기동이 실패해야 한다.
 
@@ -356,7 +360,7 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 
 > `DB_PASSWORD`가 어디에도 없으면 `Access denied for user 'root'@'localhost' (using password: YES)`로 기동이 실패한다. **비밀번호가 틀린 게 아니라 값이 없는 것이다.** Spring이 해석되지 않은 placeholder를 리터럴로 남기기 때문이다.
 
-`JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다. board 의 `ATTACHMENT_STORAGE_ROOT`·`VIEW_COUNT_HMAC_SECRET` 도 같다(2026-11-11 `D-18`, §4.5) — 템플릿(`.example`)에는 자리만 두고 값을 넣지 않는다.
+`JWT_PRIVATE_KEY_LOCATION`·`CORS_ALLOWED_ORIGINS`와 `INTERNAL_API_KEY`(member·board)도 같은 방식으로 `application-local.yml`에 넣는다. board 의 `ATTACHMENT_STORAGE_ROOT`·`VIEW_COUNT_HMAC_SECRET` 도 같다(2026-11-11 `D-18`, §4.5) — 템플릿(`.example`)에는 자리만 두고 값을 넣지 않는다. auth 의 메일 설정과 화면 기준 주소도 같다(2026-11-11 `D-19`, §4.7) — 로컬의 SMTP 는 Mailpit 이다.
 
 #### 두 YAML 소스는 블록이 아니라 키 단위로 합쳐진다
 
@@ -431,6 +435,91 @@ view-count:
 > **multipart 한도는 `MockMvc` 로 재지 못한다.** 한도는 서블릿 컨테이너가 요청을 해석할 때 집행하고, `MockMvc` 의 multipart 요청은 이미 해석된 모양으로 들어간다. 그래서 413 `C008`·연결 끊김·`max-swallow-size` 의 효과는 **실제 서버(내장 Tomcat 을 띄운 테스트나 기동한 서비스)** 에서 잰다. 핸들러가 `MaxUploadSizeExceededException` 을 `C008` 로 바꾸는 것은 `MockMvc` 로도 볼 수 있다 — 그 예외를 직접 던지게 하면 된다.
 
 > **테스트 프로파일은 임시 디렉터리와 테스트용 키를 준다.** 커밋되는 파일에 들어가므로 운영 값이 아니다. 저장 루트를 테스트마다 비운 임시 디렉터리로 주면 테스트가 서로의 파일을 보지 않는다.
+
+### 4.6 auth·member 의 요청 수 제한 설정
+
+**2026-11-11 `D-19` 가 더했다.** 대상·키·한도는 [security.md §10](security.md)이 정본이다. 예(auth 의 `application.yml`):
+
+```yaml
+server:
+  forward-headers-strategy: none
+rate-limit:
+  buckets-per-rule: 16384
+  rules:
+    check-email:            { limit: 20, window: PT1M }
+    signup:                 { limit: 10, window: PT1H }
+    password-reset-ip:      { limit: 5,  window: PT1H }
+    password-reset-email:   { limit: 3,  window: PT1H }
+    verification-ip:        { limit: 5,  window: PT1H }
+    verification-email:     { limit: 3,  window: PT1H }
+    login:                  { limit: 30, window: PT1M }
+```
+
+member 는 `check-nickname: { limit: 20, window: PT1M }` 하나와 같은 `server.forward-headers-strategy` 다. 키 이름은 예이고 구현이 정한다.
+
+| 키 | 분류(§4.3) | 요건 |
+| --- | --- | --- |
+| `server.forward-headers-strategy` | 정본 값 | **`none`.** 제한의 키가 `remoteAddr` 이고 `X-Forwarded-For` 로 바꾸지 않는다([security.md §10](security.md)). board(§4.5)와 같은 이유로 적는다. 게이트웨이를 들이면 [adr/0015](adr/0015-rate-limit-without-gateway.md)를 다시 본다 |
+| 규칙의 한도·창 | **정본 값** | [security.md §10](security.md)의 값을 `application.yml` 에 적는다. **정본이 숫자를 정한 값**이라 §4.3 의 정책값(기본값 없음)이 아니다 |
+| `rate-limit.buckets-per-rule` | 정본 값 | 16,384. 규칙마다 이 크기의 카운터 배열을 둔다. 클수록 서로 다른 클라이언트가 한 버킷을 나누는 일이 드물고, 모든 클라이언트를 막는 데 드는 요청량(버킷 수 × 한도)이 커진다([security.md §10](security.md)). 버킷을 고르는 HMAC 의 비밀은 설정이 아니다 — 기동마다 새로 만든다 |
+
+**로컬 템플릿은 한도를 크게 둔다.** 실제 서비스 e2e 가 `local` 프로파일로 세 서비스를 띄우고 한 주소에서 가입·로그인을 여러 번 하므로([plan/phase2.md §5.3](plan/phase2.md)), 운영 한도로는 e2e 가 스스로 429 를 맞는다. `application-local.yml.example` 이 규칙의 한도를 덮는다 — 값은 템플릿이 정하고 이 문서는 「운영 한도보다 e2e 의 요청 수가 넉넉히 들어가게」 만 정한다. **그 덮음 때문에 e2e 는 제한을 검증하지 않는다** — 제한은 서비스의 테스트가 `Clock` 을 움직여 본다.
+
+> **`forward-headers-strategy` 가 auth·member 의 `application.yml` 에 없다**(2026-11-11 코드 읽기). 클라우드 플랫폼을 감지하지 않는 한 지금의 기본값이 `none` 과 같은 동작이라(§4.5 — 감지하면 `NATIVE` 다) 1차의 결함은 아니다 — 제한이 그 값에 기대기 시작하므로 적는다.
+
+### 4.7 auth 의 메일·정리 설정
+
+**2026-11-11 `D-19` 가 더했다.** 메일을 들이는 결정은 [adr/0016](adr/0016-mail-and-verification-gate.md), 발송 규칙은 [requirements/member.md §11.5](requirements/member.md)다. 예(`application.yml`):
+
+```yaml
+spring:
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+mail:
+  from: ${MAIL_FROM}
+  frontend-base-url: ${FRONTEND_BASE_URL}
+  executor:
+    queue-capacity: 100
+account-cleanup:
+  interval: PT1H
+```
+
+| 키 | 분류(§4.3) | 요건 |
+| --- | --- | --- |
+| `spring.mail.host`·`port` | **정책값** | 기본값이 없다. 비었거나 미해석 `${…}` 리터럴이면 **기동이 실패한다** |
+| `spring.mail.username`·`password` | **비밀값** | `application.yml` 에 기본값을 두지 않는다(§4.3). **운영 프로파일은 둘 다 있어야 한다** — 비었거나 미해석 `${…}` 리터럴이면 기동이 실패한다. 로컬은 Mailpit 이 인증을 받지 않으므로 `application-local.yml` 이 둘 다 빈 값으로 준다(§4.7.1). **하나만 있으면 어느 프로파일이든 기동이 실패한다** |
+| SMTP 타임아웃 | 정본 값 | 연결 5초, 읽기 10초, 쓰기 10초. **JavaMail 의 기본은 무한 대기다** — 없으면 SMTP 가 응답하지 않을 때 발송 스레드가 영영 묶인다 |
+| 암호화 연결 | 정본 값 | **운영 프로파일은 STARTTLS 를 필수로 하거나 SMTPS 로 연결한다**(예: `mail.smtp.starttls.required: true`). 어느 쪽인지는 SMTP 제공자가 정한다. 로컬 Mailpit 은 평문이다 |
+| `mail.from` | **정책값** | 보내는 주소. 기본값이 없다 |
+| `mail.frontend-base-url` | **정책값** | 링크의 기준 주소(예: 화면의 오리진). 기본값이 없고 비었거나 `${…}` 이거나 `http`·`https` 의 절대 URL 이 아니면 기동이 실패한다. **요청의 `Host` 로 대신하지 않는다**([security.md §12](security.md)) |
+| `mail.executor.queue-capacity` | 편의값 | 발송 작업의 대기열 상한. 넘으면 버리고 WARN([requirements/member.md §11.5](requirements/member.md)) |
+| `account-cleanup.interval` | 편의값 | 만료된 `account_token`·오래된 `login_attempt` 를 지우는 주기([domain-model.md §2.4](domain-model.md)·§2.5). 판정에 영향이 없다 |
+
+**가드가 기동을 실패시킨다.** §4.3 의 측정대로 `@ConfigurationProperties` 는 미해석 리터럴을 통과시키므로 `spring.mail.*` 도 그렇게 들어올 수 있다 — 정책값마다 기동 시점의 검사를 두고 그 실패를 테스트가 본다.
+
+**시험용 발송기는 테스트 소스에만 둔다.** 메일을 메모리에 모으는 발송기를 `src/test` 에 두고 테스트가 그것으로 토큰을 꺼낸다. 운영 코드에 그 구현이 없고, 그 구현이 선택된 채 운영 프로파일로 뜨면 기동이 실패한다([security.md §12](security.md)).
+
+**정리 작업은 auth 의 첫 스케줄러다.** 스케줄링 활성화와 발송용 실행기를 `global/config` 에 둔다([conventions.md §1.1](conventions.md)). 인스턴스가 여럿이면 각자 돌지만 지우는 조건이 같아 결과가 같다 — board(§4.5)와 같다.
+
+#### 4.7.1 로컬의 SMTP — Mailpit
+
+**로컬과 실제 서비스 e2e 는 Mailpit 으로 메일을 받는다**(사용자 결정, [plan/phase2.md §5.1](plan/phase2.md)). **실행 파일 하나다 — Docker 를 쓰지 않는다**([adr/0005](adr/0005-no-docker-in-mvp.md)).
+
+| 항목 | 값 |
+| --- | --- |
+| 설치 | 공식 배포의 실행 파일 하나를 받는다. 버전은 작업 항목이 고정한다 |
+| SMTP | `localhost:1025`(Mailpit 기본값). `application-local.yml` 의 `MAIL_HOST`·`MAIL_PORT` 자리에 넣는다 |
+| 웹 화면·API | `localhost:8025`(Mailpit 기본값). e2e 가 그 API 로 받은 메일을 읽어 링크의 토큰을 꺼낸다 |
+| 인증 | 없다. `application-local.yml` 이 `spring.mail.username`·`password` 를 빈 값으로 준다 |
+
+**Mailpit 이 꺼져 있으면 가입은 201 이지만 메일이 나가지 않는다** — 발송 실패가 로그에만 남는다([requirements/member.md §11.5](requirements/member.md)). 로컬에서 가입한 계정이 로그인되지 않으면 Mailpit 부터 본다.
 
 ## 5. 테스트 환경
 

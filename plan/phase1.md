@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v71
+version: v72
 updated: 2026-11-11
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2680,6 +2680,41 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] 새 환경값이 [../tech-stack.md §4.3](../tech-stack.md)의 분류를 따른다 — 비밀값·정책값에 기본값이 없고 기동 가드가 요구된다
 - [ ] 이 개정이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 1차의 사실을 적은 문장은 지우지 않고 시점을 붙인다
 - [ ] 인증 쪽 절(`D-19`)과 작업 항목 표·마이그레이션 번호(`D-20`)를 건드리지 않는다
+- [ ] `tools/check_refs.py` 통과
+
+### D-19 2차 기능 확장 — auth·member 기능 설계 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | `D-18` (사용자 결정과 board 설계가 먼저 정본에 있다). **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)) |
+| 참조 | [phase2.md §5](phase2.md), [../requirements/member.md §11](../requirements/member.md)~§13·§3·§4, [../domain-model.md §2](../domain-model.md)·§7, [../api-contract.md §2](../api-contract.md)·§3.2·§8·§9, [../security.md §1.1](../security.md)·§4·§5·§10~§12, [../tech-stack.md §3.2](../tech-stack.md)·§4.6·§4.7, [../adr/0015](../adr/0015-rate-limit-without-gateway.md)·[0016](../adr/0016-mail-and-verification-gate.md) |
+
+**`D-18` 이 기록한 2026-11-11 의 사용자 결정 중 auth·member 쪽을 정본에 설계한다** — 이메일 인증(미인증은 로그인을 막는다)·비밀번호 재설정·메일 발송, 이메일 단위 로그인 잠금, 요청 수 제한으로 하는 계정 열거 방어, 회원 목록(ADMIN, MR-13). 사용자가 정하지 않은 값은 오케스트레이터 기본값과 이 항목이 정한 값이며, 어느 쪽인지 [phase2.md §5.1](phase2.md)이 가른다. 구현 작업 항목과 마이그레이션 번호는 `D-20` 이 한다. **이 항목은 코드를 바꾸지 않는다.**
+
+**사용자 결정 (2026-11-11)** — [phase2.md §5.1](phase2.md)의 이메일 인증·메일 발송·로그인 잠금·계정 열거 방어 네 줄이다. 그 표를 고치지 않는다.
+
+**산출물**
+- [phase2.md §5](phase2.md) — 정본 위치 표의 auth 줄(§5 머리), 오케스트레이터 기본값의 auth·member 줄(§5.1), auth·member 의 정본 위치(§5.2), 화면 영향(§5.3), 측정 대상(§5.4). 작업 항목 표는 `D-20` 이 더한다
+- [../requirements/member.md](../requirements/member.md) — 요구 표(MR-01·MR-04·MR-13 의 개정, 새 MR-14~MR-16), 규칙(§3 의 9·11·12), 가입 흐름(§4), §11(이메일 인증·재설정·메일), §12(로그인 잠금), §13(회원 목록)
+- [../domain-model.md](../domain-model.md) — `account.email_verified_at`(§2.1), 인덱스(§2.3), `account_token`(§2.4), `login_attempt`(§2.5), 마이그레이션이 할 것(§7 — 번호는 `D-20`)
+- [../api-contract.md](../api-contract.md) — 로그인 응답 표(§2.1), 새 엔드포인트(§2.2·§2.4·§2.5·§3.2), 중복 확인의 429(§2.3), 새 에러 코드(§8.1 `C009`, §8.4 `AU005`~`AU007`), 예시(§9.10~§9.13)
+- [../security.md](../security.md) — 공통 방침(§1), 노출 헤더(§1.1), 인증 흐름(§4), 열거 표(§4.1), ADMIN 판정과 매트릭스(§5.1·§5.2), 재설정의 잔여 노출(§5.3), 잠금(§7), 새 §10(요청 수 제한)·§11(잠금의 대가)·§12(메일과 토큰)
+- [../tech-stack.md](../tech-stack.md) — 의존성(§3.2), 환경값 분류(§4.3), 새 §4.6(요청 수 제한 설정)·§4.7(메일·정리 설정, Mailpit)
+- [../conventions.md](../conventions.md) — 패키지(§1.1·§1.2), 429 매핑(§6.1), 복제하지 않는 것(§7.2)
+- [../nfr.md](../nfr.md) §2·§3·§4, [../architecture.md](../architecture.md) §1·§3·§6, [../overview.md](../overview.md) §4·§5, [../adr/0012](../adr/0012-auth-as-separate-service.md) 포기 목록의 블록인용
+- 새 ADR — [../adr/0015](../adr/0015-rate-limit-without-gateway.md)(게이트웨이 없는 요청 수 제한), [../adr/0016](../adr/0016-mail-and-verification-gate.md)(메일 발송과 미인증 로그인 차단). [../adr/README.md](../adr/README.md) 목록
+
+**완료 기준**
+- [ ] [phase2.md §5.1](phase2.md)의 사용자 결정을 고치지 않았고, auth·member 의 오케스트레이터 기본값과 이 항목이 정한 값이 갈려 있다
+- [ ] 설계한 기능마다 규칙·응답·에러 코드·저장 모양이 정본의 한 자리에 있고, 다른 자리는 그곳을 가리킨다
+- [ ] 로그인의 판정 순서(제한·잠금·BCrypt·인증)가 한 자리에 있고, 잠금이 계정의 존재와 비밀번호의 맞고 틀림을 드러내지 않는다
+- [ ] 동시성의 요건(원자적 증가, 별도 트랜잭션, 조건부 UPDATE 의 1회 사용, 최신 커밋 값의 잠금 판정)이 요건으로 적혀 있고, 실 MySQL 에서 재야 할 것이 측정 대상으로 적혀 있다 — 추정을 사실로 적지 않는다
+- [ ] 요청 수 제한이 열거를 막지 않고 비용만 올린다는 것과 그 한계가 정직하게 적혀 있다
+- [ ] 새 에러 코드가 [../api-contract.md §8](../api-contract.md)에 있고 그 코드를 쓰는 문장이 같은 코드를 적는다
+- [ ] 새 환경값이 [../tech-stack.md §4.3](../tech-stack.md)의 분류를 따른다 — 비밀값·정책값에 기본값이 없고 기동 가드가 요구된다
+- [ ] 이 개정이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 1차의 사실을 적은 문장은 지우지 않고 시점을 붙인다
+- [ ] `D-18` 절과 작업 항목 표·마이그레이션 번호(`D-20`)를 건드리지 않는다
 - [ ] `tools/check_refs.py` 통과
 
 ---

@@ -2,7 +2,7 @@
 title: 아키텍처
 type: explanation
 status: living
-version: v4
+version: v5
 updated: 2026-11-11
 read_when: "서비스 경계, 서비스 간 통신, 데이터 일관성 설계를 확인할 때"
 related: [domain-model.md, api-contract.md, adr/0001-msa-adoption.md, adr/0003-writer-snapshot.md, adr/0012-auth-as-separate-service.md]
@@ -27,6 +27,8 @@ related: [domain-model.md, api-contract.md, adr/0001-msa-adoption.md, adr/0003-w
 ```
 
 > **그림의 테이블 이름은 1차의 것이다.** 2026-11-11 `D-18` 이 board 에 좋아요·조회 판정·첨부의 테이블을 더하고 첨부 파일을 디스크에 두기로 했다. 테이블은 [domain-model.md §4](domain-model.md)가, 파일 저장소는 [adr/0013](adr/0013-attachment-storage.md)이 정본이다. 호출 방향은 바뀌지 않는다 — 새 기능은 member 를 부르지 않는다.
+>
+> **2026-11-11 `D-19` 가 auth 에 `account_token`·`login_attempt` 를 더하고, auth 가 SMTP 서버로 메일을 보내기로 했다**([domain-model.md §2](domain-model.md), [adr/0016](adr/0016-mail-and-verification-gate.md)). SMTP 는 서비스가 아니라 바깥 시스템이라 아래 「호출 방향」 에 들지 않는다. 회원 목록(ADMIN)은 화면이 auth 와 member 를 차례로 부른다 — 서비스끼리 부르지 않는다([requirements/member.md §13](requirements/member.md)).
 
 **호출 방향은 `board -> member` 하나뿐이다.** auth는 다른 서비스를 호출하지 않고, 다른 서비스도 auth를 런타임에 호출하지 않는다. 토큰 검증은 공개키로 오프라인 수행한다.
 
@@ -63,6 +65,7 @@ Database     자기 서비스 전용 스키마
 - 트랜잭션 경계는 Service에 둔다. 조회는 `@Transactional(readOnly = true)`
 - 도메인 로직은 Entity 메서드로 구현한다 (`post.update(...)`, `account.changePassword(...)`)
 - **트랜잭션 안에서 다른 서비스를 호출하지 않는다.** 네트워크 지연이 DB 커넥션을 점유한다
+- **메일도 트랜잭션 안에서 보내지 않는다**(2026-11-11 `D-19`). SMTP 는 서비스가 아니지만 같은 원격 호출이다 — 커밋 뒤 요청 스레드 밖에서 보낸다([requirements/member.md §11.5](requirements/member.md))
 
 ## 4. 서비스 간 통신
 
@@ -183,6 +186,8 @@ member-service:
 ```
 
 **이 설정을 갖는 것은 board 하나다.** member는 아무도 호출하지 않고, auth는 다른 서비스의 존재를 모른다.
+
+> **2026-11-11 `D-19` 부터 auth 는 SMTP 서버와 화면의 기준 주소를 설정으로 받는다**([tech-stack.md §4.7](tech-stack.md)). 둘 다 서비스가 아니다 — 위 문장은 그대로 참이다. 화면의 주소는 메일 링크의 문자열로만 쓰이고 auth 가 그 주소를 부르지 않는다.
 
 > `MEMBER_SERVICE_URL`이 잘못 설정되면 member는 Spring 기본 404를 돌려준다. 그 404를 "프로필 없음"으로 해석하지 않는 것이 §4.3.1의 핵심이다.
 

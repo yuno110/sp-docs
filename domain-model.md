@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v17
+version: v18
 updated: 2026-11-11
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -60,10 +60,26 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 |    password         |             |    token          UQ  |
 |    role             |             |    expires_at         |
 |    deleted          |             |    previous_token     |
-|    created_at       |             |    rotated_at         |
-|    updated_at       |             +-----------------------+
+|    email_verified_at|             |    rotated_at         |
+|    created_at       |             +-----------------------+
+|    updated_at       |
++---------------------+
+         | 1
+         |                              login_attempt
+         | *                          +-----------------------+
++---------------------+               | PK id                 |
+| account_token       |               |    email_key      UQ  |  <- 계정을 참조하지 않는다
+| PK id               |               |    failed_count       |
+| FK account_id       |               |    locked_until       |
+|    purpose          |               |    updated_at         |
+|    token_hash   UQ  |               +-----------------------+
+|    expires_at       |
+|    used_at          |
+|    created_at       |
 +---------------------+
 ```
+
+**`account.email_verified_at`·`account_token`·`login_attempt` 는 2026-11-11 `D-19` 가 설계한 2차 기능 확장의 것이다**([plan/phase2.md §5](plan/phase2.md)). 이 문서는 계약을 적고, 그것을 만드는 마이그레이션과 코드는 `D-20` 이 세울 항목의 일이다 — 그 전의 `sp_auth` 에는 없다.
 
 ### 2.1 account
 
@@ -74,8 +90,11 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 | password | String(60) | NOT NULL | BCrypt 해시 |
 | role | Role | NOT NULL, default `USER` | `USER`, `ADMIN` |
 | deleted | boolean | NOT NULL, default false | 탈퇴 여부(Soft Delete) |
+| emailVerifiedAt | LocalDateTime. 컬럼 `DATETIME` | **NULL 허용** | 이메일 인증 시각. **NULL 이면 미인증**이고 로그인할 수 없다([requirements/member.md §3](requirements/member.md) 규칙 11) |
 
 `password`는 어떤 API 응답에도 포함하지 않는다.
+
+**`email_verified_at` 은 인증 확인과 비밀번호 재설정 확인이 채운다**([requirements/member.md §11](requirements/member.md)). 이미 채워져 있으면 덮지 않는다 — 처음 인증한 시각이 남는다. 감사 시각이 아니므로 `@LastModifiedDate` 와 무관하고, 채우는 코드가 앱 시계의 값을 **초로 잘라** 넣는다(§1.1 — `DATETIME` 은 반올림한다). **컬럼을 더하는 마이그레이션이 그때의 행 전부를 `created_at` 으로 채운다**(§7) — 그 전에 만든 계정(ADMIN seed 포함)은 인증된 것으로 소급한다. 그 뒤에 만든 계정은 NULL 로 시작한다. **NULL 을 되돌리는 경로는 없다** — 인증을 취소하는 기능이 없다.
 
 **탈퇴한 계정의 이메일은 재사용하지 않는다.** 행이 남고 `uk_account_email`이 UNIQUE이므로 자연히 보장된다.
 
@@ -150,8 +169,92 @@ InnoDB의 인덱스 키 한계가 3072바이트이고 utf8mb4는 문자당 4바�
 | `uk_refresh_account_id` | `refresh_token(account_id)` UNIQUE |
 | `uk_refresh_token` | `refresh_token(token)` UNIQUE |
 | `fk_refresh_token_account` | `refresh_token(account_id)` → `account(id)` |
+| `uk_account_token_hash` | `account_token(token_hash)` UNIQUE |
+| `idx_account_token_account_purpose` | `account_token(account_id, purpose)` — 같은 계정·목적의 앞 토큰 지우기. FK 인덱스를 겸한다 |
+| `idx_account_token_expires_at` | `account_token(expires_at)` — 만료 행의 주기 삭제 |
+| `fk_account_token_account` | `account_token(account_id)` → `account(id)` |
+| `uk_login_attempt_email_key` | `login_attempt(email_key)` UNIQUE |
+| `idx_login_attempt_updated_at` | `login_attempt(updated_at)` — 오래된 행의 주기 삭제 |
 
-**이 표가 제약 이름의 정본이다.** §2.2가 "FK 제약을 둔다"고만 적은 것의 이름이 `fk_refresh_token_account`다.
+**이 표가 제약 이름의 정본이다.** §2.2가 "FK 제약을 둔다"고만 적은 것의 이름이 `fk_refresh_token_account`다. `account_token`·`login_attempt` 의 줄은 2026-11-11 `D-19` 가 더했다. **`login_attempt` 에는 FK 가 없다** — 그 부재가 의도다(§2.5).
+
+### 2.4 account_token
+
+**2026-11-11 `D-19`.** 이메일 인증과 비밀번호 재설정의 링크 토큰이다. 규칙은 [requirements/member.md §11](requirements/member.md)이 정본이다.
+
+| 필드 | 타입 | 제약 | 설명 |
+| --- | --- | --- | --- |
+| id | Long | PK, IDENTITY | |
+| accountId | Long | NOT NULL, FK `fk_account_token_account` | 같은 서비스 안이므로 참조 무결성을 건다 |
+| purpose | TokenPurpose | NOT NULL. 컬럼 `VARCHAR(20)` | `EMAIL_VERIFICATION`, `PASSWORD_RESET` |
+| tokenHash | String(64) | NOT NULL, UNIQUE | 토큰 문자열(UTF-8)의 **SHA-256 소문자 hex.** 원문은 저장하지 않는다 |
+| expiresAt | LocalDateTime. 컬럼 `DATETIME` | NOT NULL | 발급 시각 + 수명(인증 24시간, 재설정 30분) |
+| usedAt | LocalDateTime. 컬럼 `DATETIME` | NULL 허용 | 확인이 쓴 시각. NULL 이면 아직 쓰이지 않았다 |
+| createdAt | LocalDateTime. 컬럼 `DATETIME` | NOT NULL | 발급 시각 |
+
+**행 하나가 메일 하나의 링크다.** 갱신할 것이 사용 시각뿐이라 `updated_at` 을 두지 않고 `BaseTimeEntity` 를 상속하지 않는다. 세 시각은 앱 시계의 값을 **초로 잘라** 넣는다(§1.1) — 그래서 수명은 발급부터 최대 1초 짧을 수 있고 길어지지 않는다.
+
+**원문 대신 해시를 저장하는 이유** — DB 가 유출돼도 살아 있는 링크를 만들 수 없게 한다. 토큰이 32바이트 난수라 전수 대입이 불가능하므로 salt 나 느린 해시가 필요 없다 — 비밀번호의 BCrypt 와 다른 이유다. 확인은 받은 문자열을 같은 방식으로 해시해 `token_hash` 로 찾는다.
+
+**확인의 판정은 조건부 UPDATE 하나다.**
+
+```sql
+UPDATE account_token SET used_at = :now
+ WHERE token_hash = :hash AND purpose = :purpose
+   AND used_at IS NULL AND expires_at > :now
+-- 1행이면 성공. 0행이면 없음·만료·사용됨·목적 다름 — 가르지 않는다(400 AU007)
+```
+
+**발급은 같은 계정·같은 목적의 앞 행을 지우고 새 행을 넣는다**(`idx_account_token_account_purpose`). 탈퇴는 이 테이블을 건드리지 않는다 — 확인이 같은 트랜잭션에서 `account.deleted` 를 본다([requirements/member.md §11.2](requirements/member.md)).
+
+**만료된 행은 주기적으로 지운다**(`expires_at` 이 지난 행). 지운 행과 만료된 행은 확인의 결과가 같다(`AU007`) — 지워도 결과가 바뀌지 않는다. 주기는 [tech-stack.md §4.7](tech-stack.md).
+
+### 2.5 login_attempt
+
+**2026-11-11 `D-19`.** 로그인 잠금의 카운터다. 규칙은 [requirements/member.md §12](requirements/member.md)가 정본이다.
+
+| 필드 | 타입 | 제약 | 설명 |
+| --- | --- | --- | --- |
+| id | Long | PK, IDENTITY | |
+| emailKey | String(100) | NOT NULL, UNIQUE. **문자셋·콜레이션이 `account.email` 과 같다** | 로그인 요청의 이메일에서 ASCII 대문자만 소문자로 바꾼 값([requirements/member.md §12.1](requirements/member.md)) |
+| failedCount | int | NOT NULL, default 0 | 연속 실패 수 |
+| lockedUntil | LocalDateTime. 컬럼 `DATETIME` | NULL 허용 | 이 시각 전이면 잠겼다 |
+| updatedAt | LocalDateTime. 컬럼 `DATETIME` | NOT NULL | 마지막으로 바뀐 시각. 24시간 판정과 정리에 쓴다 |
+
+**`account` 에 두지 않는다.** 없는 이메일도 똑같이 잠겨야 하고(없는 이메일이 안 잠기면 잠금이 존재를 알려준다), 탈퇴한 계정의 닫힌 행에는 쓰지 않는다([api-contract.md §2.2](api-contract.md)). 그래서 **`account` 를 참조하지 않고 FK 도 없다.** 시각은 감사가 아니라 판정하는 코드가 앱 시계의 값을 초로 잘라 넣는다.
+
+**`email_key` 의 콜레이션을 `account.email` 과 같게 두는 이유** — 로그인의 계정 조회는 그 콜레이션으로 비교하므로 대소문자 등 표기가 다른 이메일이 같은 계정을 찾는다. 키가 다른 기준으로 비교되면 같은 계정의 실패가 표기마다 따로 세어져 잠금을 피한다. 키의 소문자 변환은 ASCII 대소문자를 맞추고, 같은 콜레이션의 UNIQUE 가 나머지를 맞춘다 — 비ASCII 를 앱에서 바꾸면 콜레이션이 같다고 보는 표기가 다른 키가 될 수 있어 바꾸지 않는다. **두 컬럼의 콜레이션이 같은지는 `information_schema` 로 확인한다** — 어느 콜레이션이 되는지는 테이블 선언과 서버 설정이 정한다(V1 의 `account` 는 `DEFAULT CHARSET = utf8mb4` 만 선언한다).
+
+**갱신 문장** — 순서와 원자성이 요건이고 문장의 모양은 예다.
+
+```
+실패를 센다 — 로그인 트랜잭션과 다른 트랜잭션
+  1) UPDATE login_attempt
+        SET failed_count = CASE WHEN updated_at <= :now - 24h THEN 1 ELSE failed_count + 1 END,
+            updated_at   = :now
+      WHERE email_key = :key AND (locked_until IS NULL OR locked_until <= :now)
+       1행이면 2) 로
+       0행이면 그 키의 행을 읽는다
+         있고 locked_until > :now 이면 그 사이 다른 시도가 잠갔다   -> AU005
+         있고 잠기지 않았으면 그 사이 다른 시도가 넣었다  -> 새 트랜잭션에서 1) 부터 한 번 더
+         없으면 INSERT (email_key, failed_count, locked_until, updated_at) = (:key, 1, NULL, :now)
+           UNIQUE 충돌이면 같은 키의 동시 첫 실패다  -> 새 트랜잭션에서 1) 부터 한 번 더
+  2) UPDATE login_attempt
+        SET locked_until = :now + 15m, failed_count = 0, updated_at = :now
+      WHERE email_key = :key AND failed_count >= 5
+       1행이면 이번 실패가 잠갔다 -> AU005, 0행이면 AU003
+
+비밀번호가 맞았다·재설정 확인
+  UPDATE login_attempt SET failed_count = 0, locked_until = NULL, updated_at = :now
+   WHERE email_key = :key                           <- 행을 지워도 결과가 같다
+```
+
+- **1) 이 행 락을 잡으므로 2) 의 판정이 같은 키의 동시 실패를 한 줄로 세운다.** 동시 실패 다섯 중 정확히 하나가 2) 에서 1행을 받는다
+- **다시 하는 자리(UNIQUE 충돌, 잠기지 않은 행)는 새 트랜잭션이다.** 잠기지 않은 행을 보는 것은 간격 락이 없는 격리 수준(예: READ COMMITTED)에서 같은 키의 동시 첫 실패가 그 사이 INSERT 를 커밋한 경우다 — 그 행을 잠금으로 읽으면 거짓 잠금이 나고 이번 실패가 사라진다. JPA 에서 제약 위반이 트랜잭션을 rollback-only 로 만들 수 있다 — [requirements/board.md §9.3](requirements/board.md)이 조회수 판정에서 같은 문제를 적었다. 한 번 더 해도 실패하면(예: 교착) 로그인 응답은 `AU003` 그대로이고 **세지 못한 실패를 WARN 으로 남긴다**
+- **`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다.** 쓰려면 실 MySQL 측정을 먼저 한다 — 영향 행 수가 H2 와 MySQL 에서 같다는 근거가 없다([requirements/board.md §9.3](requirements/board.md)과 같은 이유)
+- **없는 행을 찾는 1) 은 MySQL 의 반복 읽기에서 간격 락을 잡을 수 있다.** 같은 키의 동시 첫 실패가 교착할 수 있다(추정 — 실 MySQL 측정 대상, [plan/phase2.md §5.4](plan/phase2.md))
+
+**오래된 행은 주기적으로 지운다**(`updated_at` 이 24시간보다 이른 행). 잠금은 15분이라 그 행은 이미 풀렸고, 1) 의 `CASE` 가 그 행을 1부터 다시 세므로 지운 행과 결과가 같다. 주기는 [tech-stack.md §4.7](tech-stack.md).
 
 ## 3. sp_member (member-service 소유)
 
@@ -442,7 +545,7 @@ DELETE /attachments/{id}  한 트랜잭션 (404 AT001 -> 403 P002 판정 뒤)
 
 ## 7. 2차 기능 확장의 마이그레이션 — 할 것
 
-**번호는 `D-20` 이 배정한다**([plan/phase1.md §2.4](plan/phase1.md)). 여기는 무엇을 해야 하는지만 적는다. 이름과 폭은 §4 의 표가 정본이다.
+**번호는 `D-20` 이 배정한다**([plan/phase1.md §2.4](plan/phase1.md)). 여기는 무엇을 해야 하는지만 적는다. 이름과 폭은 §2·§4 의 표가 정본이다. **board 의 줄은 `D-18`, auth 의 줄은 `D-19` 가 적었다.**
 
 | 대상 | 할 것 |
 | --- | --- |
@@ -451,5 +554,10 @@ DELETE /attachments/{id}  한 트랜잭션 (404 AT001 -> 403 P002 판정 뒤)
 | `post_like` | §4.4 대로 만든다. `uk_post_like_post_account`·`fk_post_like_post_id` |
 | `post_view` | §4.5 대로 만든다. `uk_post_view_post_viewer`·`idx_post_view_viewed_at`. **FK 를 두지 않는다** |
 | `attachment` | §4.6 대로 만든다. `uk_attachment_storage_key`·`idx_attachment_post_id`·`fk_attachment_post_id` |
+| `account` (auth) | `email_verified_at DATETIME NULL` 을 더하고, **같은 마이그레이션에서 그때의 행 전부를 `created_at` 으로 채운다**(`UPDATE account SET email_verified_at = created_at`). ADMIN seed(`V3`)의 행도 포함된다 |
+| `account_token` (auth) | §2.4 대로 만든다. `uk_account_token_hash`·`idx_account_token_account_purpose`·`idx_account_token_expires_at`·`fk_account_token_account` |
+| `login_attempt` (auth) | §2.5 대로 만든다. `uk_login_attempt_email_key`·`idx_login_attempt_updated_at`. **FK 를 두지 않는다.** 테이블 선언은 `account`(V1)와 같은 문자셋 선언을 써서 `email_key` 가 `account.email` 과 같은 콜레이션이 되게 한다 |
 
-**적용된 마이그레이션(`V1`·`V2`)을 고치지 않는다**([plan/phase1.md §2.4](plan/phase1.md)). 테스트가 같은 마이그레이션을 H2 에서 돌리므로([tech-stack.md §5.3](tech-stack.md)) **두 DB 에서 되는 구문**이어야 한다 — 한 `ALTER TABLE` 에 컬럼을 여럿 더하는 구문처럼 둘이 다르게 받을 수 있는 것은 구현이 H2 에서 확인한다(§2.2 의 문자셋 구문이 그렇게 갈렸다).
+**member 는 마이그레이션이 없다.** 회원 목록의 프로필 일괄 조회([api-contract.md §3.2](api-contract.md))가 쓰는 키 `account_id` 에는 `uk_member_account_id` 가 이미 있다.
+
+**적용된 마이그레이션을 고치지 않는다**([plan/phase1.md §2.4](plan/phase1.md)) — board 의 `V1`·`V2`, auth 의 기존 판이 모두 그렇다. 이 문장의 앞 판은 board 만 보고 「(`V1`·`V2`)」 로 적었다. 테스트가 같은 마이그레이션을 H2 에서 돌리므로([tech-stack.md §5.3](tech-stack.md)) **두 DB 에서 되는 구문**이어야 한다 — 한 `ALTER TABLE` 에 컬럼을 여럿 더하는 구문처럼 둘이 다르게 받을 수 있는 것은 구현이 H2 에서 확인한다(§2.2 의 문자셋 구문이 그렇게 갈렸다).

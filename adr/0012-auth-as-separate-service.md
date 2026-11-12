@@ -2,7 +2,7 @@
 title: auth를 별도 서비스로 분리
 type: adr
 status: accepted
-version: v4
+version: v5
 updated: 2026-11-11
 read_when: "서비스가 3개인 이유, 계정과 프로필이 갈라진 이유, 가입이 3단계, 탈퇴가 2단계인 이유가 궁금할 때"
 related: [0006-auth-inside-member-service.md, 0001-msa-adoption.md, 0003-writer-snapshot.md, ../architecture.md, ../domain-model.md, ../api-contract.md]
@@ -220,6 +220,8 @@ board는 **글·댓글 생성 시에만** member의 내부 API를 호출하고 �
 3. **탈퇴 2단계가 수행되지 않으면 닉네임이 선점된 채 남는다.** 1차에는 관측·정리 수단이 없다
 4. **탈퇴 시 board의 `writer_nickname`을 익명화하지 않는다.** 작성 시점 스냅샷이며 게시글의 일부로 본다(`requirements/member.md` §3 규칙 6, `architecture.md` §4.4와 일치)
 5. **비동기 이벤트(outbox·Kafka)를 쓰지 않는다**([0010](0010-kafka-for-nickname-sync.md))
+
+> **2026-11-11 `D-19` 가 2를 다시 봤다 — 정리하지 않는 것은 그대로다.** 2차의 설계가 이메일 인증을 넣었으므로([0016](0016-mail-and-verification-gate.md)) 미완료 가입 계정에 미인증 계정이 더해진다. auth 는 여전히 그것을 스스로 지우지 않는다 — 대신 **이메일의 주인이 비밀번호 재설정으로 그 계정을 되찾는다**(재설정 확인이 미인증을 인증으로 바꾼다, [../requirements/member.md §11.4](../requirements/member.md)). 그래서 「이메일이 선점되고 해제되지 않는다」 의 피해가 남의 이메일로 가입한 경우에는 주인이 회복할 수 있는 것으로 줄어든다. 1차의 2는 1차에 대해 참이다. 5 도 그대로다 — 메일은 auth 안의 커밋 뒤 비동기 발송이고 서비스 사이의 이벤트가 아니다.
 
 ## 재검토 조건
 

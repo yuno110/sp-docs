@@ -2,8 +2,8 @@
 title: 프로젝트 개요
 type: explanation
 status: living
-version: v7
-updated: 2026-10-27
+version: v8
+updated: 2026-11-11
 read_when: "프로젝트의 목표·범위·용어를 확인할 때. 처음 합류했을 때 가장 먼저"
 related: [architecture.md, plan/phase1.md, plan/phase2.md]
 ---
@@ -69,7 +69,7 @@ Kafka 도입(닉네임 즉시 반영), Docker 컨테이너화, API Gateway, 좋�
 | Access Token | API 호출용 단기 인증 토큰 (JWT) |
 | Refresh Token | Access Token 재발급용 장기 토큰 |
 | Soft Delete | 실제 삭제 대신 `deleted` 플래그로 처리하는 논리 삭제 |
-| 3단계 가입 | 계정 생성(auth) → 로그인 → 프로필 등록(member). 원자적이지 않다 |
+| 3단계 가입 | 계정 생성(auth) → 로그인 → 프로필 등록(member). 원자적이지 않다. 2026-11-11 `D-19` 의 설계에서는 계정 생성과 로그인 사이에 이메일 인증이 낀다 — 단계 번호는 그대로다([requirements/member.md §4](requirements/member.md)) |
 | 2단계 탈퇴 | 계정 탈퇴(auth, 비밀번호 재확인) → 프로필 탈퇴(member). **순서를 바꾸지 않는다** |
 | 스냅샷 | 타 서비스 소유 데이터를 기록 시점 값으로 복제 저장하는 것 |
 | 내부 API | 서비스 간 호출 전용 API. 외부에 노출하지 않음 (`/internal/**`) |
@@ -103,5 +103,5 @@ Kafka 도입(닉네임 즉시 반영), Docker 컨테이너화, API Gateway, 좋�
 | 원자적 가입 | "계정만 있는 상태"가 정상 상태가 된다 |
 | 원자적 탈퇴 | 2단계. 중간 실패를 순서와 멱등으로 다룬다 |
 | 탈퇴 후 토큰 즉시 차단 | 최대 30분 노출. ADMIN이면 타인 글 삭제 포함 |
-| 미완료 가입 계정 정리 | 이메일이 선점된 채 남는다 |
+| 미완료 가입 계정 정리 | 이메일이 선점된 채 남는다. 2026-11-11 `D-19` 의 설계는 계정을 정리하지 않되 이메일의 주인이 비밀번호 재설정으로 되찾게 한다([requirements/member.md §4](requirements/member.md)) |
 | 쓰기 경로의 member 독립성 | member 장애 시 새 글·댓글 작성이 중단된다 |
