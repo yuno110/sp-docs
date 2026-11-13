@@ -2,8 +2,8 @@
 title: simple 프로젝트 문서
 type: index
 status: rule
-version: v4
-updated: 2026-11-11
+version: v5
+updated: 2026-11-12
 read_when: "이 프로젝트에서 어떤 작업이든 시작하기 전. 어떤 문서를 읽어야 하는지 정할 때"
 related: [plan/README.md, process/dev-workflow.md]
 ---
@@ -43,10 +43,10 @@ related: [plan/README.md, process/dev-workflow.md]
 | --- | --- | --- |
 | `MR-xx` | 계정·회원 **기능 요구사항** (auth + member) | [requirements/member.md](requirements/member.md) |
 | `P-xx` / `C-xx` | 게시글 / 댓글 **기능 요구사항** | [requirements/board.md](requirements/board.md) |
-| `AU-xx` / `M-xx` / `B-xx` | auth / member / board **작업 항목** | [plan/phase1.md](plan/phase1.md) |
-| `I-xx` | **통합 검증** 항목 | [plan/integration.md](plan/integration.md) |
+| `AU-xx` / `M-xx` / `B-xx` | auth / member / board **작업 항목** | [plan/README.md](plan/README.md)의 문서 표 |
+| `I-xx` | **통합 검증** 항목 | [plan/README.md](plan/README.md)의 문서 표 |
 | `D-xx` | **정본 개정** 항목 | [plan/phase1.md](plan/phase1.md) §3·§6 |
-| `F-xx` | 프론트엔드 **작업 항목** | [plan/phase2.md](plan/phase2.md) §7 |
+| `F-xx` | 프론트엔드 **작업 항목** | [plan/README.md](plan/README.md)의 문서 표 |
 | `C001`·`A001`·`AU002`·`M003`·`P001`·`CM001`·`AT001`·`S001` | **에러 코드** | [api-contract.md §8](api-contract.md) |
 
 **하이픈이 있으면 작업 항목, 없으면 에러 코드다.** `M-03`(작업 항목)과 `M003`(에러 코드), `AU-03`(작업 항목)과 `AU003`(에러 코드)은 서로 다른 것이다.

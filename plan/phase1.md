@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v72
-updated: 2026-11-11
+version: v73
+updated: 2026-11-12
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -179,9 +179,9 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 
 | 서비스 | 기반 | 기능 |
 | --- | --- | --- |
-| **auth** | `V1__create_account.sql`, `V2__create_refresh_token.sql` (AU-03) | `V3__seed_admin_account.sql` (AU-05)<br>`V4__widen_refresh_token.sql` (**AU-03R**)<br>`V5__add_refresh_token_previous.sql` (**D-17**) |
+| **auth** | `V1__create_account.sql`, `V2__create_refresh_token.sql` (AU-03) | `V3__seed_admin_account.sql` (AU-05)<br>`V4__widen_refresh_token.sql` (**AU-03R**)<br>`V5__add_refresh_token_previous.sql` (**D-17**)<br>`V6__add_account_email_verified_at.sql`·`V7__create_account_token.sql`·`V8__create_login_attempt.sql` (**AU-12**, 2차 — [phase2-auth-member.md](phase2-auth-member.md)) |
 | **member** | `V1__create_member.sql` (M-03) | `V2__seed_admin_profile.sql` (M-05) |
-| board | `V1__create_post.sql`, `V2__create_comment.sql` (B-03) | 없음 |
+| board | `V1__create_post.sql`, `V2__create_comment.sql` (B-03) | `V3__add_post_category_and_counts.sql`·`V4__add_comment_parent.sql`·`V5__create_post_like.sql`·`V6__create_post_view.sql`·`V7__create_attachment.sql` (**B-14**, 2차 — [phase2-board.md](phase2-board.md)). 2026-11-12 `D-20` 전에는 「없음」 이었다 |
 
 > **member의 번호 의미가 바뀌었다.** v3에서 `V2`는 `create_refresh_token`이었으나, 그 테이블이 auth로 옮겨가면서 `V2`가 seed가 됐다. **코드가 아직 없으므로 무해하지만, v3 기준으로 기억한 번호를 쓰지 않는다.**
 
@@ -1982,7 +1982,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | | |
 | --- | --- |
 | 저장소 | `yuno110/sp-docs` (결정에 따라 `sp-member`·`sp-board` 가 뒤따른다) |
-| 의존 | 없다. **1차 완료를 막지 않는다** — §7 의 완료 조건은 `AU-xx`·`M-xx`·`B-xx`·`I-xx` 다 |
+| 의존 | 없다. **1차 완료를 막지 않는다** — §7 의 완료 조건은 1차의 `AU-xx`·`M-xx`·`B-xx`·`I-xx` 다 |
 | 참조 | [../api-contract.md §6](../api-contract.md), [../tech-stack.md §2.1](../tech-stack.md), [../security.md §5.2](../security.md), [integration.md](integration.md) I-04 |
 
 **I-04 리뷰가 찾았다.** [../api-contract.md §6](../api-contract.md)이 `role` 을 `USER | ADMIN` 으로 못박는데 **member·board 는 값을 검사하지 않는다** — `hasText` 만 본다. `{"role":"BOGUS"}` 로 서명한 토큰에 **auth 401 `A002` · member 200 · board 200** 이다(실측). auth 만 `Role.valueOf` 로 걸린다.
@@ -2219,7 +2219,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 | | |
 | --- | --- |
 | 저장소 | `yuno110/sp-docs` (결정에 따라 `sp-auth` 가 뒤따른다) |
-| 의존 | 없다. **1차 완료를 막지 않는다** — §7 의 완료 조건은 `AU-xx`·`M-xx`·`B-xx`·`I-xx` 다 |
+| 의존 | 없다. **1차 완료를 막지 않는다** — §7 의 완료 조건은 1차의 `AU-xx`·`M-xx`·`B-xx`·`I-xx` 다 |
 | 참조 | [../security.md §1](../security.md) 민감정보 로깅 행, [../nfr.md §5](../nfr.md), [../conventions.md §8](../conventions.md) |
 
 **I-05 가 찾았다.** 세 저장소의 커밋된 템플릿 `application-local.yml.example` 이 `org.hibernate.orm.jdbc.bind: trace` 를 켠다. 그래서 **`account` 에 쓰기가 일어날 때마다 저장된 BCrypt 해시가 로컬 로그에 찍힌다**(auth 만 해당한다 — member·board 에는 비밀 컬럼이 없다). `application-prod.yml` 은 세 저장소 모두 `org.hibernate.SQL: warn` 과 `org.hibernate.orm.jdbc.bind: warn` 이라 **운영은 영향이 없다**(실측).
@@ -2661,7 +2661,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **사용자 결정 (2026-11-11)** — 전부는 [phase2.md §5.1](phase2.md)이 적는다. board 쪽은 첨부(인터페이스 + 로컬 디스크, 글 하단 갤러리, 글당 10개·개당 5MB, 이미지 네 형식, 매직 바이트, EXIF 유지), 조회수(24시간 1회, 로그인은 계정·비로그인은 IP 의 HMAC, DB 테이블), 카테고리(공지·자유·질문, 공지는 ADMIN), 답글(1단계, 지운 부모는 활성 답글이 있을 때만 자리로 남는다)이다. 사용자가 정하지 않은 값은 오케스트레이터 기본값과 이 항목이 정한 값이며, 어느 쪽인지 [phase2.md §5.1](phase2.md)이 가른다.
 
 **산출물**
-- [phase2.md §5](phase2.md) — 사용자 결정·오케스트레이터 기본값(§5.1), 정본 위치(§5.2), 화면 영향(§5.3), 동시성과 측정 대상(§5.4). 작업 항목 표는 `D-20` 이 더한다
+- [phase2.md §5](phase2.md) — 사용자 결정·오케스트레이터 기본값(§5.1), 정본 위치(§5.2), 화면 영향(§5.3), 동시성과 측정 대상(§5.4). 작업 항목은 `D-20` 의 몫으로 남겼다(2026-11-12 `D-20` 이 세 문서로 세웠다 — [README.md](README.md)의 문서 표)
 - [../requirements/board.md](../requirements/board.md) — 요구 표의 개정과 §8(카테고리)·§9(조회수)·§10(좋아요)·§11(첨부)·§12(답글)
 - [../domain-model.md](../domain-model.md) — 새 컬럼·테이블·인덱스(§4), 답글의 `comment_count` 의미(§5), 집계 컬럼의 좁은 UPDATE 와 락 순서(§6), 마이그레이션이 할 것(§7 — 번호는 `D-20`)
 - [../api-contract.md](../api-contract.md) — 경로 배정(§1), 엔드포인트·응답 모양(§4, 새 §4.6~§4.8), 새 에러 코드(§8.1 `C008`, §8.3 `P003`·`CM003`·`AT`), 예시(§9)
@@ -2695,7 +2695,7 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 **사용자 결정 (2026-11-11)** — [phase2.md §5.1](phase2.md)의 이메일 인증·메일 발송·로그인 잠금·계정 열거 방어 네 줄이다. 그 표를 고치지 않는다.
 
 **산출물**
-- [phase2.md §5](phase2.md) — 정본 위치 표의 auth 줄(§5 머리), 오케스트레이터 기본값의 auth·member 줄(§5.1), auth·member 의 정본 위치(§5.2), 화면 영향(§5.3), 측정 대상(§5.4). 작업 항목 표는 `D-20` 이 더한다
+- [phase2.md §5](phase2.md) — 정본 위치 표의 auth 줄(§5 머리), 오케스트레이터 기본값의 auth·member 줄(§5.1), auth·member 의 정본 위치(§5.2), 화면 영향(§5.3), 측정 대상(§5.4). 작업 항목은 `D-20` 의 몫으로 남겼다(2026-11-12 `D-20` 이 세 문서로 세웠다 — [README.md](README.md)의 문서 표)
 - [../requirements/member.md](../requirements/member.md) — 요구 표(MR-01·MR-04·MR-13 의 개정, 새 MR-14~MR-16), 규칙(§3 의 9·11·12), 가입 흐름(§4), §11(이메일 인증·재설정·메일), §12(로그인 잠금), §13(회원 목록)
 - [../domain-model.md](../domain-model.md) — `account.email_verified_at`(§2.1), 인덱스(§2.3), `account_token`(§2.4), `login_attempt`(§2.5), 마이그레이션이 할 것(§7 — 번호는 `D-20`)
 - [../api-contract.md](../api-contract.md) — 로그인 응답 표(§2.1), 새 엔드포인트(§2.2·§2.4·§2.5·§3.2), 중복 확인의 429(§2.3), 새 에러 코드(§8.1 `C009`, §8.4 `AU005`~`AU007`), 예시(§9.10~§9.13)
@@ -2717,6 +2717,40 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] `D-18` 절과 작업 항목 표·마이그레이션 번호(`D-20`)를 건드리지 않는다
 - [ ] `tools/check_refs.py` 통과
 
+### D-20 2차 기능 확장 — 구현 계획 [계획 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` · `yuno110/sp-auth` · `yuno110/sp-member` · `yuno110/sp-board` · `yuno110/sp-frontend` (구현 저장소는 `docs/checklist.md` 와 `CLAUDE.md` 의 포인터만 — `D-12` 의 선례) |
+| 의존 | `D-18`·`D-19` (설계가 정본에 있다). **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)) |
+| 참조 | [phase2.md §5](phase2.md)(정본 위치 §5.2, 화면 영향 §5.3, 측정 대상 §5.4), [../domain-model.md §7](../domain-model.md), 이 문서 §2.4(마이그레이션 번호)·§2.5·§2.6, [README.md](README.md) §항목 ID 규칙 |
+
+**`D-18`·`D-19` 의 설계를 이 문서와 같은 형식(산출물·참조·의존·완료 기준·검증)의 작업 항목으로 쪼개고 마이그레이션 번호를 배정한다.** board·auth-member·화면과 통합의 세 문서로 나눠 쓴다. 설계 정본의 내용은 고치지 않는다 — 정본이 `D-20` 의 일로 적은 문장에 시점과 항목을 붙이고, 사실과 다른 서술은 바로잡는다([../tech-stack.md §4.6](../tech-stack.md)의 실제 서비스 e2e 기동). 계획이 찾은 정본의 결함은 별도 항목으로 넘기고, 각 계획 문서의 「정본 개정으로 넘기는 것」 절이 그것을 적는다([phase2-board.md §4.3](phase2-board.md), [phase2-auth-member.md §5.3](phase2-auth-member.md), [phase2-frontend-integration.md §5](phase2-frontend-integration.md)).
+
+**산출물**
+- [phase2-board.md](phase2-board.md) — `B-14`~, board 마이그레이션, 1차 결함의 수정(`B-17` 댓글 삭제의 동시 이중 감소, `B-18` 글 수정·삭제가 집계 컬럼을 싣는 것)
+- [phase2-auth-member.md](phase2-auth-member.md) — `AU-12`~·`M-14`~, auth 마이그레이션
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) — `F-07`~·`I-06`~, 2차 전체의 단계 표
+- [phase2.md](phase2.md) — §5 가 항목 문서를 가리키는 문장과 시점, §7.2 `F-04` 의 블록인용, 머리·`read_when`·§7·§8 의 항목 위치
+- 이 문서 — §2.4 의 마이그레이션 표, §7 의 `AU-12` 문장과 1차 완료 조건 문장, `D-02`·`D-03` 의존 칸이 인용한 완료 조건에 붙인 「1차의」, `D-18`·`D-19` 산출물의 작업 항목 문장. [README.md](README.md) — 문서 표, 작업 시작 규칙의 예외 포인터
+- [integration.md](integration.md) — I-04 의 페이징·`C002`·필수 파라미터 누락 문장에 붙인 시점
+- [../README.md](../README.md)의 ID 표, [../docs/checklist.md](../docs/checklist.md)의 1차 완료 조건 문장
+- [../process/review-policy.md §4](../process/review-policy.md)의 통합 항목 예외, [../process/dev-workflow.md §3.1](../process/dev-workflow.md)의 의존 예외, §4 의 10번, §7 의 2차 I 항목 위치, [../process/orchestration.md §4.3](../process/orchestration.md)의 커밋 예외와 그동안의 배정
+- 옛 계획만 가리키던 포인터 — [../conventions.md §6.1](../conventions.md)의 3자 비교(2차 줄은 I-10), [../requirements/member.md](../requirements/member.md) 머리의 작업 항목 위치, [../process/orchestration.md §2](../process/orchestration.md)의 경로 소유 지도
+- 정본이 `D-20` 의 일로 적은 문장의 시점과 항목 — [../api-contract.md](../api-contract.md), [../conventions.md](../conventions.md), [../domain-model.md](../domain-model.md), [../requirements/board.md](../requirements/board.md). 설계 내용은 고치지 않는다
+- [../tech-stack.md §4.6](../tech-stack.md) — 실제 서비스 e2e 가 서비스를 띄운다는 서술의 정정. 설계 값은 그대로다
+- 구현 저장소마다의 `docs/checklist.md` — 머리말이 2차 항목의 기준 문서를 가리키고 2차 항목 줄을 `todo` 로 더한다. `CLAUDE.md` 의 항목 위치·경로 소유 포인터
+
+**완료 기준**
+- [ ] [phase2.md §5.2](phase2.md)가 가리키는 설계마다 그것을 구현하는 항목이 있고, 항목은 정본 절을 참조할 뿐 값을 새로 정하지 않는다
+- [ ] 항목 ID 가 각 저장소 checklist 의 기존 번호와 겹치지 않는다(재사용 금지)
+- [ ] 마이그레이션 번호가 서비스마다 기존 판 뒤에 이어지고 §2.4 에 있다. 적용된 마이그레이션을 고치는 항목이 없다
+- [ ] [phase2.md §5.4](phase2.md)의 측정 대상이 `I` 항목에 있다
+- [ ] 화면의 에러 코드 수동 목록 갱신이 `F` 항목의 완료 기준에 있다
+- [ ] 이 개정이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
 ---
 ## 7. 다음 단계
 
@@ -2724,9 +2758,9 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 
 세 서비스가 모두 기동된 상태를 전제하므로 통합 검증은 순차로 진행한다.
 
-**통합 검증이 결함을 찾으면 그것을 고치는 항목이 생긴다.** B-10이 그렇게 생겼다(I-03이 찾았다). **그 항목은 통합 검증과 병행하되 1차 완료 전에 `done`이어야 한다** — 통합 항목의 선행 조건에 끼워 넣지 않는 이유는 발견 시점이 그보다 뒤이기 때문이다. **1차가 끝났다고 말할 수 있는 조건은 `AU-xx`·`M-xx`·`B-xx`·`I-xx`가 모두 `done`인 것이다.**
+**통합 검증이 결함을 찾으면 그것을 고치는 항목이 생긴다.** B-10이 그렇게 생겼다(I-03이 찾았다). **그 항목은 통합 검증과 병행하되 1차 완료 전에 `done`이어야 한다** — 통합 항목의 선행 조건에 끼워 넣지 않는 이유는 발견 시점이 그보다 뒤이기 때문이다. **1차가 끝났다고 말할 수 있는 조건은 이 문서와 [integration.md](integration.md)의 `AU-xx`·`M-xx`·`B-xx`·`I-xx`가 모두 `done`인 것이다.**
 
-> **1차는 2026-10-18 에 완료됐다.** `AU-01`~`AU-11`(+`AU-03R`) · `M-01`~`M-11`(+`M-01R`, `M-06`·`M-07`은 auth로 옮겨가 없다) · `B-01`~`B-11` · `I-01`~`I-05` 가 모두 `done` 이다(`sp-auth` `e5fe6a8` · `sp-member` `98f11be` · `sp-board` `2ea6a17`). **`AU-12` 는 존재하지 않는다** — 이 줄의 앞 판이 그렇게 적었고 D-02 리뷰가 잡았다. 번호는 재사용하지 않으므로([README.md](README.md) §항목 ID 규칙) 없는 번호를 완료 명부에 두면 다음 auth 항목이 그것을 집을 때 충돌한다.
+> **1차는 2026-10-18 에 완료됐다.** `AU-01`~`AU-11`(+`AU-03R`) · `M-01`~`M-11`(+`M-01R`, `M-06`·`M-07`은 auth로 옮겨가 없다) · `B-01`~`B-11` · `I-01`~`I-05` 가 모두 `done` 이다(`sp-auth` `e5fe6a8` · `sp-member` `98f11be` · `sp-board` `2ea6a17`). **1차 완료 명부에 `AU-12` 는 없다** — 이 줄의 앞 판이 명부에 그것을 적었고 D-02 리뷰가 잡았다. 번호는 재사용하지 않으므로([README.md](README.md) §항목 ID 규칙) 없는 번호를 완료 명부에 두면 다음 auth 항목이 그것을 집을 때 충돌한다. **2026-11-12 `D-20` 이 2차의 첫 auth 항목에 `AU-12` 를 배정했다**([phase2-auth-member.md](phase2-auth-member.md)).
 >
 > **바로 위 「통합 검증이 결함을 찾으면 그것을 고치는 항목이 생긴다」 규칙은 선언 당시 정본을 깨는 결함에 적용된다.** B-10 이 그 경우다 — `api-contract.md` §4.5 가 **1차 동안** "`comment_count` 와 `totalElements` 가 같다" 를 요구했고 구현이 그것을 깼다. 그래서 1차 안에서 고쳐야 했다.
 >

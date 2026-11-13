@@ -2,8 +2,8 @@
 title: 개발 워크플로
 type: process
 status: rule
-version: v4
-updated: 2026-10-27
+version: v5
+updated: 2026-11-12
 read_when: "작업 항목을 시작·진행·완료할 때. 매 작업 단위마다"
 related: [review-policy.md, orchestration.md, ../plan/README.md, ../conventions.md]
 ---
@@ -91,6 +91,8 @@ related: [review-policy.md, orchestration.md, ../plan/README.md, ../conventions.
 4. 상태를 `doing`으로 바꾼다
 
 의존 항목이 `done`이 아니면 건너뛰고 다음 후보를 본다. 의존을 무시하고 진행하지 않는다.
+
+**예외: `F-08` 은 `AU-16` 의 `done` 이 아니라 리뷰 APPROVED 를 받은 커밋 전 코드에 의존하고, 오케스트레이터가 두 항목을 한 번에 커밋한다**([../plan/phase2-frontend-integration.md §1.1](../plan/phase2-frontend-integration.md)·§1.4). AU-16 의 APPROVED 는 상태 원본에 드러나지 않는다 — `review` 는 고치는 중도 뜻한다. F-08 은 오케스트레이터가 그 판정을 확인하고 배정한다.
 
 ### 3.2 참조 문서 읽기 [2]
 
@@ -222,7 +224,7 @@ curl -s "https://api.github.com/repos/yuno110/sp-docs/commits?per_page=3" | grep
 | 7 | 막힌 부분을 mock·더미·하드코딩으로 우회 | 문제를 덮는 것이다. 막히면 BLOCKED로 보고한다 |
 | 8 | 문서에 없는 값을 임의로 정해서 진행 | 정본과 어긋난 구현이 된다 |
 | 9 | **완료된 항목의 완료 기준을 깨는 변경** | 계획이 틀렸다는 뜻이다. 코드가 아니라 계획을 고친다 ([../plan/phase1.md §2.6](../plan/phase1.md)) |
-| 10 | 의존 항목이 `done`이 아닌데 진행 | 순서가 있는 데는 이유가 있다 |
+| 10 | 의존 항목이 `done`이 아닌데 진행 (§3.1 의 예외 말고) | 순서가 있는 데는 이유가 있다 |
 | 11 | 리뷰 중에 파일 수정하기 | 리뷰 대상이 움직이면 판정이 무의미하다 |
 
 **7번이 특히 중요하다.** 외부 의존이 없거나 정보가 부족할 때 임시 값으로 통과시키면 나중에 그 코드가 진짜인지 가짜인지 구분할 수 없다. 실패는 명시적으로 드러내야 한다.
@@ -262,4 +264,4 @@ BLOCKED
 
 ## 7. 통합 검증 단계
 
-여러 서비스에 걸친 검증은 개별 작업 항목이 아니라 통합 단계에서 한다([../plan/integration.md](../plan/integration.md)). 세 서비스가 모두 기동된 상태를 전제하므로 **순차로 진행**하며, 같은 리뷰 사이클을 적용한다.
+여러 서비스에 걸친 검증은 개별 작업 항목이 아니라 통합 단계에서 한다([../plan/integration.md](../plan/integration.md), 2차는 [../plan/phase2-frontend-integration.md §4](../plan/phase2-frontend-integration.md)). 세 서비스가 모두 기동된 상태를 전제하므로 **순차로 진행**하며, 같은 리뷰 사이클을 적용한다.

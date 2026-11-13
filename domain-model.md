@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v18
-updated: 2026-11-11
+version: v19
+updated: 2026-11-12
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -79,7 +79,7 @@ related: [architecture.md, api-contract.md, requirements/member.md, requirements
 +---------------------+
 ```
 
-**`account.email_verified_at`·`account_token`·`login_attempt` 는 2026-11-11 `D-19` 가 설계한 2차 기능 확장의 것이다**([plan/phase2.md §5](plan/phase2.md)). 이 문서는 계약을 적고, 그것을 만드는 마이그레이션과 코드는 `D-20` 이 세울 항목의 일이다 — 그 전의 `sp_auth` 에는 없다.
+**`account.email_verified_at`·`account_token`·`login_attempt` 는 2026-11-11 `D-19` 가 설계한 2차 기능 확장의 것이다**([plan/phase2.md §5](plan/phase2.md)). 이 문서는 계약을 적고, 그것을 만드는 마이그레이션과 코드는 2026-11-12 `D-20` 이 [plan/phase2-auth-member.md](plan/phase2-auth-member.md)에 세운 항목의 일이다(마이그레이션과 엔티티는 `AU-12`) — 그 전의 `sp_auth` 에는 없다.
 
 ### 2.1 account
 
@@ -336,7 +336,7 @@ UPDATE account_token SET used_at = :now
                                                            +---------------------------+
 ```
 
-**`post_like`·`post_view`·`attachment`·`comment.parent_id`·`post` 의 `category`·`like_count`·`attachment_count` 는 2026-11-11 `D-18` 이 설계한 2차 기능 확장의 것이다**([plan/phase2.md §5](plan/phase2.md)). 이 문서는 계약을 적고, 그것을 만드는 마이그레이션과 코드는 `D-20` 이 세울 항목의 일이다 — 그 전의 `sp_board` 에는 없다.
+**`post_like`·`post_view`·`attachment`·`comment.parent_id`·`post` 의 `category`·`like_count`·`attachment_count` 는 2026-11-11 `D-18` 이 설계한 2차 기능 확장의 것이다**([plan/phase2.md §5](plan/phase2.md)). 이 문서는 계약을 적고, 그것을 만드는 마이그레이션과 코드는 2026-11-12 `D-20` 이 [plan/phase2-board.md](plan/phase2-board.md)에 세운 항목의 일이다(마이그레이션과 엔티티는 `B-14`) — 그 전의 `sp_board` 에는 없다.
 
 ### 4.1 post
 
@@ -484,7 +484,7 @@ UPDATE account_token SET used_at = :now
 
 > **수정(P-06)·삭제(P-07)도 `post` 를 엔티티로 저장한다.** `Post` 에 갱신 컬럼을 좁히는 설정이 없으므로 그 UPDATE 도 B-10 이 측정한 것처럼 **모든 컬럼**을 실을 것으로 본다(코드 읽기 — 그 경로의 문장은 측정하지 않았다). 그렇다면 글 수정이 그 트랜잭션이 읽은 낡은 집계를 다시 써서, 그 사이에 커밋된 댓글·좋아요·첨부의 증감을 지운다. 1차의 `comment_count`·`view_count` 에도 같은 창이 있었을 것이고(추정 — B-10·B-11 은 댓글 쓰기와 상세 조회 경로를 쟀고 이 경로는 그 항목들의 범위가 아니었다), 2차에서는 **`attachment_count` 의 상한 판정까지 무너뜨릴 수 있다** — 낡은 값으로 되돌아가면 상한을 넘는 첨부가 들어갈 수 있다. **그래서 엔티티 갱신이 집계 컬럼을 쓰지 않게 한다**(예: 매핑에서 집계 컬럼을 갱신 대상에서 빼거나, 바뀐 컬럼만 싣는 설정). 수단은 구현이 고르고, 수정과 집계 갱신을 끼워넣은 테스트로 본다.
 
-> **1차의 댓글 삭제 경로가 위 표의 전환 규칙을 지키지 않는다**(2026-11-11 코드 읽기 — 측정하지 않았다). 활성 댓글을 락 없이 읽고, 엔티티의 `deleted` 를 바꿔 더티 체킹으로 조건 없이 저장한 뒤 `comment_count` 를 줄인다. 같은 댓글의 동시 삭제가 둘 다 활성으로 읽으면 둘 다 줄일 것으로 본다(추정 — 실 MySQL 측정 대상, [plan/phase2.md §5.4](plan/phase2.md)). `D-20` 이 결함 수정 항목으로 다룬다. 고칠 때 순서는 §6.2 의 첨부 삭제처럼 `post` 감소를 먼저 한다 — 지금 순서(댓글 행 → `post`)는 답글 작성(`post` → 부모 행의 FK 공유 락)과 반대라 교착할 것으로 본다(추정).
+> **1차의 댓글 삭제 경로가 위 표의 전환 규칙을 지키지 않는다**(2026-11-11 코드 읽기 — 측정하지 않았다). 활성 댓글을 락 없이 읽고, 엔티티의 `deleted` 를 바꿔 더티 체킹으로 조건 없이 저장한 뒤 `comment_count` 를 줄인다. 같은 댓글의 동시 삭제가 둘 다 활성으로 읽으면 둘 다 줄일 것으로 본다(추정 — 실 MySQL 측정 대상, [plan/phase2.md §5.4](plan/phase2.md)). 2026-11-12 `D-20` 이 결함 수정 항목 `B-17` 로 세웠다([plan/phase2-board.md](plan/phase2-board.md)). 고칠 때 순서는 §6.2 의 첨부 삭제처럼 `post` 감소를 먼저 한다 — 지금 순서(댓글 행 → `post`)는 답글 작성(`post` → 부모 행의 FK 공유 락)과 반대라 교착할 것으로 본다(추정).
 
 ### 6.1 좋아요 — 락 순서와 멱등
 
@@ -545,7 +545,7 @@ DELETE /attachments/{id}  한 트랜잭션 (404 AT001 -> 403 P002 판정 뒤)
 
 ## 7. 2차 기능 확장의 마이그레이션 — 할 것
 
-**번호는 `D-20` 이 배정한다**([plan/phase1.md §2.4](plan/phase1.md)). 여기는 무엇을 해야 하는지만 적는다. 이름과 폭은 §2·§4 의 표가 정본이다. **board 의 줄은 `D-18`, auth 의 줄은 `D-19` 가 적었다.**
+**번호는 2026-11-12 `D-20` 이 배정했다**([plan/phase1.md §2.4](plan/phase1.md)). 여기는 무엇을 해야 하는지만 적는다. 이름과 폭은 §2·§4 의 표가 정본이다. **board 의 줄은 `D-18`, auth 의 줄은 `D-19` 가 적었다.**
 
 | 대상 | 할 것 |
 | --- | --- |

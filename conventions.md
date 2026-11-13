@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v24
-updated: 2026-11-11
+version: v25
+updated: 2026-11-12
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -36,7 +36,7 @@ com.example.auth
     └── 발송 인터페이스, SMTP 구현, 커밋 뒤 비동기 발송
 ```
 
-> **2026-11-11 `D-19` 가 이 트리를 늘렸다**(설계 — 구현은 `D-20` 이 세울 항목의 일이다). `ClockConfig` 는 1차부터 auth 에 있었고 이 트리에 빠져 있었다(코드 읽기). `QuerydslConfig` 는 auth 의 첫 QueryDSL 사용인 계정 목록([api-contract.md §2.5](api-contract.md))이 들인다. **잠금 카운터의 증가는 로그인 서비스와 다른 빈에 둔다** — 같은 클래스 안의 호출은 프록시를 지나지 않아 `REQUIRES_NEW` 가 먹지 않는다([requirements/member.md §12.2](requirements/member.md)). `mail` 은 업무 도메인이 아니라 바깥 시스템의 어댑터라 `global` 이 아니라 따로 둔다 — 가입·재설정·재발송이 그것을 부르고, 그것은 `account` 를 부르지 않는다.
+> **2026-11-11 `D-19` 가 이 트리를 늘렸다**(설계 — 구현 항목은 2026-11-12 `D-20` 이 [plan/phase2-auth-member.md](plan/phase2-auth-member.md)에 세웠다). `ClockConfig` 는 1차부터 auth 에 있었고 이 트리에 빠져 있었다(코드 읽기). `QuerydslConfig` 는 auth 의 첫 QueryDSL 사용인 계정 목록([api-contract.md §2.5](api-contract.md))이 들인다. **잠금 카운터의 증가는 로그인 서비스와 다른 빈에 둔다** — 같은 클래스 안의 호출은 프록시를 지나지 않아 `REQUIRES_NEW` 가 먹지 않는다([requirements/member.md §12.2](requirements/member.md)). `mail` 은 업무 도메인이 아니라 바깥 시스템의 어댑터라 `global` 이 아니라 따로 둔다 — 가입·재설정·재발송이 그것을 부르고, 그것은 `account` 를 부르지 않는다.
 
 **`auth`와 `account` 사이에 단방향 제약을 두지 않는다.** 비밀번호 변경·계정 탈퇴가 `account` 갱신과 `RefreshToken` 삭제를 **한 로컬 트랜잭션**으로 묶어야 하기 때문이다. 이전 `adr/0006 §예외`가 우회로 다루던 문제가 같은 서비스 안으로 들어오면서 사라졌다([adr/0012](adr/0012-auth-as-separate-service.md)).
 
@@ -182,7 +182,7 @@ public class PostService {
 
 **`C009` 의 줄은 2026-11-11 `D-19` 가 더했다**([security.md §10](security.md)). 응답에 헤더가 하나 더 붙으므로 `BusinessException` 의 일반 경로로 보내지 않고 따로 다룬다 — 예외의 종류는 구현이 정한다. **이 줄은 제한기를 가진 서비스에만 있다** — board 는 제한 대상이 없어 그 예외가 생기지 않는다. 처음 들일 때 같은 줄을 더한다([api-contract.md §8.1](api-contract.md)의 `C009` 문단). 로그 수준은 다른 클라이언트 오류와 같은 `warn` 이다.
 
-**세 서비스가 이 표를 똑같이 구현한다**(위 `C009` 줄은 그것을 가진 두 서비스가 같게 둔다). 다만 **클래스 자체는 복제 대상이 아니다**(§7.2) — 서비스별 `ErrorCode`에 의존하므로 각자 쓴다. 같아야 하는 것은 **핸들러 집합·코드·로그 수준·응답 본문**이고, 그 일치를 [plan/integration.md](plan/integration.md) I-04가 3자 비교한다. **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
+**세 서비스가 이 표를 똑같이 구현한다**(위 `C009` 줄은 그것을 가진 두 서비스가 같게 둔다). 다만 **클래스 자체는 복제 대상이 아니다**(§7.2) — 서비스별 `ErrorCode`에 의존하므로 각자 쓴다. 같아야 하는 것은 **핸들러 집합·코드·로그 수준·응답 본문**이고, 그 일치를 [plan/integration.md](plan/integration.md) I-04 가 3자 비교했다(1차). 2차에 더한 multipart·`C009` 줄은 [plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md) I-10 이 비교한다. **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
 
 **로그 수준을 가른다.** 클라이언트 오류는 `warn`, **마지막 그물만 `error`**다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](AGENTS.md) 불변식 9).
 

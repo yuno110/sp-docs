@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v21
-updated: 2026-11-11
+version: v22
+updated: 2026-11-13
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -11,7 +11,7 @@ related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-au
 
 담당 서비스: **auth-service** (`yuno110/sp-auth`) + **member-service** (`yuno110/sp-member`)
 
-**요구사항은 사용자가 보는 기능 단위다.** 가입·탈퇴처럼 한 기능이 두 서비스에 걸치므로 문서를 나누지 않는다. 어느 서비스가 구현하는지는 아래 표의 "담당" 열과 [../plan/phase1.md](../plan/phase1.md)의 작업 항목(`AU-xx` / `M-xx`)이 정한다.
+**요구사항은 사용자가 보는 기능 단위다.** 가입·탈퇴처럼 한 기능이 두 서비스에 걸치므로 문서를 나누지 않는다. 어느 서비스가 구현하는지는 아래 표의 "담당" 열과 [../plan/README.md](../plan/README.md)의 문서 표가 가리키는 계획의 작업 항목(`AU-xx` / `M-xx`)이 정한다.
 
 서비스 경계의 근거는 [../adr/0012](../adr/0012-auth-as-separate-service.md)다. **계정**(이메일·비밀번호·권한)은 auth, **프로필**(닉네임)은 member가 소유한다.
 

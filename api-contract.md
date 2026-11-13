@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v51
-updated: 2026-11-11
+version: v52
+updated: 2026-11-12
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -96,7 +96,7 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | POST | `/api/v1/accounts/password-reset/confirm` | 비밀번호 재설정 확인 (§2.4) | - | 204 |
 | GET | `/api/v1/accounts` | **계정 목록 (§2.5)** | O (ADMIN) | 200 |
 
-**위 다섯 줄은 2026-11-11 `D-19` 가 더한 계약이다**([plan/phase2.md §5](plan/phase2.md)) — 구현은 `D-20` 이 세울 항목의 일이다. `POST /api/v1/accounts` 의 요청·응답(201, 중복이면 409 `AU002`)은 그대로이고, 커밋 뒤에 인증 메일이 나간다([requirements/member.md §11.2](requirements/member.md)). 그 계정은 인증 전에 로그인할 수 없다(§2.1 의 표).
+**위 다섯 줄은 2026-11-11 `D-19` 가 더한 계약이다**([plan/phase2.md §5](plan/phase2.md)) — 구현 항목은 2026-11-12 `D-20` 이 [plan/phase2-auth-member.md](plan/phase2-auth-member.md)에 세웠다(인증 `AU-16`, 재설정 `AU-17`, 계정 목록 `AU-20`). `POST /api/v1/accounts` 의 요청·응답(201, 중복이면 409 `AU002`)은 그대로이고, 커밋 뒤에 인증 메일이 나간다([requirements/member.md §11.2](requirements/member.md)). 그 계정은 인증 전에 로그인할 수 없다(§2.1 의 표).
 
 `GET /api/v1/accounts/me`는 **이메일과 가입일 둘만 반환한다**([requirements/member.md §5](requirements/member.md) MR-07).
 
@@ -433,7 +433,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | GET | `/api/v1/attachments/{id}` | 첨부 내려받기 (§4.7) | - | 200 |
 | DELETE | `/api/v1/attachments/{id}` | 첨부 삭제 (§4.7) | O (글 작성자) | 204 |
 
-**좋아요·첨부의 줄은 2026-11-11 `D-18` 이 더한 계약이다**([plan/phase2.md §5](plan/phase2.md)) — 구현은 `D-20` 이 세울 항목의 일이다. 게시글·댓글의 줄은 그대로이고 그 요청·응답이 받는 필드가 늘었다(§4.1·§4.3·§4.5). 필드를 더한 것은 [adr/0008](adr/0008-api-versioning.md)의 하위 호환 변경이다. **댓글 목록은 아니다** — 페이징 단위가 최상위 항목이 되고 `totalElements` 의 뜻이 바뀌며 삭제된 댓글의 자리가 `null` 필드로 온다(§4.5). ADR 0008 의 기준으로 구조·의미의 변경이지만 그래도 `/v1` 안에 둔다 — 근거와 재검토 조건은 그 ADR 의 2026-11-11 블록인용에 있다. `GET /api/v1/posts/{id}` 는 인증을 **선택으로** 받는다(§4.8).
+**좋아요·첨부의 줄은 2026-11-11 `D-18` 이 더한 계약이다**([plan/phase2.md §5](plan/phase2.md)) — 구현 항목은 2026-11-12 `D-20` 이 [plan/phase2-board.md](plan/phase2-board.md)에 세웠다(좋아요 `B-20`, 첨부 `B-23`·`B-24`). 게시글·댓글의 줄은 그대로이고 그 요청·응답이 받는 필드가 늘었다(§4.1·§4.3·§4.5). 필드를 더한 것은 [adr/0008](adr/0008-api-versioning.md)의 하위 호환 변경이다. **댓글 목록은 아니다** — 페이징 단위가 최상위 항목이 되고 `totalElements` 의 뜻이 바뀌며 삭제된 댓글의 자리가 `null` 필드로 온다(§4.5). ADR 0008 의 기준으로 구조·의미의 변경이지만 그래도 `/v1` 안에 둔다 — 근거와 재검토 조건은 그 ADR 의 2026-11-11 블록인용에 있다. `GET /api/v1/posts/{id}` 는 인증을 **선택으로** 받는다(§4.8).
 
 **`GET /posts/me` 의 인가 규칙을 `GET /posts/{id}` 보다 먼저 선언한다.** MVC 라우팅은 리터럴 세그먼트를 경로 변수보다 구체적으로 보므로 선언 순서와 무관하지만(M-10 리뷰 측정값), **`SecurityConfig` 의 `authorizeHttpRequests` 는 선언 순서대로 평가한다.** `{id}` 를 먼저 선언하면 `permitAll` 이 `/posts/me` 를 먼저 잡아 **요청이 인증 없이 디스패치된다.**
 

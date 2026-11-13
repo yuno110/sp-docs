@@ -2,8 +2,8 @@
 title: 작업 계획
 type: index
 status: rule
-version: v4
-updated: 2026-10-27
+version: v5
+updated: 2026-11-12
 read_when: "작업 계획의 구조를 이해하거나, 상태를 어디에 적는지 확인할 때"
 related: [phase1.md, phase2.md, integration.md, ../process/dev-workflow.md]
 ---
@@ -12,8 +12,9 @@ related: [phase1.md, phase2.md, integration.md, ../process/dev-workflow.md]
 | 문서 | 역할 | 갱신 시점 |
 | --- | --- | --- |
 | [phase1.md](phase1.md) | 1차 작업 항목. 산출물·참조·의존·완료 기준·검증 | 범위·순서가 바뀔 때만 |
-| [integration.md](integration.md) | 세 서비스에 걸친 통합 검증 | 같음 |
-| [phase2.md](phase2.md) | 2차 범위. **작업 항목(`F-xx` 등)을 가진 절은 작업 지시**이고 갖지 않은 절은 개요다 | 범위를 고를 때 그 절을 상세화한다 |
+| [integration.md](integration.md) | 1차의 세 서비스에 걸친 통합 검증. 2차의 `I` 항목은 아래 행의 화면·통합 문서에 있다 | 같음 |
+| [phase2.md](phase2.md) | 2차 범위. **작업 항목(§7.2 의 `F-xx`)을 가진 절은 작업 지시**이고 갖지 않은 절은 개요다 | 범위를 고를 때 그 절을 상세화한다 |
+| [phase2-board.md](phase2-board.md), [phase2-auth-member.md](phase2-auth-member.md), [phase2-frontend-integration.md](phase2-frontend-integration.md) | 2차 기능 확장([phase2.md §5](phase2.md))의 작업 항목. 2026-11-12 `D-20` 이 세웠다 | 범위·순서가 바뀔 때만 |
 
 **이 문서들은 상태를 적지 않는다.**
 
@@ -73,5 +74,5 @@ related: [phase1.md, phase2.md, integration.md, ../process/dev-workflow.md]
 ## 작업 시작 규칙
 
 1. 담당 저장소의 `docs/checklist.md`에서 `doing` 항목을 먼저 찾는다
-2. 없으면 순서상 다음 `todo`를 고른다. **의존 항목이 모두 `done`이어야 한다**
+2. 없으면 순서상 다음 `todo`를 고른다. **의존 항목이 모두 `done`이어야 한다** — 예외는 [../process/dev-workflow.md §3.1](../process/dev-workflow.md)이 적는다
 3. 절차는 [../process/dev-workflow.md](../process/dev-workflow.md)를 따른다

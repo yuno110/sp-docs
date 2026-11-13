@@ -2,8 +2,8 @@
 title: 워커 오케스트레이션
 type: process
 status: rule
-version: v3
-updated: 2026-10-27
+version: v4
+updated: 2026-11-12
 read_when: "워커를 배치하거나 병렬 작업 범위를 정할 때"
 related: [dev-workflow.md, review-policy.md, ../plan/phase1.md]
 ---
@@ -39,7 +39,7 @@ git worktree remove ../wt/agent-m1   # 작업 종료 후 정리
 | 격리된다 | 작업 파일, 브랜치, 빌드 산출물 |
 | **격리되지 않는다** | **병합.** 두 워커가 같은 파일을 고치면 merge에서 충돌한다 |
 
-그래서 충돌은 규칙이 아니라 **구조**로 막는다. 각 경로에 소유 항목을 하나씩 두고 워커는 자기 경로에만 쓴다. 경로 소유 지도와 공유 지점은 [../plan/phase1.md §2](../plan/phase1.md)에 있다.
+그래서 충돌은 규칙이 아니라 **구조**로 막는다. 각 경로에 소유 항목을 하나씩 두고 워커는 자기 경로에만 쓴다. 경로 소유 지도와 공유 지점은 [../plan/phase1.md §2](../plan/phase1.md)에 있다 — 2차 항목의 겹치는 파일은 각 2차 계획의 §1.2 에 있다.
 
 **이 규칙은 여러 워커를 동시에 돌릴 때만 강제된다.** 저장소당 워커가 하나면 순차로 진행하므로 충돌할 상대가 없고, 경로를 넘는 것 자체는 문제가 아니다([../plan/phase1.md §2](../plan/phase1.md)).
 
@@ -118,6 +118,8 @@ git merge worktree-agent-auth
                      |
                     ... 최대 3라운드. 초과 시 중단하고 사람 판단
 ```
+
+**예외** — `F-08` 과 `AU-16` 은 둘 다 APPROVED 를 받은 뒤 한 번에 커밋한다. `AU-16` 은 APPROVED 뒤에도 커밋·`done` 을 미룬다([dev-workflow.md §3.1](dev-workflow.md)). 그동안 auth 의 다른 항목을 배정하지 않는다 — AU-16 의 커밋 전 코드가 작업 트리에 있다([../plan/phase2-frontend-integration.md §1.1](../plan/phase2-frontend-integration.md)). 그 코드로 띄운 auth 에서는 실제 서비스 e2e 가 가입에서 `AU006` 을 받으므로, `AU-16` 은 `F-07` 이 `done` 이고 진행 중인 F 항목이 없을 때 배정하고 그 사이 F 는 `F-08` 만 한다(같은 문서 §1.4).
 
 **역할 분담**
 

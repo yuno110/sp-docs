@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v35
-updated: 2026-11-11
+version: v36
+updated: 2026-11-12
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -463,7 +463,7 @@ member 는 `check-nickname: { limit: 20, window: PT1M }` 하나와 같은 `serve
 | 규칙의 한도·창 | **정본 값** | [security.md §10](security.md)의 값을 `application.yml` 에 적는다. **정본이 숫자를 정한 값**이라 §4.3 의 정책값(기본값 없음)이 아니다 |
 | `rate-limit.buckets-per-rule` | 정본 값 | 16,384. 규칙마다 이 크기의 카운터 배열을 둔다. 클수록 서로 다른 클라이언트가 한 버킷을 나누는 일이 드물고, 모든 클라이언트를 막는 데 드는 요청량(버킷 수 × 한도)이 커진다([security.md §10](security.md)). 버킷을 고르는 HMAC 의 비밀은 설정이 아니다 — 기동마다 새로 만든다 |
 
-**로컬 템플릿은 한도를 크게 둔다.** 실제 서비스 e2e 가 `local` 프로파일로 세 서비스를 띄우고 한 주소에서 가입·로그인을 여러 번 하므로([plan/phase2.md §5.3](plan/phase2.md)), 운영 한도로는 e2e 가 스스로 429 를 맞는다. `application-local.yml.example` 이 규칙의 한도를 덮는다 — 값은 템플릿이 정하고 이 문서는 「운영 한도보다 e2e 의 요청 수가 넉넉히 들어가게」 만 정한다. **그 덮음 때문에 e2e 는 제한을 검증하지 않는다** — 제한은 서비스의 테스트가 `Clock` 을 움직여 본다.
+**로컬 템플릿은 한도를 크게 둔다.** 실제 서비스 e2e 는 `local` 프로파일로 먼저 띄워 둔 세 서비스를 치며(테스트가 서비스를 띄우지는 않는다 — `sp-frontend` 의 `CLAUDE.md`) 한 주소에서 가입·로그인을 여러 번 하므로([plan/phase2.md §5.3](plan/phase2.md)), 운영 한도로는 e2e 가 스스로 429 를 맞는다. `application-local.yml.example` 이 규칙의 한도를 덮는다 — 값은 템플릿이 정하고 이 문서는 「운영 한도보다 e2e 의 요청 수가 넉넉히 들어가게」 만 정한다. **그 덮음 때문에 e2e 는 제한을 검증하지 않는다** — 제한은 서비스의 테스트가 `Clock` 을 움직여 본다.
 
 > **`forward-headers-strategy` 가 auth·member 의 `application.yml` 에 없다**(2026-11-11 코드 읽기). 클라우드 플랫폼을 감지하지 않는 한 지금의 기본값이 `none` 과 같은 동작이라(§4.5 — 감지하면 `NATIVE` 다) 1차의 결함은 아니다 — 제한이 그 값에 기대기 시작하므로 적는다.
 
