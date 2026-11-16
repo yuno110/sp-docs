@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — 화면·통합
 type: plan
 status: living
-version: v1
-updated: 2026-11-12
+version: v2
+updated: 2026-11-16
 read_when: "2차 기능 확장의 화면 항목(F-07 부터)·통합 항목(I-06 부터)의 범위·의존·완료 기준을 확인하거나, 2차 전체(B·AU·M·F·I)의 순서와 병렬을 볼 때. 상태는 F 는 sp-frontend, I 는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, phase1.md, ../api-contract.md, ../security.md, ../tech-stack.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -554,6 +554,7 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 | 같은 계정의 동시 좋아요 | 전부 200 `liked: true`, `like_count` 와 행이 1 |
 | 같은 계정의 동시 취소 | 전부 200 `liked: false`, `like_count` 는 한 번만 준다, 행 0 |
 | 서로 다른 계정의 동시 좋아요·취소 | `like_count` = `post_like` 행 수 |
+| `like_count` 가 0 인 글에서 취소의 0행 감소 뒤, 그 행 삭제 전에 같은 계정의 누르기 — 두 연결로 문장을 그 차례로 낸다(B-20 의 H2 프로브와 같은 방법) | `like_count` = `post_like` 행 수. 0행 감소가 `post` 행의 락을 쥐는지(추정: 쥔다)와 누르기의 증가가 취소의 커밋까지 기다렸는지는 관측값으로 적는다. 어긋나면 결함이다 — 그때 여는 정본 결정은 [phase2-board.md §4.1](phase2-board.md)의 같은 조합 줄이 적는다 |
 | 서로 다른 조회자의 동시 첫 조회 | `view_count` = 조회자 수. 교착 여부 |
 | 같은 조회자의 동시 첫 조회 | +1 한 번, 전부 200 |
 | 판정 직후의 상세 응답 | `viewCount` 가 판정을 반영한다 |

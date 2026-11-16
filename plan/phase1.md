@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v73
-updated: 2026-11-12
+version: v74
+updated: 2026-11-16
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -2750,6 +2750,50 @@ AU-02·M-02와 같은 파일을 만들되 `ErrorCode`는 board 전용 코드를 
 - [ ] 이 개정이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
 - [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
 - [ ] `tools/check_refs.py` 통과
+
+---
+### D-21 B-20 의 측정을 계획에 반영한다 [계획 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. 옮기는 측정은 `B-20`([phase2-board.md](phase2-board.md))의 구현과 리뷰가 2026-11-16 에 했다 |
+| 참조 | [phase2-board.md §4.1](phase2-board.md)과 그 문서의 B-14·B-20, [phase2-frontend-integration.md](phase2-frontend-integration.md) I-07, [../domain-model.md §6](../domain-model.md)·§6.1, [../api-contract.md §4.3](../api-contract.md)·§4.7 |
+
+**`B-20` 의 구현과 리뷰가 찾았고, 사용자가 2026-11-16 에 이 항목을 열기로 정했다.** 그 측정이 거짓으로 만든 계획의 문장과 계획에 빠진 측정 대상을 고친다.
+
+1. **[phase2-board.md](phase2-board.md) B-14 의 「응답 값으로 관측하는 것은 응답에 그 집계를 싣는 B-20(`likeCount`)이다」 가 거짓이다.** 그 문장은 B-20 의 구현 전에 쓰였다(2026-11-12 `D-20`). 2026-11-16 의 B-20 은 좋아요·취소의 좁은 UPDATE 앞에 글을 읽지 않아 영속성 컨텍스트에 남는 사본이 없다. `like_count` 증감 문장의 `clearAutomatically` 만 끈 변이에서 구현의 좋아요 테스트와 리뷰의 전체 스위트가 녹색이었고, 그 UPDATE 앞에 읽기를 더하고 비우기를 끈 변이에서는 응답이 커밋된 값보다 낡았다. 읽기를 더하고 비우기를 둔 변이에서는 응답이 맞았다. 응답을 지키는 것은 「UPDATE 앞에 읽기가 없다」 는 순서이고(B-20 의 테스트가 좋아요·취소의 첫 문장이 그 UPDATE 임을 단언한다), 비우기는 그 순서가 깨질 때의 방어다
+2. **`like_count` 가 0 인 글에서 같은 계정의 누르기와 취소가 겹치는 조합이 실 MySQL 측정 대상에 따로 적혀 있지 않았다.** 취소의 감소가 0행이면 그 문장은 H2 에서 `post` 행의 락을 쥐지 않았다 — 감소와 행 삭제 사이에 같은 계정의 누르기가 커밋하자 취소가 그 행을 지워 `like_count` 1·`post_like` 0 이 남았다(B-20 의 H2 프로브). MySQL 의 반복 읽기가 그 락을 쥐는지는 재지 않았다. B-20 은 코드를 [../domain-model.md §6.1](../domain-model.md)의 순서 그대로 두고 이 조합을 실 MySQL 측정으로 넘겼다. 반복 읽기에서도 어긋나면 취소의 1)을 `post` 의 잠금 읽기로 바꿔 0행 감소에서도 `post` 행의 락을 쥐게 하는 정본 결정을 따로 연다 — 같은 절의 「1)을 잠금 읽기로 잡고 증가를 근거 행이 생긴 뒤에 하는 모양도 요건을 지킨다」 는 누르기 쪽 모양이고, 누르기만 그렇게 바꾸면 취소가 락을 쥐지 않는 동안 창이 닫히지 않는다
+
+H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`·`LikeServiceTest` 주석이 적는다(2026-11-16 읽기). 전체 스위트는 B-20 의 리뷰가 돌렸다.
+
+**산출물**
+- [phase2-board.md](phase2-board.md) B-14 — 그 문장을 측정대로 고친다. `clearAutomatically` 는 다시 읽기 앞에 사본이 남을 수 있는 경로를 위한 것이고, B-20 의 응답은 그 설정에 기대지 않는다. 같은 문단의 「B-23·B-24 의 응답에는 `attachment_count` 가 없다」 는 [../api-contract.md §4.3](../api-contract.md)의 상세 줄과 §4.7 의 올리기·지우기·내려받기 응답에 그 키가 없어(2026-11-16 읽기) 둔다
+- [phase2-board.md §4.1](phase2-board.md) — `like_count` 가 0 인 글에서 같은 계정의 누르기와 취소가 겹치는 조합의 줄. 기대는 [../domain-model.md §6](../domain-model.md)의 「`post` 의 집계 컬럼은 근거 행과 같아야 한다」 이고, 어긋나면 결함이며 정본 결정을 연다
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) I-07 — 검증표에 같은 조합의 행. I-07 은 §4.1 의 표를 따르므로 두 자리의 조합(문장의 차례와 그 차례를 만드는 수단)과 기대를 같게 두고, 결함일 때 여는 결정은 §4.1 의 줄을 가리킨다
+- [../docs/checklist.md](../docs/checklist.md) — `D-21` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**B-20 절은 고치지 않는다.** 완료 기준의 「응답의 `likeCount` 는 쓴 뒤(되돌렸으면 되돌린 뒤) 읽은 값이다」 와 검증표의 「응답의 `likeCount`」 줄은 응답 값을 요구하고, 그 값을 `clearAutomatically` 로 지키라고 요구하지 않는다.
+
+**완료 기준**
+- [ ] B-14 의 고친 문장이 B-20 의 측정과 맞고 측정 날짜를 갖는다. B-20 의 응답이 `clearAutomatically` 에 기댄다고 적지 않는다
+- [ ] 「B-23·B-24 의 응답에는 `attachment_count` 가 없다」 가 [../api-contract.md §4.3](../api-contract.md)·§4.7 과 맞는다
+- [ ] [phase2-board.md](phase2-board.md)에 그 설정의 관측을 B-20 의 응답에 맡기는 줄이 남지 않는다
+- [ ] §4.1 의 새 줄과 I-07 의 새 행이 같은 조합과 같은 기대를 적고, 그 기대가 [../domain-model.md §6](../domain-model.md)·§6.1 과 맞는다
+- [ ] 재지 않은 것을 사실로 적지 않는다 — MySQL 의 반복 읽기가 0행 감소에서 락을 쥐는지는 측정 대상으로 적는다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0 |
+| 고친 문장과 새 줄의 사실을 sp-board 의 B-20 코드와 대조한다 — `LikeService` 의 좋아요·취소와 그 주석, `PostRepository` 의 `like_count` 증감 문장, `LikeServiceTest` 의 발행 순서 테스트 | 맞는다 |
+| [phase2-board.md](phase2-board.md)를 `B-20`·`clearAutomatically`·`사본` 으로 훑는다 | 그 설정의 관측을 B-20 의 응답에 맡기는 줄이 없다 |
+| §4.1 의 새 줄과 I-07 의 새 행을 나란히 읽는다 | 조합과 기대가 같다 |
+| 이 항목이 고친 계획 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-16 이다 — 계획 문서는 `tools/check_refs.py` 의 `version` 검사 대상이 아니다 |
 
 ---
 ## 7. 다음 단계

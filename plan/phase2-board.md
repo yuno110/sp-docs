@@ -2,8 +2,8 @@
 title: 2차 board 작업 계획
 type: plan
 status: living
-version: v1
-updated: 2026-11-12
+version: v2
+updated: 2026-11-16
 read_when: "2차 기능 확장의 board 작업 항목(B-14 부터)의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integration.md, ../requirements/board.md, ../domain-model.md, ../api-contract.md, ../nfr.md]
 ---
@@ -133,7 +133,7 @@ related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integrati
 
 **새 집계(`likeCount`·`attachmentCount`)를 바꾸는 엔티티 메서드를 두지 않는다**([../domain-model.md §6](../domain-model.md)). 1차 집계의 엔티티 메서드는 B-03 이 요구하므로 그대로 둔다(B-10·B-11 의 주석).
 
-**`@Modifying` 의 `flushAutomatically`·`clearAutomatically` 는 부르는 쪽이 `post` 를 다시 읽는지에 달렸다.** 1차에서 `clearAutomatically` 를 B-10 은 껐고 B-11 은 켰다 — 다시 읽어 응답을 만드는 경로에서 끈 쪽이 낡은 사본을 돌려준 것이 그 이유다([phase1.md](phase1.md) B-11 의 블록인용). 이 항목은 고른 설정과 이유를 문장의 주석에 적는다. 응답 값으로 관측하는 것은 응답에 그 집계를 싣는 B-20(`likeCount`)이다 — B-23·B-24 의 응답에는 `attachment_count` 가 없다.
+**`@Modifying` 의 `flushAutomatically`·`clearAutomatically` 는 부르는 쪽이 `post` 를 다시 읽는지에 달렸다.** 1차에서 `clearAutomatically` 를 B-10 은 껐고 B-11 은 켰다 — 다시 읽어 응답을 만드는 경로에서 끈 쪽이 낡은 사본을 돌려준 것이 그 이유다([phase1.md](phase1.md) B-11 의 블록인용). 이 항목은 고른 설정과 이유를 문장의 주석에 적는다. **`clearAutomatically` 는 다시 읽기 앞에 사본이 남을 수 있는 경로를 위한 것이다** — 좁은 UPDATE 는 엔티티를 지나지 않으므로 그 앞에 읽어 둔 글의 사본이 낡는다. **B-20 의 응답(`likeCount`)은 이 설정에 기대지 않는다**(2026-11-16 B-20 실측, [phase1.md](phase1.md) `D-21`) — 좋아요·취소가 좁은 UPDATE 앞에 글을 읽지 않아 영속성 컨텍스트에 남는 사본이 없고, `like_count` 증감 문장의 `clearAutomatically` 만 끈 변이에서 좋아요 테스트와 전체 스위트가 녹색이었다. 그 응답을 지키는 것은 「UPDATE 앞에 읽기가 없다」 는 순서이고, 이 설정은 그 순서가 깨질 때의 방어다. B-23·B-24 의 응답에는 `attachment_count` 가 없다.
 
 **완료 기준**
 - [ ] Flyway 가 `V3`~`V7` 을 적용하고 테이블·컬럼·제약·인덱스의 이름과 모양이 [../domain-model.md §4](../domain-model.md)의 표와 같다
@@ -727,6 +727,7 @@ DELETE /comments/{id}  한 트랜잭션 (404 CM001 -> 403 CM002 판정 뒤 — 1
 | --- | --- | --- |
 | 같은 댓글의 동시 삭제가 `comment_count` 를 한 번만 줄이는가 | [phase2.md §5.4](phase2.md), [../domain-model.md §6](../domain-model.md)의 블록인용 | B-17 |
 | 같은 글의 동시 좋아요·취소에서 `like_count` 가 `post_like` 행 수와 같은가, 순서(`post` 먼저)가 교착을 막는가 | [../domain-model.md §6.1](../domain-model.md) | B-20 |
+| **`like_count` 가 0 인 글에서 같은 계정의 누르기와 취소가 겹칠 때** `like_count` 가 `post_like` 행 수와 같은가 — 취소의 감소가 0행이고, 그 감소와 행 삭제 사이에 누르기가 커밋하는 경우다. 0행 감소가 `post` 행의 락을 쥐는지는 DB 에 달렸다: 2026-11-16 B-20 의 H2 프로브에서는 쥐지 않아 `like_count` 1·`post_like` 0 이 남았고, MySQL 의 반복 읽기가 쥐는지를 잰다(추정: 쥔다). 두 연결로 문장을 그 차례로 낸다(B-20 의 H2 프로브와 같은 방법). 누르기의 증가가 취소의 커밋까지 기다렸는지는 관측값으로 적는다. **어긋나면 결함이다** — 취소의 1)을 `post` 의 잠금 읽기로 바꿔 0행 감소에서도 `post` 행의 락을 쥐게 하는 정본 결정을 연다([../domain-model.md §6.1](../domain-model.md)의 「1)을 잠금 읽기로 잡고 증가를 근거 행이 생긴 뒤에 하는 모양도 요건을 지킨다」 는 누르기 쪽 모양이라 이 창을 닫지 않는다) | [../domain-model.md §6](../domain-model.md)·§6.1, B-20 의 H2 프로브([phase1.md](phase1.md) `D-21`) | B-20 |
 | 같은 글의 동시 첫 조회 — 서로 다른 조회자(조건부 UPDATE 의 간격 락과 INSERT 의 교착)·같은 조회자(+1 한 번). 측정이 뒤집으면 판정 순서를 바꾼다 | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용 | B-21 |
 | 상세 응답의 `viewCount` 가 판정의 커밋을 보는가 — MySQL 의 반복 읽기에서 | [../requirements/board.md §9.3](../requirements/board.md) | B-21 (H2 의 격리 수준은 B-21 이 잰다) |
 | 경합의 UNIQUE 충돌(판정 행·좋아요)이 남기는 로그 수준 — ERROR 면 [../conventions.md §6.1](../conventions.md)과 어긋난다 | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용, [../domain-model.md §6.1](../domain-model.md) | B-20, B-21 |
