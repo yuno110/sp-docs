@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v74
-updated: 2026-11-16
+version: v75
+updated: 2026-11-17
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -650,6 +650,8 @@ Flyway 버전은 서비스마다 하나의 순번이다. 번호는 계획이 배
 **`useAffectedRows=true`를 JDBC URL에 넣지 않는다.** "0행이면 회전 실패" 판정이 found rows에 의존한다([../requirements/member.md §6.1](../requirements/member.md)).
 
 **AU-06이 남긴 경합이 여기서 닫힌다.** 로그인은 `authenticate()` 후 탈퇴가 커밋되면 탈퇴 계정 행을 INSERT할 수 있다. **재발급이 `account.deleted`를 같은 트랜잭션에서 검사하는 한 무해하다** — 그 검사가 이 항목의 완료 기준이다.
+
+> **2026-11-17 2차 AU-18 이 그 INSERT 의 경로를 닫았다** — 로그인의 저장이 계정을 잠금 읽기로 다시 읽어 탈퇴했으면 저장하지 않는다([../requirements/member.md §12.1](../requirements/member.md)의 7, `D-22`). 같은 날 AU-18 의 리뷰가 탈퇴가 토큰 행을 읽은 뒤 커밋하기 전에 로그인의 저장이 끝나는 경로를 찾았고, [phase2-auth-member.md](phase2-auth-member.md)의 AU-22 가 고친다. 재발급의 `deleted` 검사가 그 행을 무해하게 한다는 결론과 이 항목의 판정은 그대로다.
 
 **완료 기준**
 - [ ] `POST /api/v1/auth/reissue`가 새 Access/Refresh를 반환한다
@@ -2794,6 +2796,59 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | [phase2-board.md](phase2-board.md)를 `B-20`·`clearAutomatically`·`사본` 으로 훑는다 | 그 설정의 관측을 B-20 의 응답에 맡기는 줄이 없다 |
 | §4.1 의 새 줄과 I-07 의 새 행을 나란히 읽는다 | 조합과 기대가 같다 |
 | 이 항목이 고친 계획 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-16 이다 — 계획 문서는 `tools/check_refs.py` 의 `version` 검사 대상이 아니다 |
+
+---
+### D-22 AU-18 의 구현과 리뷰를 정본·계획에 반영한다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다** — 1차 항목의 판정을 뒤집지 않고 그 뒤에 생긴 결정을 더한다([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `AU-18`([phase2-auth-member.md](phase2-auth-member.md), sp-auth `e28a265`)의 구현과 리뷰가 2026-11-16·2026-11-17 에 쟀다 |
+| 참조 | [../requirements/member.md §12.1·§12.2](../requirements/member.md), [../domain-model.md §2.5](../domain-model.md), [../api-contract.md §2.1](../api-contract.md)·§2.2, [../security.md §4](../security.md)·§4.1·§5.3, [phase2-auth-member.md §1.2](phase2-auth-member.md)·§5.1 과 그 문서의 AU-18·AU-22, [phase2-frontend-integration.md](phase2-frontend-integration.md) I-08 |
+
+**`AU-18` 의 구현과 리뷰가 찾았고, 사용자가 2026-11-17 에 이 항목을 열기로 정했다.** 같은 날 사용자는 그 리뷰가 찾은 1차부터 있던 보안 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다.
+
+1. **로그인 전체가 한 트랜잭션이라는 서술이 낡았다.** [../requirements/member.md §12.2](../requirements/member.md)의 「`login()` 은 `@Transactional` 이고」·「로그인 트랜잭션이 BCrypt 전에 연 일관 읽기 스냅샷」 과 [../domain-model.md §2.5](../domain-model.md)의 「로그인 트랜잭션과 다른 트랜잭션」 이 그 전제다. 2026-11-16 AU-18 의 리뷰가 H2 에서 그 구조를 쟀다 — 로그인이 트랜잭션 안에서 카운터의 새 트랜잭션을 열면 요청 하나가 커넥션 둘을 쥐고, 풀 2·대기 3초에서 BCrypt 뒤에 맞춘 동시 로그인 둘이 둘 다 500 `C005` 였다. 2026-11-17 의 AU-18 은 로그인을 감싸지 않는다 — 계정 조회·BCrypt 는 트랜잭션 밖, 판정·세기·0 으로 하기는 카운터 빈의 새 트랜잭션, Refresh Token 저장은 짧은 트랜잭션이다. 같은 전제로 쓴 AU-18 의 완료 기준은 그 항목의 판정 기준이라 고쳐 쓰지 않는다
+2. **저장 때의 재확인이 정본에 없었다.** 비교와 저장 사이에 계정을 잠그지도 다시 읽지도 않아 그 사이에 커밋된 비밀번호 변경을 저장이 보지 못했다(AU-18 전의 한 트랜잭션 로그인도 다시 읽지 않았다) — 2026-11-17 AU-18 의 리뷰가 H2 에서 옛 비밀번호의 로그인이 200 을 받고 그 토큰으로 재발급되는 것을 쟀다. AU-18 은 저장 트랜잭션에서 계정을 잠금 읽기로 다시 읽어 비교에 쓴 해시와 같고 탈퇴하지 않았을 때만 저장한다. 어긋나면 401 `AU003` 이고 **세지 않는다** — 2026-11-17 오케스트레이터 결정이다. 비교 때 맞은 비밀번호라 추측 시도가 아니고, 다음 시도는 바뀐 계정과 비교되어 센다. 비교 뒤에 탈퇴가 커밋된 로그인의 응답이 200 에서 401 `AU003` 으로 바뀌었다. 리뷰는 [../api-contract.md §2.1](../api-contract.md)의 로그인 응답 표(「없는 이메일·탈퇴 계정·비밀번호 불일치」 의 `AU003` 은 센다)와 [../security.md §4](../security.md)의 로그인 흐름(탈퇴 계정 거부의 「실패는 잠금 카운터에 센다」)이 세지 않는 재확인과 글자로 어긋난다고 짚었다
+3. **세기의 DB 실패 가운데 무엇을 삼키는지가 정본에서 갈리지 않았다.** [../domain-model.md §2.5](../domain-model.md)는 「한 번 더 해도 실패하면(예: 교착) 로그인 응답은 `AU003` 그대로이고」 라고만 적었다. AU-18 은 락 경합(스프링의 `PessimisticLockingFailureException` — MySQL 1213·1205)이면 다시 하지 않고 `AU003` 과 WARN 으로 끝낸다. 다시 하는 자리를 또 만나도 같은 끝이다. 그 밖의 DB 실패는 삼키지 않고 [../conventions.md §6.1](../conventions.md)의 마지막 그물(500 `C005`)로 드러낸다
+4. **1차부터 있던 결함 둘을 AU-18 의 리뷰가 2026-11-17 H2 사본에서 찾았다.** ① 비밀번호 변경·탈퇴가 그 계정의 `refresh_token` 을 먼저 읽고 계정 행은 커밋 때에야 잠가, 그 사이에 같은 계정의 로그인이 저장을 끝내면 그 행이 남는다 — 비밀번호 변경이면 그 토큰으로 재발급이 200 이었다([../security.md §5.3](../security.md)의 「새 세션은 만들 수 없지만」 을 어긴다). MySQL 의 반복 읽기에서는 창이 BCrypt 비교 전부터로 넓어지고 재설정 확인도 영향을 받을 것으로 본다(추정). ② 비밀번호 변경을 세워 둔 사이에 탈퇴가 커밋되면 변경의 쓰기가 읽어 둔 `deleted = false` 로 행을 덮어 탈퇴한 계정이 되살아난다. 고치는 항목은 [phase2-auth-member.md](phase2-auth-member.md)의 AU-22 다
+
+사실은 sp-auth 의 `AuthService`·`LoginAttemptService`·`AccountService`·`RefreshTokenRepository`·`AccountRepository` 와 `LoginAttemptServiceTest`·`LoginConnectionPoolTest` 의 코드와 주석으로 확인했다(2026-11-17 `e28a265` 읽기). ①·② 의 프로브와 수정안의 측정은 리뷰의 것이고 그 저장소에 없다 — AU-22 의 회귀 테스트가 그 모양을 남긴다.
+
+**산출물**
+- [../requirements/member.md](../requirements/member.md) — §12.1 의 판정 순서에 저장 때의 재확인(7)과 그 근거·세지 않는 이유·§4.1 과의 관계, §12.2 의 카운터 표 줄과 트랜잭션 요건
+- [../domain-model.md §2.5](../domain-model.md) — 갱신 문장의 머리, 다시 하기의 「실패」 가 가리키는 것과 락 경합이 아닌 DB 실패
+- [../api-contract.md](../api-contract.md) — §2.1 로그인 응답 표의 재확인 줄, §2.2 탈퇴 표 아래 블록인용의 경로
+- [../security.md](../security.md) — §4 로그인 흐름의 재확인, §4.1 의 재확인 문단, §5.3 의 알려진 결함 블록인용
+- [phase2-auth-member.md](phase2-auth-member.md) — AU-18 의 블록인용, AU-22 와 그 자리(§1.1·§1.2), §5.1 의 결함 수정 표
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) — §1.1·§1.3 의 AU-22, I-08 의 출처·첫 완료 기준·검증표 행
+- 이 문서 AU-07 의 「로그인은 `authenticate()` 후 탈퇴가 커밋되면 탈퇴 계정 행을 INSERT할 수 있다」 곁 — 날짜를 단 블록인용. 그 항목의 판정을 뒤집지 않는다
+- [../docs/checklist.md](../docs/checklist.md) — `D-22` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**sp-auth 는 고치지 않는다.** AU-22 의 체크리스트 줄은 그 저장소의 상태 원본이 갖는다([README.md](README.md)의 상태의 위치).
+
+**완료 기준**
+- [ ] 고친 문장이 sp-auth 의 AU-18 코드와 맞고 날짜를 갖는다 — 로그인의 트랜잭션 경계, 저장의 재확인, 세기의 예외 처리
+- [ ] 재확인의 `AU003` 이 [../security.md §4.1](../security.md)과 모순되지 않는다 — 응답 모양이 실패와 같고, 이메일의 존재를 드러내지 않고, BCrypt 는 한 번이다
+- [ ] 「세지 않는다」 가 member.md §12.1·§12.2, api-contract §2.1, security §4 에서 같은 경우를 가리킨다
+- [ ] AU-18 의 기준 문장을 고쳐 쓰지 않고, 판정을 뒤집지 않는다는 블록인용을 단다
+- [ ] AU-22 가 결함 수정의 형식(무엇이 틀렸나·고치는 모양·고치기 전에 빨개지는 것을 본다)을 갖고, 실 MySQL 측정이 [phase2-auth-member.md §5.1](phase2-auth-member.md)의 줄과 I-08 의 행에 같은 조합·같은 기대로 있다
+- [ ] [../security.md §5.3](../security.md)의 「새 세션은 만들 수 없지만」 곁에 알려진 결함과 날짜, AU-22 가 있다
+- [ ] 재지 않은 것을 사실로 적지 않는다 — MySQL 의 반복 읽기에서의 창과 재설정 확인은 추정으로 적고 I-08 로 넘긴다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 고친 문장의 사실을 sp-auth 의 AU-18 코드와 대조한다 — `AuthService` 의 `login`·`storeRefreshToken`, `LoginAttemptService` 의 `countFailure`, `LoginAttemptServiceTest`·`LoginConnectionPoolTest` | 맞는다 |
+| AU-22 의 「무엇이 틀렸나」 를 `AccountService` 의 비밀번호 변경·탈퇴·재설정 확인과 `RefreshTokenRepository` 의 `deleteByAccountId` 와 대조한다 | 맞는다 |
+| sp-docs 를 「로그인 트랜잭션」·`@Transactional`·「다른 트랜잭션」·「세지 않」 으로 훑는다 | 로그인 전체를 한 트랜잭션으로 적는 정본 문장과, 재확인의 `AU003` 을 세는 것으로 읽히는 문장이 없다 |
+| [phase2-auth-member.md §5.1](phase2-auth-member.md)의 새 줄과 I-08 의 새 행을 나란히 읽는다 | 조합과 기대가 같다 |
+| 이 항목이 고친 계획 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-17 이다 |
 
 ---
 ## 7. 다음 단계

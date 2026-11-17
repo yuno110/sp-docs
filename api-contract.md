@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v52
-updated: 2026-11-12
+version: v53
+updated: 2026-11-17
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -59,7 +59,7 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 
 **로그인은 400을 쓰지 않는다.** 자격증명 누락·빈 값·형식 오류도 **401 `AU003`**이다.
 
-**로그인의 응답** — 2026-11-11 `D-19` 가 잠금·이메일 인증·요청 수 제한의 줄을 더했다. 판정 순서는 [requirements/member.md §12.1](requirements/member.md)이 정본이다.
+**로그인의 응답** — 2026-11-11 `D-19` 가 잠금·이메일 인증·요청 수 제한의 줄을, 2026-11-17 `D-22` 가 저장 때의 재확인 줄을 더했다. 판정 순서는 [requirements/member.md §12.1](requirements/member.md)이 정본이다.
 
 | 경우 | 응답 |
 | --- | --- |
@@ -69,6 +69,7 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 | 그 이메일이 잠겨 있다 — **비밀번호가 맞든 틀리든** | **401 `AU005`** |
 | 없는 이메일·탈퇴 계정·비밀번호 불일치 | 401 `AU003`. **그 실패로 연속 5회가 되면 401 `AU005`** |
 | 비밀번호가 맞고 이메일이 미인증이다 | **403 `AU006`** |
+| 비밀번호가 맞았는데 저장 전에 그 계정의 비밀번호 변경·재설정 확인·탈퇴가 커밋됐다 | 401 `AU003`. **세지 않는다** — 「없는 이메일·탈퇴 계정·비밀번호 불일치」 의 실패가 아니다([requirements/member.md §12.1](requirements/member.md)의 7) |
 | 성공 | 200 `TokenResponse`(§9.2) |
 
 **`AU005` 는 없는 이메일에도 똑같이 나온다** — 카운터가 계정이 아니라 이메일에 걸린다. **`AU006` 은 비밀번호가 맞은 뒤에만 나온다** — 그 응답이 알려주는 것(이 이메일과 비밀번호의 계정이 있다)은 비밀번호를 아는 사람만 얻는다. 1차의 로그인은 이 표에서 누락·빈 값의 `AU003`, 없는 이메일·탈퇴 계정·비밀번호 불일치의 `AU003`, 성공만 가졌다.
@@ -146,7 +147,7 @@ related: [domain-model.md, security.md, requirements/member.md, requirements/boa
 
 **"아무것도 바꾸지 않는다"는 RefreshToken도 포함한다.** 이미 탈퇴한 계정에 남은 토큰 행이 있어도 지우지 않는다.
 
-> **그 상태가 생기는 경로는 하나다** — 로그인이 `authenticate()`를 지난 뒤 탈퇴가 커밋되면, 로그인이 탈퇴한 계정에 토큰 행을 INSERT할 수 있다([requirements/member.md §6](requirements/member.md)). **무해하다**: 재발급이 `deleted`를 같은 트랜잭션에서 검사하므로 그 토큰으로는 아무것도 못 한다. 정리 수단을 1차에 두지 않는다 — 탈퇴 재호출로 치우게 하면 "닫힌 계정에는 손대지 않는다"가 깨지고, 틀린 비밀번호로 온 요청이 쓰기를 하게 된다.
+> **그 상태가 생기는 경로** — 로그인이 `authenticate()`를 지난 뒤 탈퇴가 커밋되면, 로그인이 탈퇴한 계정에 토큰 행을 INSERT할 수 있었다([requirements/member.md §6](requirements/member.md)). **2026-11-17 AU-18 이 그 경로를 닫았다** — 저장이 계정을 잠금 읽기로 다시 읽어 탈퇴했으면 저장하지 않는다([requirements/member.md §12.1](requirements/member.md)의 7). 같은 날 AU-18 의 리뷰가 다른 경로를 찾았다 — 탈퇴가 그 계정의 토큰 행을 읽은 뒤 커밋하기 전에 로그인의 저장이 끝나면 로그인이 넣은 행이 남는다. 그 경로는 [plan/phase2-auth-member.md](plan/phase2-auth-member.md)의 AU-22 가 고친다([security.md §5.3](security.md)의 블록인용). **무해하다**: 재발급이 `deleted`를 같은 트랜잭션에서 검사하므로 그 토큰으로는 아무것도 못 한다. 정리 수단을 1차에 두지 않는다 — 탈퇴 재호출로 치우게 하면 "닫힌 계정에는 손대지 않는다"가 깨지고, 틀린 비밀번호로 온 요청이 쓰기를 하게 된다.
 
 **`deleted` 검사가 비밀번호 비교보다 먼저다.** `PATCH /me/password`와 같은 순서이고, 결론만 반대다(그쪽은 404로 거부, 이쪽은 204로 통과). 이유도 같다 — **닫힌 행에 쓰기가 닿지 않아야 하고 `updated_at`이 움직이지 않아야 한다.** 재확인이 요구되는 것(MR-10)은 **계정을 닫는 행위**에 대한 것이고, 이미 닫힌 계정에는 보호할 상태가 없다.
 

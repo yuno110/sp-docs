@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — 화면·통합
 type: plan
 status: living
-version: v2
-updated: 2026-11-16
+version: v3
+updated: 2026-11-17
 read_when: "2차 기능 확장의 화면 항목(F-07 부터)·통합 항목(I-06 부터)의 범위·의존·완료 기준을 확인하거나, 2차 전체(B·AU·M·F·I)의 순서와 병렬을 볼 때. 상태는 F 는 sp-frontend, I 는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, phase1.md, ../api-contract.md, ../security.md, ../tech-stack.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -18,7 +18,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 | 단계 | 항목 | 성격 | 함께 도는 것 |
 | --- | --- | --- | --- |
 | **기반** | B-14~B-16, AU-12~AU-15, M-14 | 스키마·엔티티·에러 코드·예외 매핑·경로 선언·설정을 먼저 끝낸다(이유는 각 계획의 §1.1) | 세 저장소가 서로 기다리지 않는다. 화면의 F-07 |
-| **결함 수정** | B-17, B-18 | 1차 board 코드의 자리를 고친다 — 그 1차 항목의 완료 기준과 먼저 대조한다([phase2-board.md §1.1](phase2-board.md)) | B-17 은 의존이 없지만 B-14 와 `Comment` 를 함께 고쳐 같이 돌리지 않는다([phase2-board.md §1.2](phase2-board.md)). B-18 은 B-14 뒤다 |
+| **결함 수정** | B-17, B-18, AU-22 | 1차 코드의 자리를 고친다(AU-22 는 2차 AU-17 의 재설정 확인도) — 그 항목들의 완료 기준과 먼저 대조한다([phase2-board.md §1.1](phase2-board.md), [phase2-auth-member.md §1.1](phase2-auth-member.md)). AU-22 는 2026-11-17 `D-22` 가 세웠다 | B-17 은 의존이 없지만 B-14 와 `Comment` 를 함께 고쳐 같이 돌리지 않는다([phase2-board.md §1.2](phase2-board.md)). B-18 은 B-14 뒤다. AU-22 는 AU-18 뒤이고 auth 안에서는 AU-19 다음이다([phase2-auth-member.md §1.2](phase2-auth-member.md)) |
 | **기능** | B-19~B-24, AU-16~AU-21, M-15·M-16 | 기반 산출물을 읽고 자기 기능을 만든다 | 저장소끼리 함께 돈다 — AU-16 은 F-08 과 한 번에 커밋된다(아래 문단, §1.4). 저장소 안은 각 계획의 §1.2 |
 | **화면** | F-07~F-16 | 서버의 기능 항목을 따라간다. **기반·기능 구분을 쓰지 않는다** — 한 워커가 의존 열을 따라 한다([phase2.md §7.2](phase2.md)의 이유와 같다) | 서버 항목과 함께 돈다. F 끼리는 순차다(§1.2) |
 | **통합** | I-06~I-10 | 2차 서버 항목이 모두 `done` 인 뒤 세 서비스를 함께 띄워 잰다 | F 와 함께 돌 수 있지만 같은 서비스 인스턴스에 동시에 걸지 않는다. I 끼리는 순차다(§1.3) |
@@ -29,7 +29,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 
 ```
 기반       B-14 B-15 B-16     AU-12 ~ AU-15     M-14
-결함 수정  B-17 B-18
+결함 수정  B-17 B-18          AU-22 (AU-19 다음)
 기능       B-19 ~ B-24        AU-16 ~ AU-21     M-15 M-16
 화면       F-07                    (서버를 기다리지 않는다)
            AU-16 == F-08           (한 번에 커밋 — §1.4)
@@ -69,7 +69,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 | --- | --- | --- |
 | I-06 | 2차 B·AU·M 항목 모두 | 전부 — 기동과 흐름 |
 | I-07 | I-06 | B-17, B-20~B-24 |
-| I-08 | I-06 | AU-12, AU-16~AU-19 |
+| I-08 | I-06 | AU-12, AU-16~AU-19, AU-22 |
 | I-09 | I-06 | B-15, B-16, B-21, B-23, AU-14~AU-17, AU-19, M-15 |
 | I-10 | I-06 | B-15, AU-13, AU-19, AU-20, M-14~M-16 |
 
@@ -573,11 +573,11 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 | 상태 원본 | `yuno110/sp-board` 의 `docs/checklist.md` |
 | 의존 | I-06 |
 | 마이그레이션 | 없음 (§2) |
-| 측정 대상의 출처 | [phase2-auth-member.md §5.1](phase2-auth-member.md)의 첫 표 — 목록의 정본은 [phase2.md §5.4](phase2.md)의 「auth·member 쪽의 측정 대상」 단락이다. 그중 요청 처리(주소·응답 시간·SMTP)는 I-09, 429 의 모양은 I-10 이 잰다 |
-| 참조 | [../domain-model.md §2.4](../domain-model.md)·§2.5, [../requirements/member.md §11.2](../requirements/member.md)·§11.4·§12·§12.1·§12.2, [../security.md §10.1](../security.md) |
+| 측정 대상의 출처 | [phase2-auth-member.md §5.1](phase2-auth-member.md)의 첫 표 — 목록의 정본은 [phase2.md §5.4](phase2.md)의 「auth·member 쪽의 측정 대상」 단락이다. 그중 요청 처리(주소·응답 시간·SMTP)는 I-09, 429 의 모양은 I-10 이 잰다. 같은 절의 결함 수정 표(AU-22, 2026-11-17 `D-22`)도 여기서 잰다 |
+| 참조 | [../domain-model.md §2.4](../domain-model.md)·§2.5, [../requirements/member.md §11.2](../requirements/member.md)·§11.4·§12·§12.1·§12.2, [../security.md §5.3](../security.md)·§10.1 |
 
 **완료 기준**
-- [ ] **작업 시점에 [phase2.md §5.4](phase2.md)의 단락과 아래 검증표를 대조한다** — 그 단락이 바뀌었으면 그쪽을 따른다
+- [ ] **작업 시점에 [phase2.md §5.4](phase2.md)의 단락, [phase2-auth-member.md §5.1](phase2-auth-member.md)의 결함 수정 표와 아래 검증표를 대조한다** — 그 단락이나 표가 바뀌었으면 그쪽을 따른다
 - [ ] 같은 이메일의 동시 로그인 실패에서 카운터·잠금이 시도 수와 맞는다 — 첫 실패의 동시 INSERT 충돌을 포함한다. 세지 못한 실패가 있으면 그만큼 WARN 이 있다(AU-18). 「맞는다」 는 아래 검증표의 한도 미만·이상 두 줄이다 — 잠그는 실패가 카운터를 0 으로 되돌리므로 한도에 닿으면 카운터는 시도 수가 아니다
 - [ ] 같은 토큰의 동시 확인 중 하나만 성공한다 — 인증·재설정 각각(AU-16·AU-17)
 - [ ] **`login_attempt.email_key` 와 `account.email` 의 콜레이션을 `information_schema` 로 읽어 비교한다** — AU-12 가 실 MySQL 로 넘긴 줄이다. 계정 조회와 같은 기준으로 키가 합쳐지는지 본다(AU-18)
@@ -598,6 +598,7 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 | ASCII 대소문자만 다른 표기로 번갈아 실패 | 한 키로 센다 |
 | 악센트 변형·`İ` 표기 | 관측값 — 계정 조회와 잠금 키가 같은 계정으로 모이는가 |
 | 끝 공백을 붙여 100자를 넘긴 이메일로 로그인 | 401 `AU003`, 계정에 닿지 않는다, `login_attempt` 행이 생기지 않는다 |
+| 같은 계정의 로그인과 비밀번호 변경·탈퇴·재설정 확인을 겹친다 — 로그인의 저장이 쓰는 쪽의 트랜잭션 안에 든다. 재설정 확인이 토큰을 읽은 뒤 계정 잠금을 기다리는 사이에 로그인의 저장이 커밋되는 차례를 포함하고, 그 계정에 `refresh_token` 행이 없는 상태에서 시작한다. 차례를 만드는 방법은 이 항목이 고른다(예: 다른 연결이 계정 행을 잠금 읽기로 잡아 두 요청을 그 앞에 세운다 — 어느 요청이 먼저 잠금을 얻었는지는 관측값으로 적는다) | 쓰는 쪽이 커밋한 뒤 로그인이 넣은 `refresh_token` 행이 없다 — 로그인은 기다린 뒤 401 `AU003` 이거나, 먼저 커밋했으면 그 행을 쓰는 쪽이 지웠다. 어긋나면 결함이다 — 근거는 [phase2-auth-member.md §5.1](phase2-auth-member.md)의 결함 수정 표다 |
 
 ---
 

@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v19
-updated: 2026-11-12
+version: v20
+updated: 2026-11-17
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -228,7 +228,7 @@ UPDATE account_token SET used_at = :now
 **갱신 문장** — 순서와 원자성이 요건이고 문장의 모양은 예다.
 
 ```
-실패를 센다 — 로그인 트랜잭션과 다른 트랜잭션
+실패를 센다 — 그 일만 하는 새 트랜잭션 (requirements/member.md §12.2)
   1) UPDATE login_attempt
         SET failed_count = CASE WHEN updated_at <= :now - 24h THEN 1 ELSE failed_count + 1 END,
             updated_at   = :now
@@ -251,6 +251,7 @@ UPDATE account_token SET used_at = :now
 
 - **1) 이 행 락을 잡으므로 2) 의 판정이 같은 키의 동시 실패를 한 줄로 세운다.** 동시 실패 다섯 중 정확히 하나가 2) 에서 1행을 받는다
 - **다시 하는 자리(UNIQUE 충돌, 잠기지 않은 행)는 새 트랜잭션이다.** 잠기지 않은 행을 보는 것은 간격 락이 없는 격리 수준(예: READ COMMITTED)에서 같은 키의 동시 첫 실패가 그 사이 INSERT 를 커밋한 경우다 — 그 행을 잠금으로 읽으면 거짓 잠금이 나고 이번 실패가 사라진다. JPA 에서 제약 위반이 트랜잭션을 rollback-only 로 만들 수 있다 — [requirements/board.md §9.3](requirements/board.md)이 조회수 판정에서 같은 문제를 적었다. 한 번 더 해도 실패하면(예: 교착) 로그인 응답은 `AU003` 그대로이고 **세지 못한 실패를 WARN 으로 남긴다**
+- **「한 번 더 해도 실패하면」 의 실패는 다시 하는 자리를 또 만난 것과 락 경합이다**(2026-11-17 `D-22` — AU-18 의 구현에 맞췄다). 락 경합(예: MySQL 의 교착·잠금 대기 시간 초과)은 첫 시도에서 나도 다시 하지 않고 같은 응답과 WARN 으로 끝낸다. **락 경합이 아닌 DB 실패는 삼키지 않는다**(예: 커넥션을 얻지 못함) — [conventions.md §6.1](conventions.md)의 마지막 그물이 500 `C005` 로 낸다. 삼키면 DB 가 실패하는 동안의 실패가 세지지 않은 채 보통의 실패 응답으로 나가, 잠금이 열리는 쪽으로 실패한다
 - **`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다.** 쓰려면 실 MySQL 측정을 먼저 한다 — 영향 행 수가 H2 와 MySQL 에서 같다는 근거가 없다([requirements/board.md §9.3](requirements/board.md)과 같은 이유)
 - **없는 행을 찾는 1) 은 MySQL 의 반복 읽기에서 간격 락을 잡을 수 있다.** 같은 키의 동시 첫 실패가 교착할 수 있다(추정 — 실 MySQL 측정 대상, [plan/phase2.md §5.4](plan/phase2.md))
 

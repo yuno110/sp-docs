@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — auth·member 기능 확장
 type: plan
 status: living
-version: v1
-updated: 2026-11-12
+version: v2
+updated: 2026-11-17
 read_when: "2차 기능 확장의 auth·member 작업 항목(AU-12 부터·M-14 부터)의 범위·의존·마이그레이션 번호·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md 를 본다"
 related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../domain-model.md, ../api-contract.md, ../security.md, ../conventions.md, ../tech-stack.md]
 ---
@@ -21,6 +21,7 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | **기반** — member | M-14 | 에러 코드·예외 매핑·경로 선언 — `C009` 매핑은 제한기와 함께 M-15 가 둔다. member 는 마이그레이션이 없다(§2) |
 | **기능** — auth | AU-16~AU-21 | 기반 산출물을 읽고 자기 파일을 만든다. 같은 Service·Controller 를 고치는 항목이 있어 저장소 안에서는 §1.2 의 순서를 따른다 |
 | **기능** — member | M-15, M-16 | M-14 뒤 |
+| **결함 수정** — auth | AU-22 | 1차 AU-08·AU-09 와 2차 AU-17 의 산출물을 고친다 — 그 항목들의 완료 기준과 먼저 대조한다. 2026-11-17 `D-22` 가 세웠다 |
 
 [phase1.md §1.1](phase1.md)과 같은 이유로 **순서 의존과 공유 상태를 기반에 몰았다.** 에러 코드와 `SecurityConfig` 의 경로·CORS 를 기반이 끝내므로 기능 항목은 그 파일들을 고치지 않는다.
 
@@ -42,6 +43,8 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
       AU-19 요청 수 제한        [기능]
       AU-20 계정 목록           [기능]  <- M-16 과 함께 화면의 회원 목록
       AU-21 정리 작업           [기능]
+      ─────────────────────
+      AU-22 계정 먼저 잠그기    [결함 수정]  <- 번호와 달리 AU-19 다음 (§1.2)
             \                                      /
              +---- 통합 측정 (§5.1) · 화면 항목 (§5.2) ----+
 ```
@@ -54,17 +57,18 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | AU-13 | 없음 | `GlobalExceptionHandler`·그 테스트 (AU-19) | 화면: 무인증 경로의 401 (§5.2) |
 | AU-14 | 없음 | `application.yml` (AU-19·AU-21), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-19) | 로컬 `local` 기동이 메일 설정을 요구하게 된다 (§1.3) |
 | AU-15 | AU-12, AU-14 | — | — |
-| AU-16 | AU-13, AU-15 | `AccountController`·`AccountService` (AU-17·AU-19·AU-20), `AuthService` (AU-18) | 화면의 가입 흐름 (§1.3) |
+| AU-16 | AU-13, AU-15 | `AccountController`·`AccountService` (AU-17·AU-19·AU-20·AU-22), `AuthService` (AU-18) | 화면의 가입 흐름 (§1.3) |
 | AU-17 | AU-16 | `AccountController`·`AccountService` | 화면의 비밀번호 찾기·재설정 |
 | AU-18 | AU-12, AU-13, AU-16 | `AuthService` (AU-16), `LoginAttemptRepository`·그 테스트 (AU-12·AU-21), `AuthControllerTest` (AU-19) | 화면의 로그인 안내 |
 | AU-19 | AU-13, AU-16, AU-17 | `AccountController` (AU-16·AU-17·AU-20), `GlobalExceptionHandler`·그 테스트 (AU-13), `application.yml` (AU-14·AU-21), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-14), `AuthControllerTest` (AU-18) | 화면의 429 안내, 로컬 템플릿 (§1.3) |
 | AU-20 | AU-12, AU-13 | `AccountController`·`AccountService` | 화면의 관리자 회원 목록 (M-16 과 함께) |
 | AU-21 | AU-12, AU-16, AU-18 | `application.yml` (AU-14·AU-19), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18), `AccountTokenRepository`·그 테스트 (AU-12) | — |
+| AU-22 | AU-18 | `AccountService`·그 테스트 (AU-16·AU-17·AU-20) | — |
 | M-14 | 없음 | `GlobalExceptionHandler`·그 테스트 (M-15) | 화면: 무인증 경로의 401 |
 | M-15 | M-14 | `GlobalExceptionHandler`·그 테스트 (M-14), `MemberControllerTest` (M-16) | 화면의 429 안내, 로컬 템플릿 |
 | M-16 | M-14 | `MemberControllerTest` (M-15) | 화면의 관리자 회원 목록 (AU-20 과 함께) |
 
-**저장소마다 구현 워커가 하나면**(두 저장소의 `CLAUDE.md` 가 그렇게 적는다 — 2026-11-12 읽기) auth 는 AU-12 → AU-13 → … → AU-21 의 번호 순서로 하나씩 한다. **AU-20 은 의존이 적어 앞당길 수 있다**(예: 화면의 회원 목록을 먼저 할 때). 저장소 안의 병렬은 「겹치는 파일」 이 없는 항목끼리만 한다. auth 와 member 는 서로의 파일을 고치지 않으므로 두 저장소는 처음부터 함께 돈다.
+**저장소마다 구현 워커가 하나면**(두 저장소의 `CLAUDE.md` 가 그렇게 적는다 — 2026-11-12 읽기) auth 는 AU-12 → AU-13 → … → AU-21 의 번호 순서로 하나씩 한다. **AU-20 은 의존이 적어 앞당길 수 있다**(예: 화면의 회원 목록을 먼저 할 때). **AU-22 는 번호와 달리 AU-19 다음에 한다** — 사용자가 2026-11-17 에 그 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다(`D-22`). 저장소 안의 병렬은 「겹치는 파일」 이 없는 항목끼리만 한다. auth 와 member 는 서로의 파일을 고치지 않으므로 두 저장소는 처음부터 함께 돈다.
 
 ### 1.3 저장소 밖과 맞물리는 때
 
@@ -431,6 +435,8 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | 증가 UPDATE 가 0행이고 잠기지 않은 행이 있다(대역 — domain-model §2.5 의 갱신 문장) | 새 트랜잭션에서 한 번 더 센다 |
 | 다시 하기 — UNIQUE 충돌을 만든다(예: 대역) | 한 번 더 한다. 또 실패하면 `AU003` 과 WARN 한 줄 |
 
+> **2026-11-17 `D-22` 가 이 항목의 완료 기준이 전제한 「로그인 트랜잭션」 을 정본에서 걷었다.** 「로그인 트랜잭션과 다른 트랜잭션에서 커밋된다」 와 「로그인 트랜잭션이 먼저 연 스냅샷으로 읽지 않는다」 는 로그인 전체가 한 트랜잭션이라는 그때의 정본 문장([../requirements/member.md §12.2](../requirements/member.md))을 따라 쓰였다. AU-18 의 구현은 로그인을 트랜잭션으로 감싸지 않는다 — 2026-11-16 AU-18 의 리뷰가 감싼 구조에서 커넥션 풀이 멈추는 것을 쟀다. 위 기준과 표는 그 전의 문장이고 **이 항목의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 지금의 요건은 [../requirements/member.md §12.1·§12.2](../requirements/member.md)가 적는다 — 저장 때의 재확인(§12.1 의 7)과 락 경합의 처리([../domain-model.md §2.5](../domain-model.md))도 같은 날 AU-18 의 구현에서 정본으로 들어갔다.
+
 ---
 
 ### AU-19 요청 수 제한 — auth [기능]
@@ -567,6 +573,75 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | 지금 잠겨 있는 행 | 남는다 |
 | 지운 토큰으로 확인 | 400 `AU007`(만료 토큰과 같다) |
 | 지운 잠금 행의 이메일로 실패 | 카운터 1(24시간 지난 행과 같다) |
+
+---
+
+### AU-22 비밀번호 변경·탈퇴·재설정 확인이 계정을 먼저 잠근다 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-auth` |
+| 의존 | AU-18 — 로그인의 저장이 계정을 잠금 읽기로 다시 읽는다([../requirements/member.md §12.1](../requirements/member.md)의 7). 이 항목은 쓰는 쪽을 같은 잠금에 세운다. **번호와 달리 AU-19 다음에 한다**(§1.2) |
+| 공유 파일 | `AccountService`·그 테스트 (AU-16·AU-17·AU-20 도 고친다) |
+| 마이그레이션 | 없음 |
+| 참조 | [../security.md §5.3](../security.md), [../requirements/member.md §3](../requirements/member.md)·§11.4·§12.1, [../api-contract.md §2.2](../api-contract.md), [phase1.md](phase1.md) AU-08·AU-09, [../process/review-policy.md §4.1](../process/review-policy.md) |
+
+**사용자가 2026-11-17 에 이 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다**(`D-22`). AU-18 의 리뷰가 찾았고, 1차의 비밀번호 변경(AU-08)·탈퇴(AU-09)부터 있던 결함이다. 재설정 확인(AU-17)이 같은 지우기를 쓴다. **완료된 항목들의 산출물을 고치므로** 그 항목들의 완료 기준과 충돌하지 않는지 먼저 본다.
+
+**무엇이 틀렸나.** 2026-11-17 코드 읽기(`AccountService`·`RefreshTokenRepository`)로 본 모양은 이렇다: 비밀번호 변경과 탈퇴는 계정을 잠그지 않고 읽고(`AccountReader`), 탈퇴 검사와 BCrypt 비교 뒤 엔터티를 바꾸고, `deleteByAccountId` 로 그 계정의 `refresh_token` 을 지운다. 그 지우기는 행을 먼저 읽고 커밋 때 읽어 둔 행을 id 로 지우는 파생 삭제다. 계정 행의 쓰기도 커밋 때 나가므로 쓰는 쪽은 계정 행을 그때에야 잠근다.
+
+- **① 로그인의 세션이 남는다.** 쓰는 쪽이 `refresh_token` 을 읽은 뒤 커밋하기 전에 같은 계정의 로그인이 저장을 끝내면 — 그 저장의 잠금 읽기는 아직 잠기지 않은 계정에서 옛 해시·`deleted = false` 를 본다 — 로그인이 넣은 행이 지우기에서 빠져 남는다. 2026-11-17 AU-18 의 리뷰가 H2 사본에서 쟀다 — 비밀번호 변경이면 그 토큰으로 재발급이 200 이었다([../security.md §5.3](../security.md)의 「새 세션은 만들 수 없지만」 을 어긴다). 탈퇴면 탈퇴한 계정에 행이 남는다 — 재발급은 `deleted` 를 보고 막는다([../api-contract.md §2.2](../api-contract.md)의 탈퇴 표 아래). **쓰는 쪽이 읽을 때 이미 있던 행은 지워진다고 본다** — 로그인은 그 행을 갱신하고 쓰는 쪽은 읽어 둔 id 로 지운다(코드 읽기). MySQL 의 반복 읽기에서는 쓰는 쪽의 스냅샷이 첫 읽기 때 정해지므로 창이 BCrypt 비교 전부터로 넓어지고, 재설정 확인도 토큰 행을 읽은 뒤 계정을 잠그기 전에 커밋된 로그인의 행을 놓칠 것으로 본다(추정 — 재지 않았다)
+- **② 탈퇴한 계정이 되살아난다.** 비밀번호 변경이 계정을 읽은 뒤 쓰기 전에 탈퇴가 커밋되면, 변경의 쓰기가 읽어 둔 `deleted = false` 로 행을 다시 쓴다 — `Account` 에 바뀐 컬럼만 싣는 설정이 없다. sp-auth `AccountRepository` 의 `findByIdForUpdate` 주석이 링크 토큰의 확인에 대해 경고하는 것과 같은 경합이다. 같은 리뷰가 H2 사본에서 변경을 세워 둔 차례로 찾았다
+
+리뷰의 프로브는 저장소에 없다 — 이 항목의 회귀 테스트가 그 모양을 남긴다.
+
+**고치는 모양** — 쓰는 쪽이 로그인의 저장과 같은 계정 잠금을 먼저 잡는다. 리뷰가 H2 사본에서 이 모양을 쟀고 잰 경우가 모두 닫혔다 — 로그인은 기다린 뒤 `AU003` 이고 행이 없으며, 변경과 탈퇴는 차례로 선다.
+
+```
+비밀번호 변경·탈퇴  한 트랜잭션 (1차 그대로)
+  1) 계정을 잠금 읽기로 읽는다                 <- 지금은 잠그지 않고 읽는다
+  2) 탈퇴 검사 -> 비밀번호 비교 -> 계정 쓰기    판정과 응답은 1차 그대로
+  3) 그 계정의 refresh_token 을 지운다          지울 때의 최신 커밋 행이 대상이다
+                                                (예: account_id 로 거는 벌크 DELETE. 앞의 계정 쓰기를 먼저 flush 한다)
+
+재설정 확인  한 트랜잭션 (requirements/member.md §11.4 의 순서 그대로)
+  토큰 사용 처리 -> 계정 잠금 읽기 (지금 그대로) -> ... -> refresh_token 지우기 (비밀번호 변경·탈퇴의 3 과 같다)
+
+잠금 순서  account -> refresh_token                    로그인의 저장과 같다 (AU-18)
+           account_token -> account -> refresh_token -> login_attempt    재설정 확인
+```
+
+- **지우기도 바꾸는 이유** — 파생 삭제는 먼저 읽은 행만 지운다. 그 읽기가 계정 잠금 전에 정해진 스냅샷을 보면 그 사이 커밋된 로그인의 행을 놓친다 — 재설정 확인은 토큰을 읽은 뒤 계정을 잠그므로 반복 읽기에서 그렇게 될 것으로 본다(추정). 리뷰는 잠금 읽기와 벌크 DELETE 를 함께 두면 그 경로가 닫힌다고 봤다. **벌크 DELETE 만으로는 ② 가 남는다**(리뷰 측정) — 계정 쓰기가 잠그지 않고 읽은 값으로 나간다
+- **대가** — 같은 계정의 로그인 저장·인증 확인·재설정 확인이 비밀번호 변경·탈퇴의 BCrypt 동안 계정 잠금을 기다린다. 같은 계정의 요청끼리다
+- **실 MySQL 측정은 I-08 로 넘긴다**(§5.1, [phase2-frontend-integration.md](phase2-frontend-integration.md)). 이 항목의 테스트는 H2 위에서 돌아 반복 읽기의 스냅샷을 재현하지 않는다([phase2.md §5.4](phase2.md))
+
+**산출물**
+- `account/service/AccountService` — 비밀번호 변경·탈퇴가 계정을 잠금 읽기로 먼저 읽는다. 세 경로의 javadoc 에 잠금 순서와 그 이유
+- `auth/repository/RefreshTokenRepository` — 세 경로가 쓰는 지우기를 지울 때의 최신 커밋 행을 지우는 모양으로
+- 테스트 — 리뷰의 프로브 모양의 회귀 테스트. 위치는 구현이 고른다(예: `AccountServiceTest`, AU-18 의 저장 테스트를 둔 `LoginAttemptServiceTest`)
+
+**완료 기준**
+- [ ] **고치기 전에 검증표에서 「고치기 전 코드에서 깨진다」 를 적은 줄이 지금 코드에서 빨개지는 것을 보았다** — 리뷰의 프로브가 저장소의 테스트가 된다. 결과를 보고에 적는다
+- [ ] 비밀번호 변경·탈퇴가 계정을 잠금 읽기로 먼저 읽는다 — 탈퇴 검사·비밀번호 비교·쓰기·`refresh_token` 지우기가 그 잠금 아래에 있다
+- [ ] 세 경로의 `refresh_token` 지우기가 지울 때의 최신 커밋 행을 지운다 — 일관 읽기로 골라 둔 행만 지우지 않는다. 앞의 계정 쓰기가 사라지지 않는다
+- [ ] 잠금 순서가 위 모양이다. 거꾸로 잡는 경로를 더하지 않는다
+- [ ] 회귀 테스트는 리뷰의 프로브 모양이다 — **실제 스레드**에서 쓰는 쪽을 `refresh_token` 을 읽은(고친 뒤에는 지운) 직후·커밋 전에 세워 두고, 그동안 다른 요청을 보낸다. ① 의 줄은 그 계정에 `refresh_token` 행이 없는 상태에서 시작한다 — 행이 있으면 로그인이 그 행을 갱신하고 쓰는 쪽이 읽어 둔 그 id 로 지워 「행이 남는다」 가 재현되지 않는다(① 의 코드 읽기)
+- [ ] 기다린 로그인의 `AU003` 은 세지 않는다([../requirements/member.md §12.1](../requirements/member.md)의 7)
+- [ ] 응답·판정·트랜잭션 경계가 그대로다 — AU-08·AU-09 의 완료 기준(예: 탈퇴한 계정의 변경 404 `AU001`, 이미 탈퇴한 계정의 탈퇴 204·`updated_at` 그대로, 한 번의 호출에 커밋 한 번)과 AU-17 의 확인 기준
+- [ ] 기존 테스트가 깨지지 않는다
+- [ ] 재지 않은 것을 사실로 적지 않는다 — 반복 읽기에서의 결과는 I-08 이 잰다
+
+**검증** — 위 테스트, `./gradlew test`. 세우는 자리는 쓰는 쪽의 `refresh_token` 읽기(고친 뒤에는 지우기) 직후·커밋 전이다.
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| **비밀번호 변경을 세우고 그동안 옛 비밀번호로 로그인한다** — 그 계정에 `refresh_token` 행이 없다 | 로그인은 변경의 커밋을 기다린 뒤 401 `AU003`, 카운터는 member.md §12.1 의 6 이 0 으로 한 값 그대로. 행이 없다. **고치기 전 코드에서 깨진다**(로그인 200, 행이 남는다) |
+| **탈퇴를 세우고 그동안 로그인한다** — 같은 시작 | 로그인은 기다린 뒤 401 `AU003`, 행이 없다. **고치기 전 코드에서 깨진다**(탈퇴한 계정에 행이 남는다) |
+| **비밀번호 변경을 세우고 그동안 옛 비밀번호로 탈퇴한다** | 탈퇴는 변경의 커밋을 기다린 뒤 400 `AU004`. 계정은 새 비밀번호이고 `deleted = false`. **고치기 전 코드에서 깨진다**(탈퇴가 커밋되고 변경이 `deleted = false` 로 되살린다) |
+| 탈퇴를 세우고 그동안 비밀번호를 바꾼다 | 변경은 탈퇴의 커밋을 기다린 뒤 404 `AU001`. 계정은 `deleted = true` |
+| 재설정 확인을 세우고 그동안 옛 비밀번호로 로그인한다 — 같은 시작 | 로그인은 기다린 뒤 401 `AU003`, 행이 없다. H2 에서는 고치기 전에도 통과할 것으로 본다 — 지금도 계정을 잠근 뒤 지운다(코드 읽기) |
+| 세 경로가 낸 `refresh_token` 문장(예: `RecordingStatementInspector`) | 일관 읽기로 고른 행을 id 로 지우는 모양이 아니다 |
+| AU-08·AU-09·AU-17 의 검증표 | 그대로 통과한다 |
 
 ## 4. member-service 작업 항목
 
@@ -717,6 +792,12 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | --- | --- | --- |
 | `C009` 의 본문·헤더를 auth·member 가 같게 내는가 — 둘의 비교다 | [../api-contract.md §8.1](../api-contract.md)의 `C009` 문단, [../conventions.md §6.1](../conventions.md) | AU-19, M-15 |
 | multipart 매핑이 세 서비스에서 같고, 한도를 넘는 multipart 가 실서버에서 413 `C008` 인가 — MockMvc 는 서블릿 컨테이너의 한도를 거치지 않는다 | [../conventions.md §6.1](../conventions.md)의 블록인용 | AU-13, M-14 (board 의 같은 매핑과 함께) |
+
+**결함 수정 항목이 실 MySQL 로 넘긴 것**(2026-11-17 `D-22`) — [phase2.md §5.4](phase2.md)의 단락에 없다. [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 잰다.
+
+| 대상 | 근거 | 항목 |
+| --- | --- | --- |
+| 같은 계정의 로그인과 비밀번호 변경·탈퇴·재설정 확인을 겹칠 때 — 로그인의 저장이 쓰는 쪽의 트랜잭션 안에 든다. 재설정 확인이 토큰을 읽은 뒤 계정 잠금을 기다리는 사이에 로그인의 저장이 커밋되는 차례를 포함하고, 그 계정에 `refresh_token` 행이 없는 상태에서 시작한다. 차례를 만드는 방법은 I-08 이 고른다(예: 다른 연결이 계정 행을 잠금 읽기로 잡아 두 요청을 그 앞에 세운다 — 어느 요청이 먼저 잠금을 얻었는지는 관측값으로 적는다) — 쓰는 쪽이 커밋한 뒤 로그인이 넣은 행이 없는가. 로그인은 기다린 뒤 401 `AU003` 이거나, 먼저 커밋했으면 그 행을 쓰는 쪽이 지웠어야 한다. 어긋나면 결함이다 | [../security.md §5.3](../security.md)의 블록인용, AU-22 의 「무엇이 틀렸나」 | AU-22 |
 
 ### 5.2 화면 항목이 필요로 하는 것
 
