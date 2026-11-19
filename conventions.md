@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v25
-updated: 2026-11-12
+version: v26
+updated: 2026-11-19
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -97,10 +97,13 @@ com.example.board
 | `like.service` | `post.repository.PostRepository` | `like_count` 의 좁은 UPDATE — 그것이 `post` 행의 배타 락을 먼저 잡는다 ([domain-model.md §6.1](domain-model.md)) |
 | `attachment.*` | `post.entity.Post`, `post.support.PostReader`, `post.repository.PostRepository` | 글 존재·작성자 판정, `attachment_count` 의 조건부 UPDATE ([domain-model.md §6](domain-model.md)) |
 | `post.service` | `like.repository`, `attachment.repository` | 상세 응답의 `liked`·`attachments` ([api-contract.md §4.3](api-contract.md)) |
+| `post.service`, `post.dto` | `attachment.dto.AttachmentResponse` | 상세·수정 응답의 `attachments` 원소 — 올리기 응답과 같은 모양이다 ([api-contract.md §4.7](api-contract.md)) |
 
 **면제는 이 표까지다.** 서로의 **Service**를 참조하지 않는다 — 업무 규칙이 두 곳으로 갈리고 트랜잭션 경계가 어느 쪽 것인지 흐려진다. 게시글 존재 판정은 `PostReader` 한 곳이고([plan/phase1.md §2.5](plan/phase1.md)의 공유 지점), 댓글 연쇄 삭제는 `CommentRepository`의 벌크 UPDATE 한 곳이다.
 
 > **`like`·`attachment` 의 줄은 2026-11-11 `D-18` 이 더했다.** 이유는 처음 줄들과 같다 — 근거 행(`post_like`·`attachment`)과 `post` 의 집계가 **한 트랜잭션**이다. 집계를 바꾸는 문장을 `PostRepository` 에 두는 것도 아래 B-10 의 이유 그대로다. 조회수 판정(`post_view`)은 `post` 안에 둔다 — 상세 조회의 일부이고 다른 패키지가 쓰지 않는다. 1차의 이 문단은 "면제는 이 세 줄까지다" 였다.
+>
+> **`attachment.dto` 의 줄은 2026-11-19 `D-23` 이 더했다 — B-24 의 리뷰가 찾았다.** 이유는 한 트랜잭션이 아니라 **한 모양**이다. [api-contract.md §4.7](api-contract.md)이 올리기 응답과 상세 응답의 `attachments` 원소를 같은 모양으로 정하므로 같은 타입을 쓴다. `post` 쪽에 같은 모양의 DTO 를 따로 두면 두 정의가 따로 바뀌어 그 계약이 갈라질 수 있다. DTO 를 참조하는 것이고 **Service 상호 참조는 아니다.**
 >
 > **`comment.service` → `PostRepository` 줄은 B-10이 만들었다.** `comment_count` 갱신이 엔티티 메서드에서 **좁은 UPDATE**로 바뀌면서(소실 갱신 때문이다 — [plan/phase1.md](plan/phase1.md) B-10) 그 문장이 `PostRepository`에 선언됐다. **`CommentRepository`에 두지 않은 이유**는 그 문장이 바꾸는 테이블이 `post`라서다 — `comment` 쪽에 숨기면 `PostRepository`를 읽는 사람이 `comment_count`가 어디서도 바뀌지 않는다고 결론한다. 방향은 첫 줄과 같은 모양이고 금지된 **Service 상호 참조는 아니다.**
 

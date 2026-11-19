@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v75
-updated: 2026-11-17
+version: v76
+updated: 2026-11-19
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -2849,6 +2849,46 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | sp-docs 를 「로그인 트랜잭션」·`@Transactional`·「다른 트랜잭션」·「세지 않」 으로 훑는다 | 로그인 전체를 한 트랜잭션으로 적는 정본 문장과, 재확인의 `AU003` 을 세는 것으로 읽히는 문장이 없다 |
 | [phase2-auth-member.md §5.1](phase2-auth-member.md)의 새 줄과 I-08 의 새 행을 나란히 읽는다 | 조합과 기대가 같다 |
 | 이 항목이 고친 계획 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-17 이다 |
+
+### D-23 B-24 의 리뷰가 찾은 것을 정본에 반영한다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `B-24`([phase2-board.md](phase2-board.md))의 구현과 리뷰 1라운드가 2026-11-19 에 찾았다 |
+| 참조 | [../conventions.md §1.3](../conventions.md), [../domain-model.md §6.1·§6.2](../domain-model.md), [../api-contract.md §4.7](../api-contract.md)·§4.3, [phase2-board.md](phase2-board.md) 의 B-20·B-24 |
+
+**`B-24` 의 리뷰가 찾았고, 사용자가 2026-11-19 에 이 항목을 열기로 정했다.**
+
+1. **[../conventions.md §1.3](../conventions.md)의 면제 표가 `attachment.dto` 참조를 말하지 않는다.** B-24 의 `post.service.PostService`·`post.dto.PostDetailResponse` 가 상세·수정 응답의 `attachments` 원소로 `attachment.dto.AttachmentResponse` 를 쓴다. [../api-contract.md §4.7](../api-contract.md)이 올리기 응답과 상세 응답의 원소를 같은 모양으로 정하므로 같은 타입이 맞는 설계인데, 표의 `post.service` 줄 가운데 상세 응답의 `liked`·`attachments` 줄은 `like.repository`·`attachment.repository` 만 적고 표 뒤 문장은 「면제는 이 표까지다」 였다
+2. **[../domain-model.md §6.2](../domain-model.md)의 첨부 삭제가 1) 의 0행에 WARN 을 붙였다.** 같은 첨부의 동시 삭제에서 진 요청도 1) 이 0행이고, 그 요청은 2) 가 0행이라 되돌아간다 — 어긋난 상태가 아니다. 같은 절의 「근거 행은 있는데 집계가 0」, §6.1 `DELETE` 의 「행이 있는데 집계가 0 이면」, B-20 의 좋아요 취소와 맞는 조건은 「1) 이 0행이고 2) 가 1행」 이다. B-24 는 그 조건으로 구현했고 집계 0 의 동시 지우기 테스트가 WARN 을 정확히 1회로 고정한다
+
+사실은 sp-board 에 스테이징된 B-24 의 `AttachmentService.delete`·`PostService`·`PostDetailResponse` 와 그 javadoc 으로 확인했다(2026-11-19 읽기 — 커밋 전).
+
+**산출물**
+- [../conventions.md §1.3](../conventions.md) — 면제 표의 `attachment.dto` 줄과 그 이유의 블록인용
+- [../domain-model.md §6.2](../domain-model.md) — 첨부 삭제 블록의 WARN 자리와 그 조건의 문단
+- [phase2-board.md](phase2-board.md) — B-24 의 완료 기준 가운데 지우기의 WARN 줄과 검증 표의 동시 지우기 줄, B-17 의 「1)이 0행인 경우」 괄호(같은 등식을 댓글 경로에서 적었다)
+- [../docs/checklist.md](../docs/checklist.md) — `D-23` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**sp-board 는 고치지 않는다.** B-24 의 `AttachmentService.delete` javadoc 에서 이 개정 뒤 낡는 두 자리 — WARN 문단의 「§6.2 의 문구와 다르다」 와 1) 항목의 「0 행이면 … 어긋난 상태이고」 — 는 `B-24` 가 커밋 전에 고친다.
+
+**완료 기준**
+- [ ] §1.3 의 표가 `post.service`·`post.dto` → `attachment.dto.AttachmentResponse` 를 이유([../api-contract.md §4.7](../api-contract.md))와 함께 갖고, 날짜를 단다
+- [ ] §6.2 의 첨부 삭제가 WARN 을 「1) 0행 ∧ 2) 1행」 에만 붙이고, 그 조건이 §6.1 `DELETE` 와 같다는 것과 날짜를 적는다
+- [ ] 고친 문장이 sp-board 의 B-24 코드와 맞는다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 고친 문장을 sp-board 의 B-24 `AttachmentService.delete`·`PostDetailResponse`·`PostService` 와 대조한다 | 맞는다 |
+| sp-docs 를 「면제」·「어긋난 상태」·「집계가 이미 0」·`WARN` 으로 훑는다 | §1.3 의 면제를 표보다 좁게 적는 문장과, 1) 의 0행만으로 WARN 을 남기는 것으로 읽히는 문장이 없다 |
+| 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-19 이다 |
 
 ---
 ## 7. 다음 단계

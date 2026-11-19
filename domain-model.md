@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v20
-updated: 2026-11-17
+version: v21
+updated: 2026-11-19
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -537,12 +537,15 @@ POST /posts/{postId}/attachments
 DELETE /attachments/{id}  한 트랜잭션 (404 AT001 -> 403 P002 판정 뒤)
   1) UPDATE post SET attachment_count = attachment_count - 1
        WHERE id = ? AND attachment_count > 0
-       0행이면 활성 첨부가 있는데 집계가 이미 0 인, 근거 행과 어긋난 상태다 -> 2)를 그대로 하고 집계는 0 에 둔다(음수로 내리지 않는다), WARN 로그
+       0행이면 집계가 이미 0 이다 -> 2)를 그대로 하고 집계는 0 에 둔다(음수로 내리지 않는다)
   2) UPDATE attachment SET deleted = true WHERE id = ? AND deleted = false
        0행이면 이미 지워진 것 -> 트랜잭션을 되돌린다(1)의 감소도 되돌아간다) 404 AT001
+       1행인데 1)이 0행이었으면 활성 첨부가 있는데 집계가 0 인, 근거 행과 어긋난 상태다 -> WARN 로그
 ```
 
 **판정 순서의 404·403 은 락 전의 읽기라 동시 삭제를 거르지 못한다.** 그래서 2)의 조건부 전환이 최종 판정이다 — 조건 없이 지우면 같은 첨부의 동시 삭제가 둘 다 1행으로 성공해 `attachment_count` 가 두 번 줄고, 활성 첨부보다 작아진 집계 때문에 올리기의 상한 판정(`attachment_count < 10`)을 지나 10개를 넘는 첨부가 들어간다.
+
+**WARN 은 「1) 이 0행이고 2) 가 1행」 일 때만 남긴다**(2026-11-19 `D-23` — B-24 의 리뷰가 찾았다). 1) 의 0행만으로는 어긋난 상태가 아니다 — 같은 첨부의 동시 삭제에서 먼저 커밋한 요청이 집계를 0 으로 내렸으면 진 요청도 1) 이 0행이고, 그 요청은 2) 가 0행이라 되돌아간다. 1) 의 0행에 WARN 을 붙이면 지는 요청마다 거짓 경보가 난다. 이 조건이 삭제 블록 앞 문장의 「근거 행은 있는데 집계가 0」 이고, §6.1 `DELETE` 의 「행이 있는데 집계가 0 이면」 과 같다 — §6.1 은 같은 조건을 1) 의 자리에 괄호로 적는다. 이 판의 앞 판은 1) 의 0행에 WARN 을 붙였다.
 
 ## 7. 2차 기능 확장의 마이그레이션 — 할 것
 
