@@ -2,8 +2,8 @@
 title: 통합 검증
 type: plan
 status: living
-version: v25
-updated: 2026-11-12
+version: v26
+updated: 2026-11-20
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
 ---
@@ -194,9 +194,9 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 **완료 기준**
 - [ ] **세 서비스**의 성공 응답 구조가 동일하다 (`success`, `data`, `error` 키)
 - [ ] **세 서비스**의 에러 응답 구조가 동일하다 (`error.code`, `error.message`, `error.fieldErrors`)
-- [ ] **`fieldErrors` 의 요청 수준·바인딩 수준 구분이 세 서비스에서 같다** ([../api-contract.md §2.3](../api-contract.md)) — 누락은 빈 배열, 바인딩된 필드의 오류는 1건. **board 의 빈 배열은 본문 파싱 실패로 본다** — 아래 블록인용
+- [ ] **`fieldErrors` 의 요청 수준·바인딩 수준 구분이 세 서비스에서 같다** ([../api-contract.md §2.3](../api-contract.md)) — 누락은 빈 배열, 바인딩된 필드의 오류는 1건. **board 의 빈 배열은 본문 파싱 실패로 본다**(1차 I-04 실측. 2차는 첨부 올리기의 `file` 누락도 빈 배열이다 — [B-23](phase2-board.md), 2026-11-20 `D-26`) — 아래 블록인용
 - [ ] 공통 에러 코드(`C001`, `A001`~`A004`)의 HTTP 상태와 메시지가 **세 서비스에서** 같다
-- [ ] **세 서비스**의 페이징 응답 **클래스**가 동일하다 — **응답 3자 비교는 할 수 없다**(auth·member 에 목록 엔드포인트가 없다, 1차 I-04 실측. auth 의 계정 목록은 2026-11-11 `D-19` 가 설계했고 [AU-20](phase2-auth-member.md)이 만든다 — 2차의 비교는 [I-10](phase2-frontend-integration.md)). **패키지명을 정규화하면 `PageResponse` 가 주석까지 3벌 동일한 것**과 board 의 세 경로가 §7.1 의 키를 내는 것으로 본다 (원본은 바이트 동일이 **아니다** — 패키지 선언이 다르다. 정규화 강도를 적는 이유는 [../process/review-policy.md §4.1](../process/review-policy.md)에 있다). **복제 대상은 넷이다** — `ApiResponse`·`ErrorResponse`·`PageResponse`·`BusinessException` 이고 넷 다 같은 정규화에서 3벌 동일이다
+- [ ] **세 서비스**의 페이징 응답 **클래스**가 동일하다 — **응답 3자 비교는 할 수 없다**(1차 I-04 실측 — 그때 auth·member 에 목록 엔드포인트가 없었다. auth 의 계정 목록은 2026-11-11 `D-19` 가 설계했고 [AU-20](phase2-auth-member.md)이 2026-11-19 에 만들었다. member 의 [M-16](phase2-auth-member.md) 일괄 조회는 페이징 응답이 아니다. 2차의 비교는 [I-10](phase2-frontend-integration.md)이 2026-11-20 에 했다 — auth 와 board 의 키가 같았다, `D-26`). **패키지명을 정규화하면 `PageResponse` 가 주석까지 3벌 동일한 것**과 board 의 세 경로가 §7.1 의 키를 내는 것으로 본다 (원본은 바이트 동일이 **아니다** — 패키지 선언이 다르다. 정규화 강도를 적는 이유는 [../process/review-policy.md §4.1](../process/review-policy.md)에 있다). **복제 대상은 넷이다** — `ApiResponse`·`ErrorResponse`·`PageResponse`·`BusinessException` 이고 넷 다 같은 정규화에서 3벌 동일이다
 - [ ] 어느 응답에도 스택트레이스·SQL·내부 호스트명이 없다
 - [ ] **서비스별 에러 코드가 서로 섞이지 않았다** — auth에 `M0xx`, member에 `AU0xx`, board에 둘 다 없다
 
@@ -206,22 +206,22 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | --- | --- |
 | 세 서비스 성공 응답의 최상위 키 | 동일 집합 |
 | 세 서비스 `C001` 응답 | HTTP 400, 같은 메시지, `fieldErrors` 존재 |
-| **세 서비스 `C002`~`C007`** | **상태·메시지 일치.** [../conventions.md §6.1](../conventions.md) 의 예외 11종이 같은 코드로 변환된다. **11종 중 9종은 세 서비스 전부에서 실행으로, 둘은 도달 불가라 소스로 본다**(1차 I-04 실측. 2차의 auth 계정 목록은 `sort`·`role`·`deleted` 의 바인딩 실패를 400 `C002` 로 낸다([../api-contract.md §2.5](../api-contract.md)) — [I-10](phase2-frontend-integration.md)이 본다) — 아래 블록인용 |
+| **세 서비스 `C002`~`C007`** | **상태·메시지 일치.** [../conventions.md §6.1](../conventions.md) 의 예외 11종이 같은 코드로 변환된다. **1차에는 11종 중 9종을 세 서비스 전부에서 실행으로, 둘은 도달 불가라 소스로 보았다**(1차 I-04 실측. 2차의 auth 계정 목록은 바인딩 실패를 400 `C002` 로 낸다([../api-contract.md §2.5](../api-contract.md)) — 2026-11-20 [I-10](phase2-frontend-integration.md)이 `page`·`size`·`sort`·`role`·`deleted` 다섯 지점 모두에서 400 `C002`·`fieldErrors` 빈 배열을 쟀다, `D-26`) — 아래 블록인용 |
 | 세 서비스 `A001`~`A004` | 상태·메시지 일치 |
 | **Claim 계약 위반 토큰** | `role` 누락·`sub` 누락 토큰(서명은 유효)에 **셋 다 401 `A002`** ([../tech-stack.md §2.1](../tech-stack.md)). 집행 층이 서비스마다 다르므로 **응답으로만 비교한다** |
-| 세 서비스 `fieldErrors` 빈 배열 케이스 | 필수 파라미터 누락·본문 파싱 실패에서 **셋 다 빈 배열** ([../api-contract.md §2.3](../api-contract.md)). **board 에는 필수 파라미터 누락 경로가 없다**(1차 I-04 실측. 2차의 첨부 올리기는 `file` 파트가 없으면 400 `C001`·`fieldErrors` 빈 배열이다 — [../api-contract.md §4.7](../api-contract.md)·[../conventions.md §6.1](../conventions.md), [B-23](phase2-board.md)) — 아래 블록인용 |
+| 세 서비스 `fieldErrors` 빈 배열 케이스 | 필수 파라미터 누락·본문 파싱 실패에서 **셋 다 빈 배열** ([../api-contract.md §2.3](../api-contract.md)). **1차의 board 에는 필수 파라미터 누락 경로가 없었다**(1차 I-04 실측. 2차의 첨부 올리기는 `file` 파트가 없으면 400 `C001`·`fieldErrors` 빈 배열이다 — [../api-contract.md §4.7](../api-contract.md)·[../conventions.md §6.1](../conventions.md), [B-23](phase2-board.md)) — 아래 블록인용 |
 | **세 서비스 `fieldErrors` 1건 케이스** | **바인딩 수준** 오류에서 **셋 다 1건**이고 `field` 가 파라미터명이다 ([../api-contract.md §2.3 §4.1](../api-contract.md)). 경로는 auth `check-email` 의 형식 오류, member `check-nickname` 의 형식·길이, board 의 목록 `size=0`·`page=-1` 이다 — 셋 다 `HandlerMethodValidationException` 을 지난다 |
 | 각 서비스의 `ErrorCode` 열거 | 타 서비스 전용 접두어 없음 |
-| 세 서비스 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`. **board 에서만 관측된다**(1차 I-04 실측. 2차의 auth 계정 목록은 [I-10](phase2-frontend-integration.md)이 비교한다) — 아래 블록인용 |
+| 세 서비스 페이징 응답 키 | `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`. **1차에는 board 에서만 관측됐다**(1차 I-04 실측. 2차의 auth 계정 목록은 2026-11-20 [I-10](phase2-frontend-integration.md)이 비교했다 — 키가 순서까지 같았다, `D-26`) — 아래 블록인용 |
 | **세 서비스의 작성 응답 대 조회 응답 시각 모양** | **이 항목의 시점에는 소수부가 갈렸다** — 작성은 flush 전 엔티티라 소수부가 있고 조회는 `DATETIME` 이라 없었다([../tech-stack.md §6](../tech-stack.md) I-01 실측). **`D-11` 이 그 갈림을 없앴다**([../api-contract.md §4.3](../api-contract.md)) — 지금은 작성·조회가 같은 값이다. 그래도 **고정 패턴을 단언하지 않는다**: SQL 로 심은 행은 감사를 거치지 않아 소수부가 남는다 |
 | 500 응답 본문 | **세 서비스 모두** 스택트레이스 없음. **500 은 유도해야 한다** — 아래 블록인용에 수단이 있다 |
 | **세 서비스의 로그 수준** | 클라이언트 오류는 `ERROR`가 **아니고** 마지막 그물은 `ERROR`다 ([../conventions.md §6.1](../conventions.md)). **`GlobalExceptionHandler` 가 남긴 줄로 센다** — 전체 로그로 세면 틀린다(Hibernate 의 `SqlExceptionHelper` 가 `ERROR` 를 따로 낸다. I-04 리뷰 실측). **절대 수치는 요청 집합에 따라 달라지므로 재현 대상이 아니다** — 두 극이 핸들러 단위로 성립하는지만 본다. **auth 는 이 단언을 자기 테스트에 갖지 않으므로 여기가 유일한 게이트다** |
 
-> **"세 서비스" 를 요구하는 네 줄 중 셋은 경로가 두 서비스에 없다. I-04 실측이고 구현 차이가 아니다.** 완료 기준을 다시 쓸 때 **먼저 그 경로가 존재하는지 본다** — 없는 경로를 요구하면 측정이 불가능하거나, 소스 비교를 "충족" 으로 적는 공허한 충족이 된다.
+> **"세 서비스" 를 요구하는 네 줄 중 셋은 1차에 경로가 두 서비스에 없었다. 1차 I-04 실측이고 구현 차이가 아니다.** 2차에서 그 셋 모두 경로가 생겼다 — auth 의 페이징 응답과 `C002`(AU-20), board 의 필수 파트(B-23). member 에는 여전히 페이징 응답이 없다(M-16 의 일괄 조회는 배열이다). **아래 세 줄의 수치와 「없다」 는 1차 시점의 값이다**(2026-11-20 `D-26`, 근거 I-10). 완료 기준을 다시 쓸 때 **먼저 그 경로가 존재하는지 본다** — 없는 경로를 요구하면 측정이 불가능하거나, 소스 비교를 "충족" 으로 적는 공허한 충족이 된다.
 >
-> - **페이징 응답**: auth·member 에 목록 엔드포인트가 **없다**(1차 I-04 실측. auth 의 계정 목록은 2026-11-11 `D-19` 가 설계했고 [AU-20](phase2-auth-member.md)이 만든다 — 2차의 비교는 [I-10](phase2-frontend-integration.md)). 매핑 전수(auth 8개·member 7개)에 목록 핸들러가 없고, **`PageResponse` 가 두 저장소에서 자기 파일 밖 사용처가 0건**이다(board 는 6곳). **"지금 없다" 까지만 확인됐다** — 목록이 생기는 것을 막는 테스트나 빌드 규칙은 **없다**(auth 테스트 21개·member 15개에 가드가 없고, member 의 라우팅 단언은 `/internal` 아래만 못박는다)
-> - **`C002`(타입 불일치)**: auth 의 두 컨트롤러에 `@PathVariable` 이 **0개**이고 `@RequestParam` 하나가 `String` 이다. `@RequestHeader`·`@CookieValue`·`@RequestPart`·`@ModelAttribute`·`@MatrixVariable`·`@RequestAttribute`·`@SessionAttribute` 가 **전부 0개**이고 커스텀 `Converter`·`Formatter`·`@InitBinder` 도 없다 — **변환 지점이 하나도 없다**(1차 I-04 실측. 2차의 auth 계정 목록은 `sort`·`role`·`deleted` 의 바인딩 실패를 400 `C002` 로 낸다([../api-contract.md §2.5](../api-contract.md)) — [I-10](phase2-frontend-integration.md)이 본다). `GET /accounts/abc` 는 매핑이 없어 **404 `C004`** 다. 노린 요청 10가지가 하나도 닿지 않았고 **member·board 에서는 쉽게 닿는다**(대조군). **"지금 없다" 까지만 확인됐다**
-> - **필수 파라미터 누락**: board 의 `@RequestParam` **10개가 전부 `required = false`** 이고 `@RequestPart`·`@ModelAttribute`·`@RequestHeader` 도 0개라 우회로가 없다(1차 I-04 실측. 2차의 첨부 올리기는 `file` 파트가 없으면 400 `C001`·`fieldErrors` 빈 배열이다 — [../api-contract.md §4.7](../api-contract.md)·[../conventions.md §6.1](../conventions.md), [B-23](phase2-board.md)). board 의 빈 배열은 본문 파싱 실패로만 확인한다. **"지금 없다" 까지만 확인됐다**
+> - **페이징 응답**: 1차의 auth·member 에 목록 엔드포인트가 **없었다**(1차 I-04 실측. auth 의 계정 목록은 2026-11-11 `D-19` 가 설계했고 [AU-20](phase2-auth-member.md)이 2026-11-19 에 만들었다. member 는 [M-16](phase2-auth-member.md)의 일괄 조회가 있지만 페이징 응답이 아니다 — 2차의 비교는 [I-10](phase2-frontend-integration.md)). 매핑 전수(auth 8개·member 7개)에 목록 핸들러가 없고, **`PageResponse` 가 두 저장소에서 자기 파일 밖 사용처가 0건**이다(board 는 6곳). **"지금 없다" 까지만 확인됐다** — 목록이 생기는 것을 막는 테스트나 빌드 규칙은 **없다**(auth 테스트 21개·member 15개에 가드가 없고, member 의 라우팅 단언은 `/internal` 아래만 못박는다). 이 줄의 「지금」 은 1차 시점이다
+> - **`C002`(타입 불일치)**: 1차의 auth 는 두 컨트롤러에 `@PathVariable` 이 **0개**이고 `@RequestParam` 하나가 `String` 이다. `@RequestHeader`·`@CookieValue`·`@RequestPart`·`@ModelAttribute`·`@MatrixVariable`·`@RequestAttribute`·`@SessionAttribute` 가 **전부 0개**이고 커스텀 `Converter`·`Formatter`·`@InitBinder` 도 없다 — **변환 지점이 하나도 없다**(1차 I-04 실측. 2차의 auth 계정 목록은 `page`·`size`·`sort`·`role`·`deleted` 의 바인딩 실패를 400 `C002` 로 낸다([../api-contract.md §2.5](../api-contract.md)) — 2026-11-20 [I-10](phase2-frontend-integration.md)이 다섯 지점 모두에서 쟀다). `GET /accounts/abc` 는 매핑이 없어 **404 `C004`** 다. 노린 요청 10가지가 하나도 닿지 않았고 **member·board 에서는 쉽게 닿는다**(대조군). **"지금 없다" 까지만 확인됐다** — 1차 시점의 「지금」 이다
+> - **필수 파라미터 누락**: 1차의 board 는 `@RequestParam` **10개가 전부 `required = false`** 이고 `@RequestPart`·`@ModelAttribute`·`@RequestHeader` 도 0개라 우회로가 없다(1차 I-04 실측. 2차의 첨부 올리기는 `file` 파트가 없으면 400 `C001`·`fieldErrors` 빈 배열이다 — [../api-contract.md §4.7](../api-contract.md)·[../conventions.md §6.1](../conventions.md), [B-23](phase2-board.md)). 1차에는 board 의 빈 배열을 본문 파싱 실패로만 확인했다. **"지금 없다" 까지만 확인됐다** — 1차 시점의 「지금」 이다
 > - **작성 응답의 시각**: auth·member 의 작성 응답 DTO 에 시각 필드가 **없다**(`MemberResponse` 는 `(accountId, nickname)` 이다). `createdAt` 을 싣는 DTO 는 두 서비스에 하나씩이고 **둘 다 조회 경로**다. member 의 `PATCH /members/me` 도 `MemberResponse` 를 돌려주므로 변경 경로에도 없다. **`grep` 으로는 속는다** — 그 파일들의 `createdAt` 문자열은 javadoc 이다. record 선언을 읽는다
 >
 > **500 은 평범한 호출로 유도되지 않는다. 먼저 그것을 재고, 그다음 유도한다.** 비정형 요청 15가지(깨진 charset·2000단 중첩 JSON·5000자리 숫자·`%2F` 경로·`TRACE`·`page=2147483648` 등)가 **하나도 `C005` 에 닿지 않았다** — §6.1 의 10종이 모두 4xx 로 받는다. 유도는 **코드·설정·스키마·seed·MySQL 변수를 바꾸지 않고** 자기가 만든 행 하나만 건드리는 쪽으로 한다(I-04 실측, 전부 원복했다).
@@ -231,7 +231,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 > - **member** — 별도 MySQL 세션에서 **자기 행 하나만** `FOR UPDATE` 로 잡고 `PATCH /members/me`. `innodb_lock_wait_timeout`(50초)을 넘겨 `PessimisticLockingFailureException`. **닉네임을 현재 값과 다르게** 줘야 한다(같으면 더티 체크가 UPDATE 를 발행하지 않는다). 락은 세션으로 들고 있어야 하므로 락 프로세스와 요청을 분리한다
 > - **안 되는 수단 둘**: 내부 벌크에 70,000건(Hibernate 가 쪼갠다 — `in` 절 `?` 가 1개였다), `nickname` 을 NULL 로 두기(던지는 자리가 없어 200 `"nickname":null`)
 >
-> **Claim 계약 위반 토큰은 셋 다 401 `A002` 이고 본문이 바이트 동일이다(각 119바이트). 갈리는 것은 `Content-Type` 하나다** — member 만 `application/json;charset=UTF-8` 이고 auth·board 는 `application/json` 이다. 집행 층이 달라서다(member 는 디코더 → `SecurityErrorResponder`, auth·board 는 리졸버 → `GlobalExceptionHandler`. 로그가 그것을 보여 준다 — member 만 `business exception: A002` 를 남기지 않는다). 쓰레기 토큰은 **셋 다** `charset=UTF-8` 이다. 검증표가 응답으로만 비교하라고 했고 상태·본문이 같으므로 결함이 아니다. **대조군 토큰을 먼저 쳐서 서명 체계가 유효함을 고정한다** — 그러지 않으면 뒤의 401 이 서명 문제인지 claim 문제인지 가를 수 없다.
+> **Claim 계약 위반 토큰은 셋 다 401 `A002` 이고 본문이 바이트 동일이다(각 119바이트). 갈리는 것은 `Content-Type` 하나다** — member 만 `application/json;charset=UTF-8` 이고 auth·board 는 `application/json` 이다. 집행 층이 달라서다(member 는 디코더 → `SecurityErrorResponder`, auth·board 는 리졸버 → `GlobalExceptionHandler`. 로그가 그것을 보여 준다 — member 만 `business exception: A002` 를 남기지 않는다). 쓰레기 토큰은 **셋 다** `charset=UTF-8` 이다. 검증표가 응답으로만 비교하라고 했고 상태·본문이 같으므로 결함이 아니다. **2차에도 같은 종류다** — 2026-11-20 I-10 에서 세 서비스의 필터가 낸 401·403 은 `application/json;charset=UTF-8`, 핸들러의 응답은 `application/json` 이었다(`D-26`). **대조군 토큰을 먼저 쳐서 서명 체계가 유효함을 고정한다** — 그러지 않으면 뒤의 401 이 서명 문제인지 claim 문제인지 가를 수 없다.
 >
 > **`role` 이 "있지만 열거 밖인 값" 이면 갈린다 — I-04 리뷰 실측이다.** auth 401 `A002` · member 200 · board 200. 소스가 갈림을 설명한다(auth 만 `Role.valueOf`, member·board 는 `hasText`). 검증표가 요구하는 것은 **누락** 두 경우이고 그 둘은 일치했으므로 이 항목의 미충족은 아니지만, **계약 밖 토큰이 두 서비스를 통과하는 것은 발견이다.** 권한 상승은 아니다 — 자세한 것은 [../tech-stack.md §2.1](../tech-stack.md)이 갖는다. **값 검증을 어디에 둘지는 별 항목이 결정한다.**
 >

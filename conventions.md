@@ -2,7 +2,7 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v27
+version: v28
 updated: 2026-11-20
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
@@ -168,7 +168,7 @@ public class PostService {
 | `HandlerMethodValidationException` | `C001` | `fieldErrors` 1건 이상 |
 | `MissingServletRequestParameterException` | `C001` | **`fieldErrors` 빈 배열** — 바인딩이 일어나지 않았다([api-contract.md §2.3](api-contract.md)) |
 | `HttpMessageNotReadableException` | `C001` | 같음 |
-| `MethodArgumentTypeMismatchException` | `C002` | |
+| `MethodArgumentTypeMismatchException` | `C002` | **`fieldErrors` 빈 배열** — 바인딩이 일어나지 않았다. 어느 파라미터인지는 로그에만 남는다(2026-11-20 `D-26`, 근거 I-10) |
 | `HttpRequestMethodNotSupportedException` | `C003` | |
 | `NoResourceFoundException` | `C004` | |
 | `HttpMediaTypeNotSupportedException` | `C006` | |
@@ -181,11 +181,11 @@ public class PostService {
 
 **multipart 의 세 줄은 2026-11-11 `D-18` 이 더했다**(첨부 업로드, [api-contract.md §4.7](api-contract.md)). 크기 한도 위반은 **컨트롤러를 고르기 전**, `DispatcherServlet` 이 요청을 multipart 로 해석하는 단계에서 난다 — 그래서 컨트롤러의 검증으로는 다룰 수 없고 이 표에 있어야 한다. `MaxUploadSizeExceededException` 은 `MultipartException` 의 하위 타입이므로 둘 다 두면 더 구체적인 쪽이 고른다 — 상위만 두면 크기 위반이 `C001` 이 된다.
 
-> **지금은 셋 다 마지막 그물로 떨어질 것으로 본다**(코드 읽기 — 세 서비스의 `GlobalExceptionHandler` 에 multipart 핸들러가 없다). 그러면 한도(Boot 기본 개당 1MB)를 넘는 multipart 는 지금 **500 `C005` 와 ERROR 로그**가 된다. **측정 대상이다** — 핸들러를 넣기 전에 실제 서버에서 한 번 재서 이 추정을 확인하거나 뒤집는다. `MockMvc` 는 서블릿 컨테이너의 multipart 한도를 거치지 않으므로 그 응답을 재지 못한다([tech-stack.md §4.5](tech-stack.md)).
+> **이 줄을 더할 때는 셋 다 마지막 그물로 떨어질 것으로 보았다**(그때의 코드 읽기 — 세 서비스의 `GlobalExceptionHandler` 에 multipart 핸들러가 없었다). 한도(Boot 기본 개당 1MB)를 넘는 multipart 가 **500 `C005` 와 ERROR 로그**가 된다고 보고, 핸들러를 넣기 전에 실제 서버에서 재기로 했다. **그 추정은 맞았다** — 세 서비스 모두 핸들러를 넣기 전 실서버에서 500 `C005` 와 ERROR 였다(sp-board `141bc47`·sp-auth `09b25b7`·sp-member `7f0b309` 의 커밋 메시지). **지금은 셋 다 그 줄을 갖는다** — 2026-11-20 I-10 이 실서버에서 413 `C008`·400 `C001`, `fieldErrors` 빈 배열, 핸들러의 WARN 한 줄을 쟀다(`D-26`). `MockMvc` 는 서블릿 컨테이너의 multipart 한도를 거치지 않으므로 그 응답을 재지 못한다([tech-stack.md §4.5](tech-stack.md)).
 
 **`C009` 의 줄은 2026-11-11 `D-19` 가 더했다**([security.md §10](security.md)). 응답에 헤더가 하나 더 붙으므로 `BusinessException` 의 일반 경로로 보내지 않고 따로 다룬다 — 예외의 종류는 구현이 정한다. **이 줄은 제한기를 가진 서비스에만 있다** — board 는 제한 대상이 없어 그 예외가 생기지 않는다. 처음 들일 때 같은 줄을 더한다([api-contract.md §8.1](api-contract.md)의 `C009` 문단). 로그 수준은 다른 클라이언트 오류와 같은 `warn` 이다.
 
-**세 서비스가 이 표를 똑같이 구현한다**(위 `C009` 줄은 그것을 가진 두 서비스가 같게 둔다). 다만 **클래스 자체는 복제 대상이 아니다**(§7.2) — 서비스별 `ErrorCode`에 의존하므로 각자 쓴다. 같아야 하는 것은 **핸들러 집합·코드·로그 수준·응답 본문**이고, 그 일치를 [plan/integration.md](plan/integration.md) I-04 가 3자 비교했다(1차). 2차에 더한 multipart·`C009` 줄은 [plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md) I-10 이 비교한다. **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
+**세 서비스가 이 표를 똑같이 구현한다**(위 `C009` 줄은 그것을 가진 두 서비스가 같게 둔다). 다만 **클래스 자체는 복제 대상이 아니다**(§7.2) — 서비스별 `ErrorCode`에 의존하므로 각자 쓴다. 같아야 하는 것은 **핸들러 집합·코드·로그 수준·응답 본문**이고, 그 일치를 [plan/integration.md](plan/integration.md) I-04 가 3자 비교했다(1차). 2차에 더한 multipart·`C009` 줄은 [plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md) I-10 이 2026-11-20 에 비교했다 — 상태·본문·헤더가 같았다. **로그 문장은 같아야 하는 것에 들지 않는다** — 그 비교에서 `C009` 의 WARN 문장이 auth(`rate limit exceeded: <규칙>`)와 member(`… rule <규칙>, retry after <N>s`) 사이에 달랐고, 이 개정은 그것을 관찰로만 둔다(`D-26`). **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
 
 **로그 수준을 가른다.** 클라이언트 오류는 `warn`, **마지막 그물만 `error`**다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](AGENTS.md) 불변식 9). **핸들러를 거치지 않는 프레임워크의 ERROR 도 같은 취지로 본다** — 코드가 잡아 정상 결과로 바꾸는 UNIQUE 충돌에 Hibernate 가 남기는 ERROR 는 §8.1 이 다룬다(2026-11-20 `D-25`).
 
@@ -254,7 +254,9 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 
 > **버린 대안**(2026-11-20 `D-25`). **로거 수준을 내린다** — 위 셋째 행. [requirements/board.md §9.3](requirements/board.md)의 블록인용이 이미 반대했다. **충돌을 내는 INSERT 를 Hibernate 밖(예: `JdbcTemplate`)으로 옮긴다** — 그 경로는 `SqlExceptionHelper` 를 지나지 않아 줄이 생기지 않지만, 한 엔티티의 쓰기가 두 갈래가 되고 B-20·B-21 이 고정한 충돌 분류(Hibernate 가 분류한 위반의 종류)와 `saveAndFlush` 의 근거를 다시 세워야 한다. 로그의 문제를 쓰기 경로를 바꿔 풀지 않는다. **한계로 적고 둔다** — 사용자가 2026-11-20 에 택하지 않았다.
 
-> **auth·member 는 이 결정의 범위 밖이다.** 두 서비스도 `DataIntegrityViolationException` 을 잡는 경로를 갖지만(2026-11-20 코드 읽기), 성격이 둘로 갈린다. **클라이언트 오류로 응답하는 충돌** — 가입의 `uk_account_email`(409 `AU002`), 닉네임 변경과 프로필 등록의 `uk_member_nickname`(409 `M003`) — 은 「정상 결과」 로 볼지부터 정해야 한다. **board 와 같이 정상 결과로 바꾸는 충돌** — 로그인 실패 카운터의 `uk_login_attempt_email_key`(다시 한다), 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`) — 은 같은 모양이지만 재지 않았고, 사용자 결정의 범위가 board 다. 같은 로거를 지나므로 같은 두 줄을 남길 것으로 본다. 넘긴 자리는 [plan/phase2-auth-member.md §5.3](plan/phase2-auth-member.md)이다.
+> **auth·member 는 이 결정의 범위 밖이다.** 두 서비스도 `DataIntegrityViolationException` 을 잡는 경로를 갖지만(2026-11-20 코드 읽기), 성격이 둘로 갈린다. **클라이언트 오류로 응답하는 충돌** — 가입의 `uk_account_email`(409 `AU002`), 닉네임 변경과 프로필 등록의 `uk_member_nickname`(409 `M003`) — 은 「정상 결과」 로 볼지부터 정해야 한다. **board 와 같이 정상 결과로 바꾸는 충돌** — 로그인 실패 카운터의 `uk_login_attempt_email_key`(다시 한다), 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`) — 은 같은 모양이지만 재지 않았고, 사용자 결정의 범위가 board 다. 같은 로거를 지나므로 같은 두 줄을 남길 것으로 본다(그때의 추정이다. 로그인 실패 카운터는 아래 측정에서 UNIQUE 충돌이 나지 않아 그 두 줄을 재지 못했고, 교착의 두 줄을 보았다). 넘긴 자리는 [plan/phase2-auth-member.md §5.3](plan/phase2-auth-member.md)이다.
+>
+> **로그인 실패 카운터는 2026-11-20 I-08 이 실 MySQL 에서 쟀다**(`D-26`). 같은 키의 동시 첫 실패에서 UNIQUE 충돌(1062)은 없었고 교착(1213)이 났다. 교착마다 그 로거가 WARN `SQL Error: 1213, SQLState: 40001` 과 ERROR `Deadlock found when trying to get lock; try restarting transaction` 을 남겼고, `LoginAttemptService` 가 세지 못한 실패의 WARN 을 남겼다. 그 ERROR 는 위 표의 규칙을 auth 에 넓혀도 버리지 않는 「다른 SQL 오류」 다 — 위 표의 필터는 board 의 것이고 auth 에는 없다. 세지 못한 실패라 [security.md §11](security.md)의 한계로 적었다.
 
 ## 9. 테스트
 

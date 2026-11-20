@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v23
+version: v24
 updated: 2026-11-20
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -223,7 +223,7 @@ UPDATE account_token SET used_at = :now
 
 **`account` 에 두지 않는다.** 없는 이메일도 똑같이 잠겨야 하고(없는 이메일이 안 잠기면 잠금이 존재를 알려준다), 탈퇴한 계정의 닫힌 행에는 쓰지 않는다([api-contract.md §2.2](api-contract.md)). 그래서 **`account` 를 참조하지 않고 FK 도 없다.** 시각은 감사가 아니라 판정하는 코드가 앱 시계의 값을 초로 잘라 넣는다.
 
-**`email_key` 의 콜레이션을 `account.email` 과 같게 두는 이유** — 로그인의 계정 조회는 그 콜레이션으로 비교하므로 대소문자 등 표기가 다른 이메일이 같은 계정을 찾는다. 키가 다른 기준으로 비교되면 같은 계정의 실패가 표기마다 따로 세어져 잠금을 피한다. 키의 소문자 변환은 ASCII 대소문자를 맞추고, 같은 콜레이션의 UNIQUE 가 나머지를 맞춘다 — 비ASCII 를 앱에서 바꾸면 콜레이션이 같다고 보는 표기가 다른 키가 될 수 있어 바꾸지 않는다. **두 컬럼의 콜레이션이 같은지는 `information_schema` 로 확인한다** — 어느 콜레이션이 되는지는 테이블 선언과 서버 설정이 정한다(V1 의 `account` 는 `DEFAULT CHARSET = utf8mb4` 만 선언한다).
+**`email_key` 의 콜레이션을 `account.email` 과 같게 두는 이유** — 로그인의 계정 조회는 그 콜레이션으로 비교하므로 대소문자 등 표기가 다른 이메일이 같은 계정을 찾는다. 키가 다른 기준으로 비교되면 같은 계정의 실패가 표기마다 따로 세어져 잠금을 피한다. 키의 소문자 변환은 ASCII 대소문자를 맞추고, 같은 콜레이션의 UNIQUE 가 나머지를 맞춘다 — 비ASCII 를 앱에서 바꾸면 콜레이션이 같다고 보는 표기가 다른 키가 될 수 있어 바꾸지 않는다. **두 컬럼의 콜레이션이 같은지는 `information_schema` 로 확인한다** — 어느 콜레이션이 되는지는 테이블 선언과 서버 설정이 정한다(V1 의 `account` 는 `DEFAULT CHARSET = utf8mb4` 만 선언한다). 2026-11-20 I-08(`D-26`)이 읽은 값은 둘 다 `utf8mb4_0900_ai_ci` 였다([tech-stack.md §4.1](tech-stack.md)).
 
 **갱신 문장** — 순서와 원자성이 요건이고 문장의 모양은 예다.
 
@@ -253,7 +253,7 @@ UPDATE account_token SET used_at = :now
 - **다시 하는 자리(UNIQUE 충돌, 잠기지 않은 행)는 새 트랜잭션이다.** 잠기지 않은 행을 보는 것은 간격 락이 없는 격리 수준(예: READ COMMITTED)에서 같은 키의 동시 첫 실패가 그 사이 INSERT 를 커밋한 경우다 — 그 행을 잠금으로 읽으면 거짓 잠금이 나고 이번 실패가 사라진다. JPA 에서 제약 위반이 트랜잭션을 rollback-only 로 만들 수 있다 — [requirements/board.md §9.3](requirements/board.md)이 조회수 판정에서 같은 문제를 적었다. 한 번 더 해도 실패하면(예: 교착) 로그인 응답은 `AU003` 그대로이고 **세지 못한 실패를 WARN 으로 남긴다**
 - **「한 번 더 해도 실패하면」 의 실패는 다시 하는 자리를 또 만난 것과 락 경합이다**(2026-11-17 `D-22` — AU-18 의 구현에 맞췄다). 락 경합(예: MySQL 의 교착·잠금 대기 시간 초과)은 첫 시도에서 나도 다시 하지 않고 같은 응답과 WARN 으로 끝낸다. **락 경합이 아닌 DB 실패는 삼키지 않는다**(예: 커넥션을 얻지 못함) — [conventions.md §6.1](conventions.md)의 마지막 그물이 500 `C005` 로 낸다. 삼키면 DB 가 실패하는 동안의 실패가 세지지 않은 채 보통의 실패 응답으로 나가, 잠금이 열리는 쪽으로 실패한다
 - **`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다.** 쓰려면 실 MySQL 측정을 먼저 한다 — 영향 행 수가 H2 와 MySQL 에서 같다는 근거가 없다([requirements/board.md §9.3](requirements/board.md)과 같은 이유)
-- **없는 행을 찾는 1) 은 MySQL 의 반복 읽기에서 간격 락을 잡을 수 있다.** 같은 키의 동시 첫 실패가 교착할 수 있다(추정 — 실 MySQL 측정 대상, [plan/phase2.md §5.4](plan/phase2.md))
+- **없는 행을 찾는 1) 은 MySQL 의 반복 읽기에서 간격 락을 잡는다.** 같은 키의 동시 첫 실패가 교착한다 — 2026-11-20 I-08(`D-26`)이 실 MySQL 에서 확인했다. 교착은 `uk_login_attempt_email_key` 의 간격 락 뒤 insert intention 대기였고 첫 실패에서만 났다. UNIQUE 충돌과 다시 하는 자리는 나지 않았다. 위 「락 경합」 대로 다시 하지 않고 `AU003` 과 WARN 으로 끝나므로 그 실패는 세지 않는다 — 한계는 [security.md §11](security.md)
 
 **오래된 행은 주기적으로 지운다**(`updated_at` 이 24시간보다 이른 행). 잠금은 15분이라 그 행은 이미 풀렸고, 1) 의 `CASE` 가 그 행을 1부터 다시 세므로 지운 행과 결과가 같다. 주기는 [tech-stack.md §4.7](tech-stack.md).
 

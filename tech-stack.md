@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v38
+version: v39
 updated: 2026-11-20
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -225,6 +225,8 @@ CREATE DATABASE sp_board  DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_
 SET PERSIST time_zone = '+09:00';
 ```
 
+> **스키마의 콜레이션은 표에 닿지 않는다**(2026-11-20 `D-26`, 근거 I-08 의 `information_schema`). 마이그레이션의 표 선언은 `DEFAULT CHARSET = utf8mb4` 만 적는다. 그래서 표는 스키마의 `utf8mb4_general_ci` 가 아니라 서버의 `default_collation_for_utf8mb4` 를 받았다 — 잰 서버에서는 `utf8mb4_0900_ai_ci` 였다. 그 콜레이션은 NO PAD 이고, 대소문자뿐 아니라 악센트 등도 같게 본다. 그렇지 않은 표는 `refresh_token`(V4 가 `ascii` 로 바꿨다 — `ascii_general_ci`)과 `flyway_schema_history`(스키마의 `utf8mb4_general_ci`)였다. 표가 어느 콜레이션인지는 `information_schema` 로 확인한다. 마이그레이션은 바꾸지 않았다 — 바꿀지는 [plan/phase2-auth-member.md §5.3](plan/phase2-auth-member.md)으로 넘겼다.
+
 **시간대는 `SET PERSIST`로 설정한다.** `my.ini`에 `default-time-zone`을 적는 것과 효과가 같으면서 제약이 없다.
 
 | | `my.ini` 수정 | `SET PERSIST` |
@@ -418,7 +420,7 @@ view-count:
 | --- | --- | --- |
 | `spring.servlet.multipart.max-file-size` | 정본 값 | **5MB.** 넘으면 413 `C008`([api-contract.md §8.1](api-contract.md)). Boot 기본값(1MB)이 사용자 결정보다 작으므로 반드시 적는다 |
 | `spring.servlet.multipart.max-request-size` | 정본 값 | 요청 하나에 파일 하나이므로 개당 한도보다 조금 크게 둔다. 넘으면 같은 413 |
-| `server.tomcat.max-swallow-size` | 정본 값 | 한도를 넘은 요청의 **나머지 본문을 읽어 버리는** 양이다. 이보다 크게 남으면 Tomcat 이 연결을 끊을 수 있고, 그러면 클라이언트는 413 대신 연결 오류를 볼 것으로 본다(**측정 대상**). 큰 사진을 실수로 고른 사용자가 413 을 받게 하려는 값이다 |
+| `server.tomcat.max-swallow-size` | 정본 값 | 한도를 넘은 요청의 **나머지 본문을 읽어 버리는** 양이다. 큰 사진을 실수로 고른 사용자가 413 을 받게 하려는 값이다. **이보다 큰 본문에서는 클라이언트가 보는 것이 갈린다** — 2026-11-20 I-09 가 쟀다(`D-26`). 본문을 다 보낸 뒤 응답을 읽는 클라이언트(원시 소켓)는 상태줄을 받지 못하고 연결 중단을 보았고, 보내는 중에 응답을 읽는 curl 은 413 `C008` 을 받았다. 서버 쪽은 두 경우 모두 핸들러가 413 을 만들고 WARN 한 줄을 남겼다 — 응답 전송·연결 종료의 모양은 재지 않았다. **토큰이 없는 요청의 401 도 같다** — 401 은 본문을 읽지 않아 본문 전체가 버릴 양이 되므로, 이 값을 넘는 본문에서는 원시 소켓이 401 도 받지 못했다. 브라우저가 어느 쪽인지는 재지 않았다 — 이 값을 넘는 파일에서는 화면의 `C008` 안내가 닿지 않을 수 있다([plan/phase2-frontend-integration.md §5](plan/phase2-frontend-integration.md)). auth·member 는 이 키를 적지 않아 Boot 기본값이고 같은 성질을 보였다(I-10) |
 | `server.forward-headers-strategy` | 정본 값 | **`none`.** `X-Forwarded-For` 로 `remoteAddr` 를 바꾸지 않는다 — 비로그인 조회자 식별이 그 값을 쓴다([security.md §9](security.md)). 클라우드 플랫폼을 감지하지 않는 로컬 기본값과 같지만 의도를 보이려고 적는다(Boot 는 클라우드 플랫폼을 감지하면 기본값이 `NATIVE` 다). 게이트웨이를 들이면 [adr/0014](adr/0014-view-count-dedup.md)를 다시 본다 |
 | `attachment.storage-root` | **정책값** | 기본값이 없다. **이미 있고 쓸 수 있는 디렉터리**여야 하며 아니면 **기동이 실패한다** — 서버가 만들지 않는다. 엉뚱한 곳에 디렉터리를 만들고 올라오는 것보다 실패가 낫다 |
 | `view-count.hmac-secret` | **비밀값** | 기본값이 없다. 비었거나 **설정값 문자열의 UTF-8 바이트 길이가 32보다 짧으면 기동이 실패한다**(Base64 로 디코드하지 않는다 — 키는 그 바이트 그대로다. 32 는 HMAC-SHA256 의 출력 길이이고 그보다 짧은 키는 강도를 낮춘다) |
@@ -473,7 +475,7 @@ member 는 `check-nickname: { limit: 20, window: PT1M }` 하나와 같은 `serve
 
 **로컬 템플릿은 한도를 크게 둔다.** 실제 서비스 e2e 는 `local` 프로파일로 먼저 띄워 둔 세 서비스를 치며(테스트가 서비스를 띄우지는 않는다 — `sp-frontend` 의 `CLAUDE.md`) 한 주소에서 가입·로그인을 여러 번 하므로([plan/phase2.md §5.3](plan/phase2.md)), 운영 한도로는 e2e 가 스스로 429 를 맞는다. `application-local.yml.example` 이 규칙의 한도를 덮는다 — 값은 템플릿이 정하고 이 문서는 「운영 한도보다 e2e 의 요청 수가 넉넉히 들어가게」 만 정한다. **그 덮음 때문에 e2e 는 제한을 검증하지 않는다** — 제한은 서비스의 테스트가 `Clock` 을 움직여 본다.
 
-> **`forward-headers-strategy` 가 auth·member 의 `application.yml` 에 없다**(2026-11-11 코드 읽기). 클라우드 플랫폼을 감지하지 않는 한 지금의 기본값이 `none` 과 같은 동작이라(§4.5 — 감지하면 `NATIVE` 다) 1차의 결함은 아니다 — 제한이 그 값에 기대기 시작하므로 적는다.
+> **`forward-headers-strategy: none` 은 auth·member 의 `application.yml` 에 있다**(2026-11-20 `D-26` 코드 읽기 — AU-19·M-15 가 더했다. 이 블록인용의 앞 판은 2026-11-11 의 코드 읽기로 「없다」 고 적었다). 2026-11-20 I-09 가 기동한 auth·member 에 `X-Forwarded-For` 를 요청마다 바꿔 보냈다 — 헤더가 없는 대조군과 같이 한도를 넘은 요청부터 429 `C009` 였고, 원격 주소를 바꿀 때만 새로 셌다. 키는 `remoteAddr` 다.
 
 ### 4.7 auth 의 메일·정리 설정
 
@@ -503,11 +505,11 @@ account-cleanup:
 | --- | --- | --- |
 | `spring.mail.host`·`port` | **정책값** | 기본값이 없다. 비었거나 미해석 `${…}` 리터럴이면 **기동이 실패한다** |
 | `spring.mail.username`·`password` | **비밀값** | `application.yml` 에 기본값을 두지 않는다(§4.3). **운영 프로파일은 둘 다 있어야 한다** — 비었거나 미해석 `${…}` 리터럴이면 기동이 실패한다. 로컬은 Mailpit 이 인증을 받지 않으므로 `application-local.yml` 이 둘 다 빈 값으로 준다(§4.7.1). **하나만 있으면 어느 프로파일이든 기동이 실패한다** |
-| SMTP 타임아웃 | 정본 값 | 연결 5초, 읽기 10초, 쓰기 10초. **JavaMail 의 기본은 무한 대기다** — 없으면 SMTP 가 응답하지 않을 때 발송 스레드가 영영 묶인다 |
+| SMTP 타임아웃 | 정본 값 | 연결 5초, 읽기 10초, 쓰기 10초. **JavaMail 의 기본은 무한 대기다** — 없으면 SMTP 가 응답하지 않을 때 발송 스레드가 영영 묶인다. 2026-11-20 I-09(`D-26`): 연결은 받고 아무것도 보내지 않는 SMTP 에서 발송 하나가 읽기 타임아웃 10초에 끊겼다. 연결 타임아웃(SYN 에 답하지 않는 경우)은 재지 않았다 |
 | 암호화 연결 | 정본 값 | **운영 프로파일은 STARTTLS 를 필수로 하거나 SMTPS 로 연결한다**(예: `mail.smtp.starttls.required: true`). 어느 쪽인지는 SMTP 제공자가 정한다. 로컬 Mailpit 은 평문이다 |
 | `mail.from` | **정책값** | 보내는 주소. 기본값이 없다 |
 | `mail.frontend-base-url` | **정책값** | 링크의 기준 주소(예: 화면의 오리진). 기본값이 없고 비었거나 `${…}` 이거나 `http`·`https` 의 절대 URL 이 아니면 기동이 실패한다. **요청의 `Host` 로 대신하지 않는다**([security.md §12](security.md)) |
-| `mail.executor.queue-capacity` | 편의값 | 발송 작업의 대기열 상한. 넘으면 버리고 WARN([requirements/member.md §11.5](requirements/member.md)) |
+| `mail.executor.queue-capacity` | 편의값 | 발송 작업의 대기열 상한. 넘으면 버리고 WARN([requirements/member.md §11.5](requirements/member.md)). **메일 수가 아니라 작업 수다** — 메일 한 통이 발급·발송 두 작업이고, 보내지 않을 요청도 발급 작업 하나를 쓴다(2026-11-20 `D-26`, 같은 절) |
 | `account-cleanup.interval` | 편의값 | 만료된 `account_token`·오래된 `login_attempt` 를 지우는 주기([domain-model.md §2.4](domain-model.md)·§2.5). 판정에 영향이 없다 |
 
 **가드가 기동을 실패시킨다.** §4.3 의 측정대로 `@ConfigurationProperties` 는 미해석 리터럴을 통과시키므로 `spring.mail.*` 도 그렇게 들어올 수 있다 — 정책값마다 기동 시점의 검사를 두고 그 실패를 테스트가 본다.

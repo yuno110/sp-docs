@@ -2,8 +2,8 @@
 title: API 계약
 type: spec
 status: frozen
-version: v53
-updated: 2026-11-17
+version: v54
+updated: 2026-11-20
 read_when: "엔드포인트를 구현하거나, 요청·응답 형식·에러 코드·JWT Claim을 확인할 때"
 related: [domain-model.md, security.md, requirements/member.md, requirements/board.md]
 ---
@@ -244,6 +244,7 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | --- | --- |
 | 파라미터 **누락** | **빈 배열** — 바인딩 자체가 일어나지 않아 담을 필드가 없다 |
 | 빈 값·형식 오류·길이 초과 | 해당 필드 1건 (`field`는 파라미터명) |
+| 타입 변환 실패(예: 정수 자리의 `abc`, 열거 밖의 값) — 400 `C002` | **빈 배열** — 바인딩이 일어나지 않았다. 2026-11-20 I-10 이 auth·board 에서 쟀다(`D-26`) |
 
 이것은 요청 수준 오류와 바인딩 수준 오류의 구분이다. 클라이언트는 `fieldErrors`가 빈 경우를 이미 처리해야 한다 — `C005` 같은 코드에는 애초에 없다.
 
@@ -312,10 +313,11 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 | 토큰이 없다 | 401 `A001` |
 | ADMIN 이 아니다 | **403 `A004`** — Service 계층이 Claim 의 `role` 값으로 판정한다(auth 는 enum, member 는 문자열)([security.md §5.1](security.md)) |
 | `page` 음수·`size` 1 미만·`email` 100자 초과 | 400 `C001`, `fieldErrors` 1건(§4.1 의 하한 위반과 같은 판정) |
-| `sort`·`role`·`deleted` 의 값이 틀렸다 | 400 `C002` — 바인딩 실패다(§4.1 의 `category` 와 같다) |
+| `sort`·`role`·`deleted` 의 값이 틀렸다, `page`·`size` 가 정수가 아니다 | 400 `C002`, `fieldErrors` 빈 배열 — 바인딩 실패다(§4.1 의 `category` 와 같다). `page`·`size` 의 줄과 빈 배열은 2026-11-20 I-10 의 실측이다(`D-26`) |
 
 - **파라미터 검증이 ADMIN 판정보다 먼저 날 수 있다.** 검증은 컨트롤러 앞에서 돌고 ADMIN 판정은 Service 에 있다. ADMIN 이 아닌 요청자가 틀린 파라미터를 보내면 403 대신 400 을 받는다 — 어느 응답도 목록의 내용을 드러내지 않으므로 순서를 강제하지 않는다
 - **`password`·`email_verified_at` 의 시각·잠금 시각을 싣지 않는다.** 관리 화면에 필요한 것은 상태다
+- **값의 대소문자는 정하지 않았다**(관찰 — 2026-11-20 I-10, `D-26`). `deleted=TRUE` 는 200 이었고 `role=admin`·`sort=LATEST` 는 400 `C002` 였다. 정하지 않은 채 두고 [plan/phase2-auth-member.md §5.3](plan/phase2-auth-member.md)으로 넘겼다
 - 정렬 키의 마지막에 `id` 를 두는 이유는 §7.1 이다. 동적 조건은 QueryDSL 로 조합한다 — auth 의 첫 QueryDSL 사용이다([conventions.md §1.1](conventions.md)의 `QuerydslConfig`)
 - `email` 의 부분 일치는 인덱스를 쓰지 않는다 — board 의 `keyword` 와 같다([domain-model.md §4.3](domain-model.md)의 `idx_post_title` 문단)
 
@@ -463,13 +465,13 @@ Access Token은 탈퇴 후에도 만료까지 통과하므로([security.md §5.3
 
 `sort`는 화이트리스트 Enum으로 받는다. 임의 컬럼명을 직접 노출하지 않는다. **`latest`는 `created_at DESC, id DESC`이고 `views`는 `view_count DESC, id DESC`다** — 2차 키의 근거는 §7.1에 있다.
 
-**`keyword` 는 부분 일치다.** `LIKE '%키워드%'` 이고 전방 일치가 아니다 — 그래서 `idx_post_title` 이 쓰이지 않는다([domain-model.md §4.3](domain-model.md)). 이 의미론은 외부에서 관측되므로 여기서 고정한다. 대소문자는 스키마 콜레이션이 `utf8mb4_general_ci` 라 구분하지 않는다([tech-stack.md §4.1](tech-stack.md)).
+**`keyword` 는 부분 일치다.** `LIKE '%키워드%'` 이고 전방 일치가 아니다 — 그래서 `idx_post_title` 이 쓰이지 않는다([domain-model.md §4.3](domain-model.md)). 이 의미론은 외부에서 관측되므로 여기서 고정한다. 대소문자는 `post` 표의 콜레이션이 `utf8mb4_0900_ai_ci` 라 구분하지 않는다(2026-11-20 `D-26`, 근거 I-08 의 `information_schema` — 스키마의 `utf8mb4_general_ci` 는 표에 닿지 않는다, [tech-stack.md §4.1](tech-stack.md)). 그 콜레이션은 악센트 등도 같게 보지만, `keyword` 검색에 미치는 영향은 재지 않았다.
 
 **`keyword` 와 `searchType` 은 둘 다 있거나 둘 다 없어야 한다.** 한쪽만 오면 400 `C001` 이다 — `searchType` 만 온 경우와 `keyword` 만 온 경우가 **같은 판정이다.** 한쪽을 조용히 무시하면 사용자는 검색이 걸린 줄 알고 전체 목록을 받는다([../AGENTS.md](AGENTS.md) 불변식 9의 silent degradation 이다).
 
 **공백만인 `keyword` 는 "없음" 으로 본다.** 정규화를 조합 검증보다 **먼저** 한다. 그래서 `keyword=` 만 오면 전체 목록(200)이고, `searchType=TITLE&keyword=` 는 400 `C001` 이다. **"없을 때" 와 "비어 있을 때" 가 같은 판정이 되도록 정규화로 합치는 것이고**, 두 경로에 각각 가드를 두는 것이 아니다([tech-stack.md §4.3](tech-stack.md) 이 설정값에서 같은 구분을 다룬다).
 
-**하한 위반은 `fieldErrors` 에 그 파라미터를 담는다.** `page`·`size` 는 **바인딩이 성공한 뒤** 범위 규칙을 어긴 것이므로 §2.3 이 말한 "바인딩된 필드의 오류" 다 — 400 `C001` 에 `fieldErrors` **1건**이고 `field` 는 파라미터명이다. member 의 `GET /members/check-nickname` 이 같은 모양이다([conventions.md §6.1](conventions.md) 의 `HandlerMethodValidationException` 행). **같은 종류의 오류에 세 서비스가 같은 본문을 돌려주는지를 [plan/integration.md](plan/integration.md) I-04 가 비교하므로 한 서비스만 다르게 두지 않는다.**
+**하한 위반은 `fieldErrors` 에 그 파라미터를 담는다.** `page`·`size` 는 **바인딩이 성공한 뒤** 범위 규칙을 어긴 것이므로 §2.3 이 말한 "바인딩된 필드의 오류" 다 — 400 `C001` 에 `fieldErrors` **1건**이고 `field` 는 파라미터명이다. 정수가 아닌 `page`·`size` 는 바인딩이 실패한 것이라 400 `C002` 에 `fieldErrors` 빈 배열이다(§2.3 의 표, 2026-11-20 I-10 실측, `D-26`). member 의 `GET /members/check-nickname` 이 같은 모양이다([conventions.md §6.1](conventions.md) 의 `HandlerMethodValidationException` 행). **같은 종류의 오류에 세 서비스가 같은 본문을 돌려주는지를 [plan/integration.md](plan/integration.md) I-04 가 비교하므로 한 서비스만 다르게 두지 않는다.**
 
 **반면 `searchType`·`keyword` 조합 위반은 `fieldErrors` 가 빈 배열이다.** 한 필드의 오류가 아니라 **요청 수준** 규칙이어서 담을 필드가 하나로 정해지지 않는다. §2.3 이 가른 요청 수준과 바인딩 수준의 구분이 여기서 갈린다.
 
@@ -822,7 +824,7 @@ public record FieldError(String field, String message) { }
 
 세 서비스가 `GlobalExceptionHandler`를 각자 복제하므로([adr/0007](adr/0007-shared-code-policy.md)) **셋 다 이 둘을 다룬다.** 형식 일치는 [plan/integration.md](plan/integration.md) I-04의 3자 비교에서 확인한다.
 
-**`C008` 은 2026-11-11 `D-18` 이 더했다.** 첨부 업로드(§4.7)가 처음으로 큰 요청 본문을 받는다. 한도를 넘는 multipart 는 컨트롤러에 닿기 전에 해석 단계에서 예외가 되므로 위 둘과 같은 자리의 문제다 — 다루지 않으면 마지막 그물로 떨어질 것으로 본다(**측정 대상** — 매핑과 측정할 것은 [conventions.md §6.1](conventions.md)). 크기 위반은 업로드만의 것이 아니므로(어느 서비스든 multipart 를 받으면 같은 예외가 난다) board 접두어가 아니라 공통 코드로 둔다. **셋 다 다룬다**는 위 문장이 `C008` 에도 적용된다 — multipart 를 받지 않는 auth·member 도 같은 핸들러를 갖는다.
+**`C008` 은 2026-11-11 `D-18` 이 더했다.** 첨부 업로드(§4.7)가 처음으로 큰 요청 본문을 받는다. 한도를 넘는 multipart 는 컨트롤러에 닿기 전에 해석 단계에서 예외가 되므로 위 둘과 같은 자리의 문제다 — 다루지 않으면 마지막 그물로 떨어진다(세 서비스가 핸들러를 넣기 전 실서버에서 500 `C005` 였다. 매핑은 [conventions.md §6.1](conventions.md)). 크기 위반은 업로드만의 것이 아니므로(어느 서비스든 multipart 를 받으면 같은 예외가 난다) board 접두어가 아니라 공통 코드로 둔다. **셋 다 다룬다**는 위 문장이 `C008` 에도 적용된다 — multipart 를 받지 않는 auth·member 도 같은 핸들러를 갖는다. **받지 않아도 닿는다** — 해석은 핸들러를 고르기 전에 돌므로, 보안 필터를 지난 요청이면 경로·메서드와 무관하게 multipart 요청이 그 예외에 닿는다(토큰을 실은 없는 경로도 404 가 아니라 413 이었다. 토큰이 없으면 401 `A001` 이 먼저다). auth·member 는 multipart 한도 키를 적지 않아 Boot 기본값(개당 1MB·요청 10MB)이 운영값이다. 2026-11-20 I-10 이 세 서비스의 실서버에서 413 `C008`·400 `C001`, `fieldErrors` 빈 배열, 핸들러의 WARN 한 줄을 쟀다(`D-26`).
 
 **`C009` 는 2026-11-11 `D-19` 가 더했다.** 요청 수 제한([security.md §10](security.md))을 넘은 요청이다. 응답에 **`Retry-After`(초)** 를 싣고 `fieldErrors` 는 빈 배열이다. 매핑은 [conventions.md §6.1](conventions.md).
 

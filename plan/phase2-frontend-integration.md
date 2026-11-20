@@ -2,7 +2,7 @@
 title: 2차 작업 계획 — 화면·통합
 type: plan
 status: living
-version: v5
+version: v6
 updated: 2026-11-20
 read_when: "2차 기능 확장의 화면 항목(F-07 부터)·통합 항목(I-06 부터)의 범위·의존·완료 기준을 확인하거나, 2차 전체(B·AU·M·F·I)의 순서와 병렬을 볼 때. 상태는 F 는 sp-frontend, I 는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, phase1.md, ../api-contract.md, ../security.md, ../tech-stack.md, ../requirements/member.md, ../requirements/board.md]
@@ -733,7 +733,7 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 - [ ] **multipart 매핑이 세 서비스에서 같다** — 실서버에 한도를 넘는 multipart 를 보내 413 `C008`, 그 밖의 multipart 오류는 400 `C001`, 셋 다 `fieldErrors` 가 빈 배열이고 로그는 `warn` 이다. auth·member 는 multipart 를 받지 않지만 같은 핸들러를 갖는다([../api-contract.md §8.1](../api-contract.md)의 `C008` 문단). 그 예외에 닿는 실서버 경로가 없는 서비스는 그 사실을 적는다. 로그 수준은 `GlobalExceptionHandler` 가 남긴 줄로 센다
 - [ ] **`C009` 를 auth·member 가 같게 낸다** — 상태·본문·`fieldErrors`·`Retry-After`, 그리고 허용 오리진에서 온 429 의 CORS 헤더와 `Retry-After` 의 노출([../security.md §1.1](../security.md)). 갈리는 것이 있으면 갈린 헤더까지 적는다 — 1차 I-04 의 `Content-Type` 처럼
 - [ ] **브라우저가 직접 호출 모드의 화면 오리진에서 429 의 `Retry-After` 를 읽는다** — 수단은 이 항목이 고른다(예: F-10 의 화면을 띄워 그 안내를 본다, 그 오리진의 페이지에서 `fetch` 로 헤더를 읽는다)
-- [ ] **페이징 응답을 auth 와 board 가 같게 낸다** — AU-20 의 계정 목록과 board 의 목록이 [../api-contract.md §7.1](../api-contract.md)의 키를 낸다. member 의 일괄 조회는 페이징 응답이 아니다(§3.2 의 `members` 배열). 계정 목록은 ADMIN 토큰으로 부른다([../api-contract.md §2.5](../api-contract.md)) — ADMIN 토큰은 로컬 seed 의 비밀번호를 사용자에게 받아 쓰고 남기지 않는다. 받지 못하면 그 줄은 BLOCKED 로 보고한다
+- [ ] **페이징 응답을 auth 와 board 가 같게 낸다** — AU-20 의 계정 목록과 board 의 목록이 [../api-contract.md §7.1](../api-contract.md)의 키를 낸다. member 의 일괄 조회는 페이징 응답이 아니다(§3.2 의 `members` 배열). 계정 목록은 ADMIN 토큰으로 부른다([../api-contract.md §2.5](../api-contract.md)) — ADMIN 토큰은 로컬 seed 의 비밀번호를 사용자에게 받아 쓰고 남기지 않는다. 받지 못하면 그 줄은 BLOCKED 로 보고한다. **2026-11-20 의 I-10 은 이 수단을 쓰지 못했다** — seed 비밀번호의 평문이 어디에도 없어, 사용자 결정(2026-11-20)으로 로컬 개인키로 메모리에서만 서명한 토큰을 썼다(발급 코드와 같은 alg·kid·클레임 모양. 키·토큰은 남기지 않았다). 그래서 이 줄은 디코더·`role` 판정·바인딩·페이징까지 검증했고 로그인·발급 경로는 밖이다(`D-26`)
 - [ ] 2차 코드가 서비스 사이에 섞이지 않았다 — 1차 I-04 의 같은 줄을 2차 코드로 다시 본다. 예: `P003`·`CM003`·`AT001`~`AT003` 은 board 에만, `AU005`~`AU007` 은 auth 에만, `C009` 는 auth·member 에만 있다([../api-contract.md §8.1](../api-contract.md)의 `C009` 줄)
 - [ ] **[integration.md](integration.md) I-04 에서 auth·member 에 목록·페이징 응답과 `C002` 의 변환 지점이 없다고 적은 문장들, board 에 필수 파라미터 누락 경로가 없다고 적은 문장들이 시점을 가졌는지 본다.** 1차 I-04 실측이고 AU-20 뒤 auth 에 대해, B-23 뒤 board 에 대해 낡는다 — `D-20` 이 그 시점을 붙였다. 시점이 없는 문장이 남았거나 위 페이징 비교의 결과와 어긋나는 문장이 있으면 그 자리를 보고한다 — 고치는 것은 sp-docs 의 문서 작업이다
 
@@ -753,4 +753,5 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 
 이 문서를 쓰며 찾은 정본의 공백이다. **이 문서는 정본을 고치지 않는다**([phase1.md](phase1.md) `D-20`) — 받을 항목은 계획을 먼저 개정해 세운다([README.md](README.md)의 항목 ID 규칙). board·auth·member 쪽은 각 계획의 같은 이름의 절이 갖는다([phase2-board.md §4.3](phase2-board.md), [phase2-auth-member.md §5.3](phase2-auth-member.md)).
 
-- **무인증 요청에 Access Token 을 싣는 화면 동작** — 정본은 무인증 경로에서 필터가 끊는 토큰의 응답만 적고([../requirements/board.md §9.1](../requirements/board.md)) 화면이 그 경로의 요청에 토큰을 싣는지는 정하지 않았다(2026-11-12 읽기). F-08 이 지금의 동작을 확인하고 화면의 결정을 sp-frontend `CLAUDE.md` 에 적는다(§1.4). 그 결정을 정본으로 올릴지는 이 계획이 정하지 않는다
+- **무인증 요청에 Access Token 을 싣는 화면 동작** — 정본은 무인증 경로에서 필터가 끊는 토큰의 응답만 적고([../requirements/board.md §9.1](../requirements/board.md)) 화면이 그 경로의 요청에 토큰을 싣는지는 정하지 않았다(2026-11-12 읽기). F-08 이 지금의 동작을 확인하고 화면의 결정을 sp-frontend `CLAUDE.md` 에 적는다(§1.4). 그 결정을 정본으로 올릴지는 이 계획이 정하지 않는다. **2026-11-20 I-10 의 관측**(`D-26`) — 로그인한 화면이 무인증 `check-nickname` 에 `Authorization` 을 실어 보내 단순 요청이 아니게 되고 preflight 가 앞선다. 429 를 읽는 데에는 영향이 없었다. sp-frontend `src/lib/api/client.ts` 의 「그 노출은 스텁으로 재지 못한다(I-10 이 잰다)」 주석은 I-10 뒤로 낡았다 — 다른 저장소라 이 개정은 고치지 않는다
+- **`max-swallow-size` 를 넘는 업로드의 화면 안내**(2026-11-20 `D-26`, 근거 I-09). 그 크기의 본문에서는 클라이언트에 따라 413 을 받지 못하고 연결 중단을 본다([../tech-stack.md §4.5](../tech-stack.md)). board 에서는 10MB 를 넘는 파일을 고른 사용자에게 화면의 `C008` 안내가 닿지 않을 수 있다. 브라우저에서는 재지 않았다 — 화면이 연결 오류를 어떻게 보일지는 F 항목이 정한다

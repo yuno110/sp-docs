@@ -2,7 +2,7 @@
 title: 2차 작업 계획 — auth·member 기능 확장
 type: plan
 status: living
-version: v3
+version: v4
 updated: 2026-11-20
 read_when: "2차 기능 확장의 auth·member 작업 항목(AU-12 부터·M-14 부터)의 범위·의존·마이그레이션 번호·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md 를 본다"
 related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../domain-model.md, ../api-contract.md, ../security.md, ../conventions.md, ../tech-stack.md]
@@ -840,4 +840,15 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 - **auth·member 의 무인증 경로에 잘못된 토큰이 올 때의 응답.** 정본은 board 상세 조회에 대해서만 적는다([../requirements/board.md §9.1](../requirements/board.md)). AU-13·M-14 는 관측한 응답을 테스트로 묶을 뿐 정하지 않는다. claim 계약 위반 토큰(예: 열거 밖 `role`)이 무인증 경로로 올 때도 같다
 - **요청 수 제한 설정의 기동 가드.** [../tech-stack.md §4.6](../tech-stack.md)은 그 값들을 정본 값으로 분류해 가드를 요구하지 않는다. AU-19·M-15 의 가드는 AGENTS.md 불변식 9 를 근거로 이 계획이 정했다
 - **메일 헬스 지표.** 정본이 정하지 않았다. AU-14 의 끄기는 [../nfr.md §2](../nfr.md)를 근거로 이 계획이 정했다
-- **코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR.** 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 로그인 실패 카운터의 `uk_login_attempt_email_key`(다시 한다)와 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약들을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다
+- **코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR.** 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 로그인 실패 카운터의 `uk_login_attempt_email_key`(다시 한다)와 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약들을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다. 로그인 실패 카운터는 2026-11-20 I-08 이 실 MySQL 에서 쟀다 — UNIQUE 충돌은 없었고 교착이 났다(아래 줄)
+
+**아래는 2026-11-20 `D-26` 이 2차 통합 측정(I-08·I-09)에서 옮긴 후속 후보다.** D-26 은 실측을 정본에 맞추기만 하고 동작을 바꾸지 않는다([phase1.md](phase1.md)의 D-26) — 그래서 코드나 마이그레이션을 바꿔야 풀리는 것을 여기에 둔다. 세울지와 어떻게 할지는 정하지 않았다.
+
+- **표의 콜레이션을 마이그레이션이 정하지 않는다.** 표 선언이 문자셋만 적어 표가 서버의 기본 콜레이션을 받았다 — 잰 서버에서 `utf8mb4_0900_ai_ci`(NO PAD, 악센트 등도 같게 본다)였고 스키마의 `utf8mb4_general_ci` 와 다르다([../tech-stack.md §4.1](../tech-stack.md)). 서버 설정이 다르면 표의 비교 기준도 달라진다. **닉네임 유일성과 게시글 `keyword` 검색에 미치는 영향은 재지 않았다**([../requirements/member.md §7](../requirements/member.md), [../api-contract.md §4.1](../api-contract.md)). 바꾸면 이메일과 `login_attempt.email_key` 의 동치와 100자 판정의 근거([../requirements/member.md §12.1](../requirements/member.md))가 함께 움직이고 board 의 표도 걸린다. 근거 I-08
+- **로그인 실패의 동시 첫 실패가 교착으로 세지지 않는다.** 정본이 허용한 동작이다 — 락 경합은 다시 하지 않고 WARN 으로 끝낸다([../domain-model.md §2.5](../domain-model.md)). 그만큼 잠금이 늦어지고(동시 8회 실패에 잠기지 않은 회차가 있었다), 교착마다 Hibernate 의 ERROR 가 남는다([../security.md §11](../security.md), [../conventions.md §8.1](../conventions.md)). 고치는 수단(다시 하기, 격리 수준, 첫 행을 만드는 방법)은 정하지 않았다 — 다시 하면 [../domain-model.md §2.5](../domain-model.md)의 「한 번 더」 규칙과 커넥션 규칙([../requirements/member.md §12.2](../requirements/member.md))을 함께 본다. 근거 I-08
+- **보내지 않을 요청이 메일 대기열의 칸을 쓴다.** 없는 이메일의 재설정·재발송도 발급 작업 한 칸을 써서, SMTP 가 느릴 때 실제 가입의 메일을 밀어낼 수 있다([../requirements/member.md §11.5](../requirements/member.md)의 블록인용). 측정용 한도에서 관측했고, 운영 한도에서 IP 키를 여럿 가진 자에게만 열린 길이라는 것은 추정이다. 근거 I-09
+- **대기열이 버린 작업의 WARN 에 계정 id·목적이 없다.** 거부 처리기가 작업만 받기 때문이다(I-09 의 코드 대조). 어느 가입이 메일을 잃었는지 로그로 알 수 없다 — 그 계정은 재발송을 요청하기 전까지 인증하지 못한다. 근거 I-09
+- **메일이 나가지 못하면 이미 받은 링크도 죽는다**(추정 — 코드 순서, DB 로 확인하지 않았다). 발급 작업이 앞 토큰을 지운 뒤 발송이 실패하거나 발송 작업이 버려지는 경우다([../requirements/member.md §11.5](../requirements/member.md)의 블록인용). 앞 토큰을 언제 지울지는 [../requirements/member.md §11.1](../requirements/member.md)의 「마지막 메일의 링크만 산다」 를 바꾸는 결정이다. 근거 I-09 와 sp-auth `151c325` 의 코드 읽기
+- **비ASCII 주소의 가입.** 점 없는 `ı`(U+0131) 변형이 별개 계정으로 가입되고, `é`·ZWSP 가 든 주소는 가입은 되지만 인증 메일 발송이 실패했다([../requirements/member.md §2.0](../requirements/member.md)의 블록인용). 정본이 통과·실패를 정하지 않았다. 근거 I-08
+- **허용하지 않은 오리진의 403 이 계약 모양이 아니다**(2026-11-20 `D-26`, 근거 I-10). 평문 `Invalid CORS request`, `Content-Type` 없음([../security.md §1.1](../security.md)). JSON 으로 바꾸려면 CORS 처리의 거부 응답을 서비스가 쓰게 해야 한다. auth·member 에서 쟀고 board 는 재지 않았다
+- **쿼리 값의 대소문자 규칙이 없다**(2026-11-20 `D-26`, 근거 I-10). auth 계정 목록에서 `deleted=TRUE` 는 200, `role=admin`·`sort=LATEST` 는 400 `C002` 였다([../api-contract.md §2.5](../api-contract.md)). board 의 열거 파라미터도 같은 질문을 갖는다. 정하면 변환 쪽 코드가 바뀐다

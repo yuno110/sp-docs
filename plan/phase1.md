@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v78
+version: v79
 updated: 2026-11-20
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2997,6 +2997,88 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | 고친 문장을 sp-board 의 `ViewCountJudge.insertView`·`LikeService.insertLike` 와 `application*.yml` 과 대조한다 — 충돌의 처리, 잡는 코드가 로그를 남기지 않는 것, 운영 설정이 그 로거를 건드리지 않는 것 | 맞는다 |
 | sp-docs 를 `SqlExceptionHelper`·「로그 수준」·`ERROR`·`1062`·「UNIQUE 충돌」·「로거」·「경보」·「측정 대상」 으로 훑는다 | 충돌의 로그 수준을 아직 재지 않은 것으로, 처리 방법을 정하지 않은 것으로, 로거 전체를 다루는 것으로 읽히게 하는 문장이 없다 |
 | [phase2-board.md §4.1](phase2-board.md)의 UNIQUE 충돌 로그 줄과 I-12 의 검증표를 나란히 읽는다 | 기대가 같다 |
+| 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-20 이다 |
+
+### D-26 2차 통합 측정(I-08~I-10)이 드러낸 정본의 낡은 문장과 공백 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `I-08`·`I-09`·`I-10`([phase2-frontend-integration.md](phase2-frontend-integration.md))이 2026-11-20 에 쟀다. 근거는 sp-board `0d5ac03`(I-08)·`9fdb8b1`(I-09)·`9300000`(I-10) 의 커밋 메시지와 I-10 의 독립 리뷰 1라운드(정본 후보 표 C1~C17)다 |
+| 참조 | 1단계 — [../requirements/member.md §2.0](../requirements/member.md)·§7·§11·§12, [../api-contract.md §4.1](../api-contract.md), [../tech-stack.md §4.1](../tech-stack.md)·§4.6·§4.7, [../domain-model.md §2.5](../domain-model.md), [../security.md §10.1](../security.md)·§11·§12, [../nfr.md §2](../nfr.md)·§3, [../conventions.md §8.1](../conventions.md), [phase2-auth-member.md §5.3](phase2-auth-member.md). 2단계 — [../conventions.md §6.1](../conventions.md), [../api-contract.md §2.3](../api-contract.md)·§2.5·§4.1·§8.1, [../tech-stack.md §4.5](../tech-stack.md), [../security.md §1.1](../security.md), [integration.md](integration.md) I-04, [phase2-frontend-integration.md](phase2-frontend-integration.md) I-10·§5, [phase2-board.md §4.3](phase2-board.md) |
+
+**오케스트레이터가 2026-11-20 에 열었다. 실측으로 확인된 사실을 정본에 맞추는 개정이고, 동작을 바꾸는 결정은 하지 않는다.** 코드나 마이그레이션을 바꿔야 풀리는 것은 고치는 항목을 세우지 않고, 해당 계획의 「넘기는 것」 절에 후속 후보로 적는다 — 무엇이 왜 남는지를 근거와 함께 적는다. **두 단계로 나눈다** — 1단계는 auth·member·메일, 2단계는 공통 응답·CORS·[integration.md](integration.md)의 I-04 다.
+
+**1단계 — auth·member·메일**
+
+1. **표의 콜레이션.** 정본은 「스키마의 콜레이션이 `utf8mb4_general_ci`」 를 표의 비교 기준으로 적었다([../requirements/member.md §7](../requirements/member.md), [../api-contract.md §4.1](../api-contract.md)). I-08 이 `information_schema` 로 읽은 표는 서버 기본값 `utf8mb4_0900_ai_ci`(NO PAD, 악센트 등도 같게 본다)였다 — 마이그레이션이 `DEFAULT CHARSET = utf8mb4` 만 선언한다. 그렇지 않은 표는 `refresh_token`(`ascii`)과 `flyway_schema_history`(스키마 기본값)였다. 대소문자를 가리지 않는다는 결론은 그대로다. 닉네임 유일성과 `keyword` 검색에 미치는 영향은 재지 않았다
+2. **로그인 실패의 동시 첫 실패.** 같은 키의 동시 첫 실패가 `uk_login_attempt_email_key` 의 간격 락과 insert intention 으로 교착(1213)했다. 그 실패는 세지 않아 잠금이 늦어진다 — 동시 8회 실패에 잠기지 않은 회차가 하나 있었다. 교착마다 `SqlExceptionHelper` 의 WARN·ERROR 와 `LoginAttemptService` 의 WARN 이 한 줄씩 남았다. [../domain-model.md §2.5](../domain-model.md)의 「락 경합」 규칙이 허용한 동작이고, 정본은 이것을 추정·측정 대상으로만 적었다
+3. **메일 대기열의 단위.** 대기열 상한은 메일이 아니라 작업의 수다 — 메일 한 통이 발급·발송 두 작업이고, 보내지 않을 요청도 발급 작업 한 칸을 쓴다(I-09 의 코드 대조). 응답하지 않는 SMTP 에서 없는 이메일의 재설정이 대기열을 채운 뒤의 가입은 토큰도 메일도 없었다(측정용 한도). 버림 WARN 에 계정 id·목적이 없다. 발송 하나는 읽기 타임아웃 10초에 끊겼고 응답은 늦어지지 않았다
+4. **앞 링크가 죽는 대가**(추정). 새 요청이 앞 토큰을 지운 뒤 메일이 나가지 못하면 이미 받은 링크도 죽는다. 코드 순서에서 본 것이고 DB 로 확인하지 않았다. 정본은 이 대가를 적지 않았다 — 발송 상한이 앞 토큰을 지키는 것만 적었다([../security.md §10.1](../security.md))
+5. **응답 시간 측정의 한계.** 재설정·재발송의 있음·없음은 중앙값 차 3ms 이하, p > 0.1 이었다. 검출 한계가 약 4ms(검정력 80%)라 측정은 그보다 큰 차이만 배제한다 — 「요청 스레드가 계정을 조회하지 않는다」 를 떠받치는 것은 코드 대조다
+6. **낡은 블록인용.** [../tech-stack.md §4.6](../tech-stack.md)이 「`forward-headers-strategy` 가 auth·member 의 `application.yml` 에 없다(2026-11-11)」 고 적었다. 지금은 둘 다 있다(AU-19·M-15). I-09 에서 `X-Forwarded-For` 를 바꿔도 `remoteAddr` 키로 셌다
+7. **비ASCII 주소의 관측**(I-08). `ı`(U+0131) 변형은 별개 계정으로 가입됐고, `é`·ZWSP 가 든 주소는 가입은 되지만 인증 메일 발송이 실패했다
+
+사실은 sp-board `0d5ac03`(I-08)·`9fdb8b1`(I-09) 의 커밋 메시지와 원자료(세션 scratchpad 의 I-08 `coll-info.txt`·`result-c*.json`·`result3-*.json`, I-09 `stage3-report.md`·`stage4-report.md`, 2026-11-20 읽기 — 저장소에 없다)로 확인했다. 콜레이션의 선언은 서비스마다의 마이그레이션을, 발급·발송의 순서와 대기열은 sp-auth `151c325` 의 `AccountTokenIssuer`·`MailExecutorConfig` 를, `forward-headers-strategy` 는 auth·member 의 `application.yml` 을 2026-11-20 에 읽어 확인했다. 측정 데이터는 이미 지웠고 이 항목은 실 MySQL 에 접속하지 않았다.
+
+**결정 — 정본의 문장만 실측에 맞춘다.** 「측정 대상」 으로 남은 자리를 결과로 바꾸고, 낡은 문장을 고치고, 재지 않은 것은 재지 않았다고 적는다. 마이그레이션·재시도·로그 문면은 바꾸지 않는다 — [phase2-auth-member.md §5.3](phase2-auth-member.md)에 후속 후보로 넘긴다.
+
+**2단계 — 공통 응답·CORS·I-04**
+
+8. **multipart 의 「측정 대상」 이 닫혔다.** [../conventions.md §6.1](../conventions.md)의 블록인용은 「지금은 셋 다 마지막 그물 … 500 `C005` … 측정 대상」 을 현재형으로 적었다. 그 추정은 세 서비스가 핸들러를 넣기 전 실서버에서 확인됐고(B-15·AU-13·M-14 의 커밋 메시지), 지금 세 서비스는 413 `C008`·400 `C001`·`fieldErrors` 빈 배열·WARN 이다(I-10). auth·member 는 multipart 를 받지 않아도 체인을 지난 요청이면 경로와 무관하게 그 예외에 닿고, 한도는 Boot 기본값이다(I-10). [../api-contract.md §8.1](../api-contract.md)의 `C008` 문단도 「측정 대상」 이었다
+9. **`max-swallow-size` 를 넘는 본문.** 클라이언트가 보는 것이 갈린다 — 다 보낸 뒤 읽는 쪽은 연결 중단, 보내는 중에 읽는 curl 은 413. 토큰 없는 401 도 같다(I-09). [../tech-stack.md §4.5](../tech-stack.md)는 「측정 대상」 이었다. 화면 안내가 닿지 않을 수 있다는 것은 F 후보다
+10. **`C002` 의 `fieldErrors`.** 두 서비스 모두 빈 배열이었다(I-10). 정본은 이것을 추론으로만 가졌다([../api-contract.md §2.3](../api-contract.md)·§4.1, [../conventions.md §6.1](../conventions.md)의 비고 빈칸). `page`·`size` 의 정수 변환 실패(400 `C002`)는 §2.5 의 표에 없었다. `deleted=TRUE` 는 200 이고 `role=admin`·`sort=LATEST` 는 `C002` 다 — 대소문자 규칙이 없다
+11. **CORS.** 허용하지 않은 오리진은 평문 403 `Invalid CORS request`, `Content-Type` 없음, 카운터에 들지 않는다(I-10). 정본은 이 응답을 적지 않았다. auth·member 의 preflight 에는 `PUT` 이 없다 — [../security.md §1.1](../security.md)의 블록인용이 받아들인 차이지만 표만 읽으면 어긋나 보인다. 직접 호출 모드의 화면이 429 의 `Retry-After` 를 읽었다(I-10)
+12. **응답의 나머지 차이**(I-10). 필터의 401·403 은 `charset=UTF-8` 이 붙고 핸들러 응답은 붙지 않는다 — 1차 I-04 와 같은 종류다. `C009` 의 로그 문장이 auth·member 사이에 다르다 — [../conventions.md §6.1](../conventions.md)이 같기를 요구하는 것은 핸들러 집합·코드·로그 수준·응답 본문이라 관찰로 둔다
+13. **[integration.md](integration.md) I-04 의 1차 문장.** 1차 실측의 「없다」·수치가 현재형으로 남았다 — 2차에서 auth 의 페이징과 `C002`(AU-20), board 의 필수 파트(B-23)가 생겼고 member 에는 페이징이 아닌 일괄 조회(M-16)가 생겼다. 1차 수치는 지우지 않고 시점만 붙인다
+14. **계획 문서.** I-10 의 완료 기준 4 가 정한 ADMIN 토큰 수단(seed 비밀번호)을 그 측정은 쓰지 못했다 — 사용자 결정으로 로컬 개인키 서명을 썼다. 로그인 뒤 화면이 무인증 `check-nickname` 에 토큰을 실어 preflight 가 앞선다(I-10)
+
+사실은 sp-board `9fdb8b1`·`9300000` 의 커밋 메시지, I-09·I-10 의 원자료(세션 scratchpad 의 `stage1-report.md`, 2026-11-20 읽기 — 저장소에 없다), I-10 의 독립 리뷰 1라운드(`review1.md` 의 §2·§3)로 확인했다. 핸들러를 넣기 전의 500 `C005` 는 sp-board `141bc47`·sp-auth `09b25b7`·sp-member `7f0b309` 의 커밋 메시지가 적는다. AU-20(sp-auth `3002ad4`, 2026-11-19)·B-23(sp-board `89eb27b`, 2026-11-18)의 날짜는 커밋에서 읽었다.
+
+**C1~C17 의 처리** — 고친 자리는 아래 산출물(2단계)의 각 줄에 C 번호로 적었다. 고치지 않은 것: C11(로그 문장)은 정본이 요구하지 않아 관찰로만 적었다. 동작을 바꿔야 풀리는 C10(403 의 모양)·C14(대소문자)는 [phase2-auth-member.md §5.3](phase2-auth-member.md)으로, 화면의 몫(`max-swallow-size` 의 안내, sp-frontend `client.ts` 의 낡은 주석)은 [phase2-frontend-integration.md §5](phase2-frontend-integration.md)로 넘겼다. sp-frontend 는 고치지 않는다.
+
+**산출물(1단계)**
+- [../requirements/member.md](../requirements/member.md) — §2.0 의 비ASCII 관측, §7 의 콜레이션, §11.1 의 「새 요청」 행, §11.3 의 응답 시간 문장, §11.5 의 대기열 행과 두 블록인용, §12.1 의 100자 문장, §12.2 의 두 「측정 대상」 자리
+- [../api-contract.md §4.1](../api-contract.md) — `keyword` 의 대소문자 문장
+- [../tech-stack.md §4.1](../tech-stack.md) — 스키마 콜레이션이 표에 닿지 않는다는 블록인용, §4.6 의 블록인용, §4.7 의 SMTP 타임아웃·대기열 행
+- [../domain-model.md §2.5](../domain-model.md) — 콜레이션의 읽은 값, 동시 첫 실패의 교착
+- [../security.md](../security.md) — §10.1 의 콜레이션 괄호, §11 의 「동시 시도」 행, §12 의 「한 토큰을 두 번」·「응답이 계정의 존재를」 행
+- [../nfr.md](../nfr.md) — §2 의 SMTP 문단, §3 의 대기열 행
+- [../conventions.md §8.1](../conventions.md) — auth·member 블록인용에 로그인 실패 카운터의 측정
+- [phase2-auth-member.md §5.3](phase2-auth-member.md) — D-25 줄의 측정과 후속 후보
+- [../docs/checklist.md](../docs/checklist.md) — `D-26` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**산출물(2단계)**
+- [../conventions.md §6.1](../conventions.md) — `C002` 행의 비고(C12), multipart 블록인용의 시점과 결과(C1), 「같아야 하는 것」 문단의 I-10 결과와 로그 문장 관찰(C11)
+- [../api-contract.md](../api-contract.md) — §2.3 의 `fieldErrors` 표에 타입 변환 실패(C12), §2.5 의 오류 표에 `page`·`size` 와 빈 배열(C13), §2.5 의 대소문자 관찰(C14), §4.1 의 하한 위반 문단(C12), §8.1 의 `C008` 문단(C2)
+- [../tech-stack.md §4.5](../tech-stack.md) — `max-swallow-size` 행
+- [../security.md §1.1](../security.md) — 허용 메서드 행(C9), `Retry-After` 문단의 I-10 실측, 허용하지 않은 오리진의 문단(C10)
+- [integration.md](integration.md) — I-04 의 완료 기준·검증표·블록인용에 1차 시점과 2차 경로(C3~C8), `Content-Type` 문단에 2차 관측(C15)
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) — I-10 완료 기준 4 의 ADMIN 토큰 수단(C17), §5 의 화면 동작 항목(C16)과 `max-swallow-size` 안내 항목
+- [phase2-auth-member.md §5.3](phase2-auth-member.md) — 403 의 모양(C10)·대소문자(C14) 후보
+- [phase2-board.md §4.3](phase2-board.md) — 콜레이션의 `keyword` 줄(1단계 보충)
+- [../conventions.md §8.1](../conventions.md) — auth·member 블록인용의 추정에 시점 표지(1단계 보충)
+
+**코드 저장소는 고치지 않는다.**
+
+**완료 기준**
+- [ ] 위 사실이 각 자리에 시점(2026-11-20 `D-26`)과 근거(I-08·I-09·I-10)와 함께 있다. 추정은 추정이라 적는다
+- [ ] [integration.md](integration.md) I-04 의 1차 수치를 지우지 않고 시점만 붙인다
+- [ ] 재지 않은 것을 사실로 적지 않는다 — 닉네임 유일성·`keyword` 검색에 대한 콜레이션의 영향, 운영 한도에서 대기열을 채우는 길, 앞 링크가 죽는 것의 DB 상태, 연결 타임아웃, 메일 실패가 나는 쪽, `max-swallow-size` 를 넘는 본문에서 브라우저가 보는 것, board 의 허용하지 않은 오리진 응답
+- [ ] 동작을 바꾸는 문장이 없고, 바꿔야 풀리는 것은 [phase2-auth-member.md §5.3](phase2-auth-member.md)·[phase2-board.md §4.3](phase2-board.md)·[phase2-frontend-integration.md §5](phase2-frontend-integration.md)에 근거와 함께 있다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 옮긴 수치와 문면을 sp-board `0d5ac03`·`9fdb8b1`·`9300000` 의 커밋 메시지와 I-08~I-10 의 원자료·리뷰와 대조한다 | 맞는다 |
+| 고친 문장을 마이그레이션의 표 선언, sp-auth 의 `AccountTokenIssuer`·`MailExecutorConfig`, auth·member 의 `application.yml` 과 대조한다 | 맞는다 |
+| sp-docs 를 `general_ci`·`0900`·「콜레이션」·`PAD SPACE`·`login_attempt`·「교착」·`1213`·「대기열」·`queue`·`forward-headers`·`X-Forwarded-For`·「응답 시간」·「측정 대상」 으로 훑는다 | 스키마 콜레이션을 표의 기준으로, 1단계의 사실을 아직 재지 않은 것으로, 대기열 상한을 메일 수로 읽히게 하는 문장이 없다 |
+| sp-docs 를 `C008`·`multipart`·「마지막 그물」·`swallow`·`C002`·`fieldErrors`·「도달 불가」·「목록 엔드포인트」·「필수 파라미터 누락」·「지금 없다」·`Invalid CORS`·`PUT`·`charset`·`Retry-After`·`seed`·「AU-20 이 만든다」 로 훑는다 | 2차에서 생긴 경로를 없다고, 닫힌 측정을 측정 대상으로 읽히게 하는 현재형 문장이 없다 |
 | 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-20 이다 |
 
 ---
