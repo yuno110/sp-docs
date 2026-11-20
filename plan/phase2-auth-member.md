@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — auth·member 기능 확장
 type: plan
 status: living
-version: v2
-updated: 2026-11-17
+version: v3
+updated: 2026-11-20
 read_when: "2차 기능 확장의 auth·member 작업 항목(AU-12 부터·M-14 부터)의 범위·의존·마이그레이션 번호·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md 를 본다"
 related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../domain-model.md, ../api-contract.md, ../security.md, ../conventions.md, ../tech-stack.md]
 ---
@@ -840,3 +840,4 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 - **auth·member 의 무인증 경로에 잘못된 토큰이 올 때의 응답.** 정본은 board 상세 조회에 대해서만 적는다([../requirements/board.md §9.1](../requirements/board.md)). AU-13·M-14 는 관측한 응답을 테스트로 묶을 뿐 정하지 않는다. claim 계약 위반 토큰(예: 열거 밖 `role`)이 무인증 경로로 올 때도 같다
 - **요청 수 제한 설정의 기동 가드.** [../tech-stack.md §4.6](../tech-stack.md)은 그 값들을 정본 값으로 분류해 가드를 요구하지 않는다. AU-19·M-15 의 가드는 AGENTS.md 불변식 9 를 근거로 이 계획이 정했다
 - **메일 헬스 지표.** 정본이 정하지 않았다. AU-14 의 끄기는 [../nfr.md §2](../nfr.md)를 근거로 이 계획이 정했다
+- **코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR.** 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 로그인 실패 카운터의 `uk_login_attempt_email_key`(다시 한다)와 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약들을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다

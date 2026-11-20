@@ -2,7 +2,7 @@
 title: 게시판 기능 요구사항
 type: requirements
 status: frozen
-version: v6
+version: v7
 updated: 2026-11-20
 read_when: "board-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0003-writer-snapshot.md]
@@ -206,7 +206,11 @@ QueryDSL `BooleanExpression`으로 동적 조건을 조합한다.
 | **판정 행에 FK 를 두지 않는다**([../domain-model.md §4.5](../domain-model.md)) | FK 검사의 공유 락을 잡은 뒤 같은 `post` 행에 좁은 UPDATE 의 배타 락을 요청하면, 같은 글을 동시에 본 두 트랜잭션이 서로를 기다릴 것으로 본다(승격 교착, 추정) |
 | **오래된 판정 행을 주기적으로 지운다** | 기준 시각이 24시간을 넘은 행은 없는 행과 판정이 같다 — 다음 조회는 어느 쪽이든 +1 이다. 그래서 지워도 결과가 바뀌지 않고, 지우지 않으면 행이 조회자·글 쌍마다 쌓인다. 주기와 설정은 [../tech-stack.md §4.5](../tech-stack.md) |
 
-> **경합의 UNIQUE 충돌이 남기는 로그도 측정 대상이다.** 충돌은 정상 결과인데 Hibernate 가 그 SQL 예외를 ERROR 로 로그할 수 있다(추정). 그러면 [../conventions.md §6.1](../conventions.md)의 「마지막 그물만 `error`」 와 어긋나 정상 경합이 ERROR 경보가 되고, 그것을 피하려고 로그를 통째로 끄면 진짜 제약 위반이 조용해진다([../AGENTS.md](../AGENTS.md) 불변식 9). 실제 로그 수준을 재고 그 결과로 다룬다([../plan/phase2.md §5.4](../plan/phase2.md)). **2026-11-19 I-07 은 이 충돌에 닿지 않았다** — 반복 읽기에서 판정이 충돌 전에 교착했다(아래 블록인용). 판정 트랜잭션을 READ COMMITTED 로 둔 2026-11-20 측정에서는 충돌이 같은 키의 동시 첫 조회에서 났지만 앱 밖의 드라이버라 로그를 보지 않았다. 로그 수준은 `B-25` 뒤에 잰다([../plan/phase2-frontend-integration.md](../plan/phase2-frontend-integration.md) I-11).
+> **경합의 UNIQUE 충돌이 남기는 로그는 재었고, 다루는 방법을 정했다**(2026-11-20 `D-25`). 이 판의 앞 판은 Hibernate 가 그 SQL 예외를 ERROR 로 로그할 수 있다고 추정하고 측정으로 미뤘다.
+>
+> - **2026-11-19 I-07 은 이 충돌에 닿지 않았다** — 반복 읽기에서 판정이 충돌 전에 교착했다(아래 블록인용). 판정 트랜잭션을 READ COMMITTED 로 둔 2026-11-20 대안 측정에서는 충돌이 같은 키의 동시 첫 조회에서 났지만 앱 밖의 드라이버라 로그를 보지 않았다
+> - **2026-11-20 I-11**(B-25 뒤, `local` 프로파일, 같은 조회자의 동시 첫 조회): UNIQUE 충돌 96건이 전부 200 이었고 `GlobalExceptionHandler` 의 줄은 없었다. 그러나 충돌마다 Hibernate 의 `SqlExceptionHelper` 가 WARN `SQL Error: 1062, SQLState: 23000` 한 줄과 ERROR `Duplicate entry '…' for key 'post_view.uk_post_view_post_viewer'` 한 줄을 남겼고, ERROR 줄에 판정 키가 실렸다. [../conventions.md §6.1](../conventions.md)의 핸들러 표와는 어긋나지 않지만 정상 경합이 ERROR 경보가 된다 — 그 절의 「로그 수준을 가른다」 의 취지와 어긋난다. 운영 프로파일은 재지 않았다 — 운영 설정이 그 로거를 건드리지 않아 같을 것으로 본다(추정)
+> - **그 ERROR 줄만 버리고 WARN 줄과 로거의 수준은 그대로 둔다.** 규칙과 이유, 버린 대안은 [../conventions.md §8.1](../conventions.md)이 갖는다. 로거를 통째로 끄면 진짜 제약 위반이 조용해진다([../AGENTS.md](../AGENTS.md) 불변식 9) — 그래서 끄지 않는다. 코드는 `B-26`, 실 MySQL 재측정은 `I-12` 다([../plan/phase2-board.md](../plan/phase2-board.md), [../plan/phase2-frontend-integration.md](../plan/phase2-frontend-integration.md))
 
 > **판정 순서가 만드는 락을 쟀다 — 반복 읽기에서는 교착하고, 판정 트랜잭션만 READ COMMITTED 로 두면 교착하지 않았다**(2026-11-20 `D-24`). 이 판의 앞 판은 이것을 추정으로 적고 「측정이 뒤집으면 순서를 바꾼다」 고 했다.
 >

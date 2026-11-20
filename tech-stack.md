@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v37
+version: v38
 updated: 2026-11-20
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -431,6 +431,12 @@ view-count:
 **정리 작업은 board 의 첫 스케줄러다.** 스케줄링 활성화는 `global/config` 에 둔다([conventions.md §1.3](conventions.md)). 인스턴스가 여럿이면 각자 돌지만 지우는 조건이 같아 결과가 같다. 지우는 조건은 `viewed_at` 이므로 그 인덱스를 쓴다([domain-model.md §4.3](domain-model.md)).
 
 **조회수 판정 트랜잭션은 READ COMMITTED 로 연다**(2026-11-20 `D-24`, [requirements/board.md §9.3](requirements/board.md)). 서버의 전역 격리 수준을 바꾸지 않고 그 트랜잭션에만 건다 — 위 표의 설정 키가 아니라 코드의 트랜잭션 정의다. **전제: board 가 쓰는 MySQL 의 `binlog_format` 이 `ROW` 또는 `MIXED` 다.** 바이너리 로그가 켜져 있고 `STATEMENT` 이면 READ COMMITTED 트랜잭션의 쓰기가 거부되어 판정이 실패한다(MySQL 의 동작 — 이 프로젝트에서 재지 않았다). 2026-11-20 측정한 로컬 서버는 `ROW` 이고 바이너리 로그가 켜져 있었다. 서버를 바꾸면 `SELECT @@global.binlog_format, @@log_bin;` 으로 확인한다.
+
+**board 는 logback 설정 파일 `src/main/resources/logback-spring.xml` 을 갖는다**(2026-11-20 `D-25`). 정상 경합의 UNIQUE 충돌에 Hibernate 가 남기는 ERROR 줄을 버리는 필터를 두는 자리다 — 무엇을 버리고 왜인지는 [conventions.md §8.1](conventions.md)이 갖는다. 요건:
+
+- **Boot 의 기본 출력을 바꾸지 않는다** — Boot 의 `defaults.xml`·`console-appender.xml` 을 포함하고 루트(INFO)에 콘솔만 단다. `base.xml` 을 포함하지 않는다 — 그 파일은 파일 appender 를 함께 달아, 설정 파일이 없는 지금은 없는 파일 출력(`LOG_FILE` 이 없으면 임시 디렉터리의 `spring.log`)이 생긴다(spring-boot 3.5.16 의 `base.xml` 읽기). `logging.level.*` 속성(예: 운영의 SQL·바인드 로거)은 그대로 적용된다(Boot 의 동작 — B-26 이 테스트로 확인한다). `logging.file.name`·`logging.file.path`·`logging.structured.format.console` 은 이 파일이 있으면 적용되지 않으므로, 그 속성을 쓰려면 이 파일을 함께 고친다(지금은 board 설정에 없다)
+- **`<springProfile>` 로 가르지 않는다.** 필터는 모든 프로파일에 같다 — 테스트 프로파일도 이 파일을 읽는다
+- 의존성을 더하지 않는다 — logback 은 Boot 의 기본 로깅이다
 
 **의존성을 더하지 않는다.** HMAC 은 JDK(`javax.crypto.Mac`), 스케줄링은 이미 있는 `spring-context`, 형식 판정은 매직 바이트 비교다 — 판정 라이브러리(예: Tika)를 들이지 않는 것이 결정이다([requirements/board.md §11](requirements/board.md)).
 

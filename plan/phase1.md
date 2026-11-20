@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v77
+version: v78
 updated: 2026-11-20
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -2940,6 +2940,63 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | 고친 문장을 sp-board 의 B-21 `ViewCountJudge` 와 대조한다 — 순서, 판정 트랜잭션이 상세의 읽기와 다른 것, UNIQUE 충돌의 처리 | 맞는다 |
 | sp-docs 를 「순서를 바꾼다」·「한계로 남」·`REPEATABLE`·「반복 읽기」·`READ COMMITTED`·「격리」·「교착」·「UNIQUE 충돌」·`1062` 로 훑는다 | 판정 순서를 측정 대상으로만 적거나, 판정의 교착을 같은 행의 한계로 적거나, 판정 트랜잭션의 격리를 서버 기본으로 읽히게 하는 문장이 없다 |
 | [phase2-board.md §4.1](phase2-board.md)의 조회 줄과 I-11 의 검증표를 나란히 읽는다 | 조합과 기대가 같다 |
+| 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-20 이다 |
+
+### D-25 정상 경합의 UNIQUE 충돌이 Hibernate ERROR 로그를 남긴다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `I-11`([phase2-frontend-integration.md](phase2-frontend-integration.md), sp-board `7105f09` 의 커밋 메시지)이 2026-11-20 에 쟀다 |
+| 참조 | [../conventions.md §6.1](../conventions.md)·§8, [../requirements/board.md §9.3](../requirements/board.md), [../domain-model.md §4.3](../domain-model.md)·§6.1, [../tech-stack.md §4.5](../tech-stack.md), [../security.md §9](../security.md), [phase2-board.md](phase2-board.md) 의 B-20·B-21·B-25·§4.1, [phase2-frontend-integration.md](phase2-frontend-integration.md) 의 I-11 |
+
+**`I-11` 이 찾았고, 사용자가 2026-11-20 에 「그 충돌만 좁게 다룬다」 를 골랐다** — 오케스트레이터가 제시한 셋(한계로 적고 둔다 / 그 충돌만 좁게 / 로거 전체) 가운데 둘째다. 수단(필터와 그 자리)은 이 항목이 골랐다.
+
+1. **정상 경합의 UNIQUE 충돌이 ERROR 를 남긴다.** 2026-11-20 I-11(B-25 뒤, `local` 프로파일, 같은 조회자의 동시 첫 조회): 충돌 96건이 전부 200, `GlobalExceptionHandler` 의 줄 0. 그러나 충돌마다 `SqlExceptionHelper` 가 WARN `SQL Error: 1062, SQLState: 23000` 한 줄과 ERROR `Duplicate entry '…' for key 'post_view.uk_post_view_post_viewer'` 한 줄을 남겼다. [../conventions.md §6.1](../conventions.md)의 핸들러 표와는 어긋나지 않지만 「로그 수준을 가른다」 의 취지와 어긋난다 — [../requirements/board.md §9.3](../requirements/board.md)의 블록인용과 [phase2-board.md §4.1](phase2-board.md)이 이미 「ERROR 면 §6.1 과 어긋난다」 고 적었다
+2. **ERROR 줄에 판정 키가 실린다** — 로그인은 계정 id, 비로그인은 접속 주소의 HMAC 이다. 판정 행의 보존 상한([../security.md §9](../security.md))은 로그에 미치지 않는다
+3. **좋아요의 충돌도 같은 로거를 지난다.** B-20 이 H2 에서 같은 두 줄을 보았고(`LikeService.insertLike` 의 javadoc), 2026-11-19 I-07 에서는 그 충돌이 0건이었다
+4. **정본은 처리 방법을 정하지 않았다.** §9.3 은 「로그를 통째로 끄면 진짜 제약 위반이 조용해진다」 는 반대만 적고 측정으로 미뤘다
+
+사실은 sp-board `7105f09` 의 커밋 메시지와 I-11 의 원자료(세션 scratchpad 의 `board.log`, 2026-11-20 읽기 — 저장소에 없다)로 확인했다: 그 로거의 줄은 WARN·ERROR 가 같은 수였고 ERROR 는 모두 `post_view.uk_post_view_post_viewer` 였다. `SqlExceptionHelper.logExceptions` 의 동작(ERROR 가 꺼져 있으면 WARN 도 남기지 않는다)은 hibernate-core 6.6.53 의 바이트코드를, Boot 의 `base.xml` 이 파일 appender 를 다는 것은 spring-boot 3.5.16 jar 의 그 파일을 읽어 확인했다. H2 의 위반 문면(소문자 이름에 `_INDEX_n` 접미사, `DATABASE_TO_LOWER` 가 없으면 대문자, WARN 은 `23505`)은 D-25 리뷰의 H2 2.3.232 프로브(두 URL)로 확인했다. 운영 프로파일의 로그는 재지 않았다.
+
+**결정 — 그 로거의 ERROR 중 두 제약 이름이 든 줄만 버린다.** WARN 줄과 로거의 수준은 그대로 둔다. 수단은 `logback-spring.xml` 의 TurboFilter 이고 프로파일을 가리지 않는다. 잡는 코드에 로그를 더하지 않는다. 이유와 버린 대안(로거 수준, INSERT 를 Hibernate 밖으로, 한계로 적고 둔다)은 [../conventions.md §8.1](../conventions.md)이 갖는다.
+
+**범위 — board 만이다.** auth·member 에도 `DataIntegrityViolationException` 을 잡는 경로가 있다(2026-11-20 코드 읽기). 가입(`AccountService` — 409 `AU002`)과 닉네임 변경·프로필 등록의 닉네임 충돌(`MemberService` — 409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정해야 한다. 로그인 실패 카운터(`LoginAttemptService` — 다시 한다)와 프로필 등록의 `uk_member_account_id` 충돌(되읽어 200 또는 `M006`·`M007`)은 board 와 같은 정상 결과지만 재지 않았고, 사용자 결정의 범위가 board 다. [phase2-auth-member.md §5.3](phase2-auth-member.md)으로 넘긴다.
+
+**산출물**
+- [../conventions.md §8.1](../conventions.md) — 새 절. 대상·무엇이 남나·규칙과 이유·판정 키·제약을 더하는 조건·버린 대안·auth·member 의 범위. §6.1 의 「로그 수준을 가른다」 에 그 절을 가리키는 문장
+- [../requirements/board.md §9.3](../requirements/board.md) — 로그 블록인용을 I-11 의 결과와 결정으로
+- [../domain-model.md §6.1](../domain-model.md) — 좋아요 충돌의 로그 문장
+- [../tech-stack.md §4.5](../tech-stack.md) — board 의 `logback-spring.xml` 요건
+- [phase2-board.md](phase2-board.md) — B-26 과 그 자리(§1.1·§1.2), §4.1 의 UNIQUE 충돌 로그 줄
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) — §1.1·§1.3 의 B-26·I-12, I-11 뒤의 블록인용, I-12
+- [phase2-auth-member.md §5.3](phase2-auth-member.md) — auth·member 의 같은 모양을 넘기는 줄
+- [../docs/checklist.md](../docs/checklist.md) — `D-25` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**sp-board 는 고치지 않는다.** B-26·I-12 의 체크리스트 줄은 그 저장소의 상태 원본이 갖는다([README.md](README.md)의 상태의 위치).
+
+**완료 기준**
+- [ ] [../conventions.md §8.1](../conventions.md)이 버리는 줄을 로거·수준·제약 이름으로 정하고, 남기는 것(WARN, 그 밖의 ERROR, 로거의 수준)과 각 이유를 적는다
+- [ ] 불변식 9 와의 관계 — 버리는 것이 실패가 아닌 이유, 충돌의 흔적이 남는 자리, 같은 제약의 잡지 않은 실패가 드러나는 자리 — 가 §8.1 에 있다
+- [ ] 판정 키가 로그에 실리는 것과 그 처리가 적혀 있다
+- [ ] 필터의 자리(`logback-spring.xml`)가 Boot 의 기본 출력과 `logging.level` 속성을 바꾸지 않는 요건과 함께 [../tech-stack.md §4.5](../tech-stack.md)에 있다
+- [ ] B-26 이 결함 수정의 형식(무엇이 틀렸나·고치는 모양·고치기 전에 빨개지는 것을 본다)을 갖고, 실제 Hibernate 출력으로 두 제약은 거르고 다른 제약·다른 오류는 ERROR 로 남는 것을 고정하는 테스트, 로거 수준을 내린 변이와 설정 파일을 지운 변이를 잡는 단언이 산출물에 있다
+- [ ] 실 MySQL 재측정의 자리(I-12)가 [phase2-board.md §4.1](phase2-board.md)의 줄과 같은 기대다. I-11 의 판정을 되돌리지 않는다
+- [ ] auth·member 를 넓히지 않은 이유와 넘긴 자리가 있다
+- [ ] 재지 않은 것을 사실로 적지 않는다 — 운영 프로파일의 로그, auth·member 의 로그, TurboFilter 가 Hibernate 의 줄을 받는 경로
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 옮긴 수치와 문면을 sp-board `7105f09` 의 커밋 메시지와 I-11 의 `board.log` 와 대조한다 | 맞는다 |
+| 고친 문장을 sp-board 의 `ViewCountJudge.insertView`·`LikeService.insertLike` 와 `application*.yml` 과 대조한다 — 충돌의 처리, 잡는 코드가 로그를 남기지 않는 것, 운영 설정이 그 로거를 건드리지 않는 것 | 맞는다 |
+| sp-docs 를 `SqlExceptionHelper`·「로그 수준」·`ERROR`·`1062`·「UNIQUE 충돌」·「로거」·「경보」·「측정 대상」 으로 훑는다 | 충돌의 로그 수준을 아직 재지 않은 것으로, 처리 방법을 정하지 않은 것으로, 로거 전체를 다루는 것으로 읽히게 하는 문장이 없다 |
+| [phase2-board.md §4.1](phase2-board.md)의 UNIQUE 충돌 로그 줄과 I-12 의 검증표를 나란히 읽는다 | 기대가 같다 |
 | 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-20 이다 |
 
 ---

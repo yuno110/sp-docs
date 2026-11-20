@@ -2,7 +2,7 @@
 title: 2차 작업 계획 — 화면·통합
 type: plan
 status: living
-version: v4
+version: v5
 updated: 2026-11-20
 read_when: "2차 기능 확장의 화면 항목(F-07 부터)·통합 항목(I-06 부터)의 범위·의존·완료 기준을 확인하거나, 2차 전체(B·AU·M·F·I)의 순서와 병렬을 볼 때. 상태는 F 는 sp-frontend, I 는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, phase1.md, ../api-contract.md, ../security.md, ../tech-stack.md, ../requirements/member.md, ../requirements/board.md]
@@ -18,10 +18,10 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 | 단계 | 항목 | 성격 | 함께 도는 것 |
 | --- | --- | --- | --- |
 | **기반** | B-14~B-16, AU-12~AU-15, M-14 | 스키마·엔티티·에러 코드·예외 매핑·경로 선언·설정을 먼저 끝낸다(이유는 각 계획의 §1.1) | 세 저장소가 서로 기다리지 않는다. 화면의 F-07 |
-| **결함 수정** | B-17, B-18, B-25, AU-22 | 1차 코드의 자리를 고친다(AU-22 는 2차 AU-17 의 재설정 확인도, B-25 는 2차 B-21 의 판정을) — 그 항목들의 완료 기준과 먼저 대조한다([phase2-board.md §1.1](phase2-board.md), [phase2-auth-member.md §1.1](phase2-auth-member.md)). AU-22 는 2026-11-17 `D-22` 가, B-25 는 2026-11-20 `D-24` 가 I-07 의 측정으로 세웠다 | B-17 은 의존이 없지만 B-14 와 `Comment` 를 함께 고쳐 같이 돌리지 않는다([phase2-board.md §1.2](phase2-board.md)). B-18 은 B-14 뒤다. AU-22 는 AU-18 뒤이고 auth 안에서는 AU-19 다음이다([phase2-auth-member.md §1.2](phase2-auth-member.md)) |
+| **결함 수정** | B-17, B-18, B-25, B-26, AU-22 | 1차 코드의 자리를 고친다(AU-22 는 2차 AU-17 의 재설정 확인도, B-25 는 2차 B-21 의 판정을, B-26 은 2차 B-20·B-21 의 충돌이 남기는 로그를) — 그 항목들의 완료 기준과 먼저 대조한다([phase2-board.md §1.1](phase2-board.md), [phase2-auth-member.md §1.1](phase2-auth-member.md)). AU-22 는 2026-11-17 `D-22` 가, B-25 는 2026-11-20 `D-24` 가 I-07 의 측정으로, B-26 은 같은 날 `D-25` 가 I-11 의 측정으로 세웠다 | B-17 은 의존이 없지만 B-14 와 `Comment` 를 함께 고쳐 같이 돌리지 않는다([phase2-board.md §1.2](phase2-board.md)). B-18 은 B-14 뒤다. AU-22 는 AU-18 뒤이고 auth 안에서는 AU-19 다음이다([phase2-auth-member.md §1.2](phase2-auth-member.md)) |
 | **기능** | B-19~B-24, AU-16~AU-21, M-15·M-16 | 기반 산출물을 읽고 자기 기능을 만든다 | 저장소끼리 함께 돈다 — AU-16 은 F-08 과 한 번에 커밋된다(아래 문단, §1.4). 저장소 안은 각 계획의 §1.2 |
 | **화면** | F-07~F-16 | 서버의 기능 항목을 따라간다. **기반·기능 구분을 쓰지 않는다** — 한 워커가 의존 열을 따라 한다([phase2.md §7.2](phase2.md)의 이유와 같다) | 서버 항목과 함께 돈다. F 끼리는 순차다(§1.2) |
-| **통합** | I-06~I-11 | 2차 서버 항목이 모두 `done` 인 뒤 세 서비스를 함께 띄워 잰다. I-11 은 I-07 이 찾은 결함을 고친 B-25 뒤의 재측정이다(2026-11-20 `D-24`) | F 와 함께 돌 수 있지만 같은 서비스 인스턴스에 동시에 걸지 않는다. I 끼리는 순차다(§1.3) |
+| **통합** | I-06~I-12 | 2차 서버 항목이 모두 `done` 인 뒤 세 서비스를 함께 띄워 잰다. I-11 은 I-07 이 찾은 결함을 고친 B-25 뒤의 재측정이다(2026-11-20 `D-24`). I-12 는 I-11 이 찾은 것을 고친 B-26 뒤의 재측정이다(2026-11-20 `D-25`) | F 와 함께 돌 수 있지만 같은 서비스 인스턴스에 동시에 걸지 않는다. I 끼리는 순차다(§1.3) |
 
 **단계는 성격이지 시각이 아니다.** 저장소마다 워커가 따로 돌므로 board 의 기능 단계와 auth 의 기반 단계가 함께 돌 수 있고, 화면 항목은 서버 의존이 끝나는 대로 시작한다. 서버 항목 사이의 의존과 병렬은 각 계획의 §1.2 가 갖는다.
 
@@ -31,6 +31,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 기반       B-14 B-15 B-16     AU-12 ~ AU-15     M-14
 결함 수정  B-17 B-18          AU-22 (AU-19 다음)
            B-25 (B-21 뒤 — I-07 이 찾았다)
+           B-26 (B-20·B-25 뒤 — I-11 이 찾았다)
 기능       B-19 ~ B-24        AU-16 ~ AU-21     M-15 M-16
 화면       F-07                    (서버를 기다리지 않는다)
            AU-16 == F-08           (한 번에 커밋 — §1.4)
@@ -42,6 +43,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
            F-08 ~ F-15 -> F-16
 통합       B·AU·M 모두 done -> I-06 -> I-07 ~ I-10 (순차)
            B-25 -> I-11 (I 와 순차)
+           B-26 -> I-12 (I 와 순차)
 ```
 
 ### 1.2 화면 항목의 의존
@@ -75,6 +77,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 | I-09 | I-06 | B-15, B-16, B-21, B-23, AU-14~AU-17, AU-19, M-15 |
 | I-10 | I-06 | B-15, AU-13, AU-19, AU-20, M-14~M-16 |
 | I-11 | B-25 (기동은 I-06 의 방법) | B-21, B-25 |
+| I-12 | B-26 (기동은 I-06 의 방법) | B-20, B-21, B-26 |
 
 - **I 는 F 를 의존으로 두지 않는다** — 재는 것이 서버의 성질이다. 브라우저로 재는 줄(I-10)도 수단을 그 항목이 고른다. 그래도 I-06 은 AU-16 을 거쳐 F-07·F-08 을 기다린다 — AU-16 은 F-08 과 한 번에 커밋된다(§1.1·§1.4). **다만 같은 서비스 인스턴스·DB 에 F 의 실제 서비스 e2e 와 I 의 측정을 동시에 돌리지 않는다** — e2e 의 요청이 집계·로그 수준·제한기 카운터의 측정에 섞인다
 - **측정이 정본의 기대와 다르면 코드를 고치지 않고 보고한다.** 고치는 항목은 계획을 먼저 개정해 세운다([README.md](README.md)의 항목 ID 규칙) — 1차의 B-10 이 그렇게 생겼다([phase1.md §7](phase1.md)). 정본이 측정을 기다린 자리도 바꾸는 것은 측정 뒤의 항목이다 — 예: 조회수 판정은 I-07 의 측정 뒤 2026-11-20 `D-24` 가 정본을 고치고 B-25 가 코드를 고친다([phase2-board.md §4.1](phase2-board.md)). 앞 판은 이 자리를 「측정이 뒤집으면 바꾼다」 고 적은 판정 순서로 들었다
@@ -603,6 +606,43 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 | 요청 뒤 판정을 지난 board 풀 연결의 세션 격리 수준 | 서버 기본 |
 
 > **처음 넣은 판정이 되돌아갈 때의 교착은 이 표에 없다.** 그 경우는 INSERT 뒤의 실패가 있어야 나고, [../nfr.md §1](../nfr.md)의 한계로 남겼다. 측정 중에 나면 그때의 앞선 실패와 함께 적는다.
+
+
+> **2026-11-20 I-11 은 UNIQUE 충돌 줄에서 후속 하나를 찾았다**(sp-board `7105f09` 의 커밋 메시지) — 충돌을 낸 요청은 전부 200 이었고 `GlobalExceptionHandler` 의 줄은 없었지만, 충돌마다 `SqlExceptionHelper` 가 ERROR 한 줄을 남겼다. I-11 의 판정은 되돌리지 않는다. 같은 날 `D-25` 가 그 줄만 버리기로 정했고([../conventions.md §8.1](../conventions.md)), 고치는 항목은 B-26([phase2-board.md](phase2-board.md)), 그 뒤의 재측정은 I-12 다.
+
+---
+
+### I-12 B-26 뒤 UNIQUE 충돌 로그의 실 MySQL 재측정
+
+| | |
+| --- | --- |
+| 상태 원본 | `yuno110/sp-board` 의 `docs/checklist.md` |
+| 의존 | B-26. 세 서비스의 기동은 I-06 의 방법이다 |
+| 마이그레이션 | 없음 (§2) |
+| 측정 대상의 출처 | [phase2-board.md §4.1](phase2-board.md)의 UNIQUE 충돌 로그 줄 — 2026-11-20 `D-25` 가 세웠다 |
+| 참조 | [../conventions.md §8.1](../conventions.md)·§6.1, [../requirements/board.md §9.3](../requirements/board.md), [../domain-model.md §6.1](../domain-model.md), [../security.md §9](../security.md), [integration.md](integration.md) I-04 |
+
+**I-11 은 `done` 이라 그 항목에 줄을 더하지 않는다.** B-26 은 H2 의 실제 출력과 MySQL 문면의 단위 테스트로 필터를 고정하고, 실 MySQL 드라이버의 문면을 앱이 내는 그대로 거르는지는 재지 않는다. 그 자리가 여기다. 충돌은 I-11 의 같은 조회자 줄로 다시 낸다 — 계정 토큰이 필요해 세 서비스를 띄운다. **남은 I 항목에 이 줄을 더하지 않는 이유** — I-09·I-10 은 B-26 을 의존으로 두지 않아 그 전에 돌 수 있고, 재는 것이 다르다.
+
+**완료 기준**
+- [ ] I-11 의 같은 조회자 줄과 같은 방법으로 충돌을 낸다 — 동시 8 × 20회와 동시 2 × 20회. 방법과 결과를 보고에 적는다
+- [ ] **로그를 줄로 갈라 센다** — `SqlExceptionHelper` 의 ERROR 중 [../conventions.md §8.1](../conventions.md)의 두 제약 이름이 든 줄, 같은 로거의 WARN `SQL Error: 1062`, `GlobalExceptionHandler` 가 남긴 줄. 전체 로그의 ERROR 수로 세지 않는다([integration.md](integration.md) I-04 의 로그 수준 줄)
+- [ ] **WARN `SQL Error: 1062` 가 0 이면 충돌이 나지 않은 것이다** — 그 실행으로 필터를 판정하지 않고 다시 잰다. 다시 재도 0 이면 WARN 까지 사라졌을 수 있으므로 판정하지 않고 보고한다. 그 줄이 충돌의 흔적이다(§8.1)
+- [ ] 그 로거의 줄에 판정 키가 실리지 않는다
+- [ ] 측정 구간의 그 밖의 `SqlExceptionHelper` ERROR 는 관측값으로 적는다. 다른 제약의 위반이 ERROR 로 남는 것은 B-26 의 테스트가 맡는다 — 실서버에서 그 위반을 낼 경로가 없을 것으로 본다(추정)
+- [ ] **좋아요의 충돌은 관측값이다** — I-07 에서 0건이었다(`post` 행의 락이 먼저다, [../domain-model.md §6.1](../domain-model.md)). 일부러 만들지 않고, 나면 같은 기준으로 적는다
+- [ ] `local` 프로파일로 띄운다 — I-11 과 같다. 필터는 프로파일로 가르지 않는다([../tech-stack.md §4.5](../tech-stack.md))
+- [ ] 결과가 정본의 기대와 다르면 코드를 고치지 않고 보고한다(§1.3)
+
+**검증** — 기대는 정본의 것이다([../conventions.md §8.1](../conventions.md))
+
+| 케이스 | 기대 |
+| --- | --- |
+| 같은 조회자의 동시 첫 조회 | 전부 200, +1 한 번, 교착 0 — I-11 의 기대 그대로 |
+| 그 충돌의 `SqlExceptionHelper` ERROR (`uk_post_view_post_viewer`) | 0 |
+| 그 충돌의 `SqlExceptionHelper` WARN `SQL Error: 1062` | 0 보다 크다. 그 수를 충돌 수로 적는다 |
+| `GlobalExceptionHandler` 의 줄 | 0 |
+| 그 로거의 줄에 실린 판정 키 | 없다 |
 
 ---
 

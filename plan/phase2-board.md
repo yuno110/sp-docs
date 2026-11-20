@@ -2,7 +2,7 @@
 title: 2차 board 작업 계획
 type: plan
 status: living
-version: v4
+version: v5
 updated: 2026-11-20
 read_when: "2차 기능 확장의 board 작업 항목(B-14 부터)의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integration.md, ../requirements/board.md, ../domain-model.md, ../api-contract.md, ../nfr.md]
@@ -22,7 +22,7 @@ related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integrati
 | 단계 | 항목 | 성격 |
 | --- | --- | --- |
 | **기반** | B-14, B-15, B-16 | 스키마·엔티티·`post` 집계의 좁은 UPDATE·에러 코드·인가 규칙·설정을 먼저 끝낸다. 기능 항목이 같은 엔티티·설정 파일을 고치지 않게 한다 — [phase1.md §1.1](phase1.md)의 기반 단계와 같은 이유다 |
-| **결함 수정** | B-17, B-18, B-25 | B-17·B-18 은 [../domain-model.md §6](../domain-model.md)의 블록인용이 2026-11-11 코드 읽기로 지목한 1차 코드의 자리다. **완료된 1차 항목의 산출물을 고치므로** 그 항목의 완료 기준과 충돌하지 않는지 먼저 본다. B-25 는 2026-11-20 `D-24` 가 세웠다 — I-07 의 실 MySQL 측정이 B-21 의 판정에서 찾은 교착이다 |
+| **결함 수정** | B-17, B-18, B-25, B-26 | B-17·B-18 은 [../domain-model.md §6](../domain-model.md)의 블록인용이 2026-11-11 코드 읽기로 지목한 1차 코드의 자리다. **완료된 1차 항목의 산출물을 고치므로** 그 항목의 완료 기준과 충돌하지 않는지 먼저 본다. B-25 는 2026-11-20 `D-24` 가 세웠다 — I-07 의 실 MySQL 측정이 B-21 의 판정에서 찾은 교착이다. B-26 은 같은 날 `D-25` 가 세웠다 — I-11 이 찾은, 정상 경합의 UNIQUE 충돌이 남기는 Hibernate ERROR 다 |
 | **기능** | B-19 ~ B-24 | 기반 산출물을 읽고 자기 기능의 서비스·컨트롤러·DTO 와 자기 테이블의 리포지토리 문장을 만든다 |
 
 ```
@@ -32,6 +32,7 @@ related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integrati
 결함 수정  B-17 댓글 삭제 (의존 없음)
            B-18 집계 덮어쓰기 (B-14 뒤)
            B-25 조회수 판정의 격리 수준 (B-21 뒤 — I-07 이 찾았다)
+           B-26 UNIQUE 충돌의 Hibernate ERROR (B-20·B-25 뒤 — I-11 이 찾았다)
 기능
   글       B-18 -> B-19 카테고리 -> B-21 상세·조회수 -> B-24 내려받기·지우기·첨부 목록
   좋아요   B-20 (B-14·B-16 뒤)
@@ -57,6 +58,7 @@ related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integrati
 | B-23 | B-14, B-15, B-16 | B-24 (`attachment/*`) |
 | B-24 | B-21, B-23 | B-18 (`PostServiceTest`), B-19, B-21, B-23 |
 | B-25 | B-21, `D-24` | B-21 (`ViewCountJudge`·`ViewCountJudgeTest`), B-23·B-24 (`AttachmentServiceTest`) |
+| B-26 | B-20, B-25, `D-25` | B-20 (`LikeService`·`LikeServiceTest`), B-21·B-25 (`ViewCountJudge`·`ViewCountJudgeTest`) |
 
 **auth·member 계획과의 의존.** board 항목은 auth·member 계획의 항목을 기다리지 않는다. 걸리는 것은 통합 비교다 — 예: `C008` 매핑의 세 서비스 비교는 B-15 와 auth·member 계획의 multipart 예외 매핑 항목들(서비스마다 하나)이 모두 끝난 뒤다(§4.1).
 
@@ -768,6 +770,58 @@ DELETE /comments/{id}  한 트랜잭션 (404 CM001 -> 403 CM002 판정 뒤 — 1
 
 > **H2 의 녹색은 MySQL 의 교착이 사라졌다는 근거가 아니다.** 위 표는 설정과 순서가 있는지를 고정한다. 그 설정이 실 MySQL 에서 교착을 없애는지는 2026-11-20 의 앱 밖 드라이버로 쟀고, 앱으로는 I-11 이 잰다.
 
+### B-26 정상 경합의 UNIQUE 충돌이 남기는 Hibernate ERROR 를 버린다 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-board` |
+| 의존 | B-20, B-25, `D-25`(정본 개정 — [phase1.md](phase1.md)) |
+| 병렬 | §1.2 |
+| 공유 파일 | `LikeService`·`ViewCountJudge` 의 javadoc — B-20·B-21·B-25 의 산출물. 테스트가 그 항목들의 충돌 끼워넣기를 빌려 쓰면 `LikeServiceTest`·`ViewCountJudgeTest` 도 |
+| 마이그레이션 | 없음 |
+| 참조 | [../conventions.md §8.1](../conventions.md)·§6.1, [../tech-stack.md §4.5](../tech-stack.md), [../requirements/board.md §9.3](../requirements/board.md)의 로그 블록인용, [../domain-model.md §4.3](../domain-model.md)·§6.1, [../security.md §9](../security.md), [../process/review-policy.md §4.1](../process/review-policy.md) |
+
+**2026-11-20 `D-25` 가 세웠다.** I-11 이 찾았고, 사용자가 같은 날 「그 충돌만 좁게 다룬다」 를 골랐다.
+
+**무엇이 틀렸나.** 2026-11-20 I-11(sp-board `7105f09` 의 커밋 메시지)에서 같은 조회자의 동시 첫 조회가 낸 UNIQUE 충돌은 전부 200 이었지만, 충돌마다 Hibernate 의 `SqlExceptionHelper` 가 ERROR 한 줄(`Duplicate entry '…' for key 'post_view.uk_post_view_post_viewer'`, 판정 키 포함)을 남겼다. 정상 경합이 ERROR 경보가 된다([../conventions.md §6.1](../conventions.md)의 「로그 수준을 가른다」). 좋아요의 충돌도 같은 로거를 지난다 — B-20 이 H2 에서 같은 두 줄을 보았다(`LikeService.insertLike` 의 javadoc).
+
+**고치는 모양.** [../conventions.md §8.1](../conventions.md)대로 — `logback-spring.xml` 의 TurboFilter 가 `org.hibernate.engine.jdbc.spi.SqlExceptionHelper` 의 ERROR 중 `uk_post_view_post_viewer`·`uk_post_like_post_account` 가 든 줄(대소문자 무시)만 버린다. WARN 줄, 로거의 수준, 그 밖의 ERROR 는 그대로다. `ViewCountJudge`·`LikeService` 의 충돌 처리와 로그는 바꾸지 않는다.
+
+**산출물**
+- `src/main/resources/logback-spring.xml` — [../tech-stack.md §4.5](../tech-stack.md)의 요건(Boot 의 기본 출력 유지, `base.xml` 을 포함하지 않는다, 프로파일로 가르지 않는다)
+- TurboFilter 클래스 — `global` 아래([../conventions.md §1.3](../conventions.md)). 제약 이름의 목록은 [../domain-model.md §4.3](../domain-model.md)의 이름 그대로다
+- 필터의 단위 테스트, 실제 Hibernate 출력을 받는 테스트(아래 검증)
+- `ViewCountJudge`·`LikeService` 의 javadoc 중 충돌의 로그를 「측정 대상」·「수준을 바꾸는 결정은 이 메서드가 하지 않는다」 로 적은 문장을 §8.1 을 가리키게 고친다
+
+**완료 기준**
+- [ ] **고치기 전에 실제 Hibernate 출력을 받는 테스트가 빨개지는 것을 보았다** — 지금 코드에서 충돌이 그 ERROR 를 남긴다. 결과를 보고에 적는다
+- [ ] **H2 의 위반 메시지가 제약 이름을 싣는지 먼저 본다.** 싣는다 — 프로젝트의 테스트 URL 에서 소문자에 `_INDEX_n` 접미사가 붙고(예: `public.uk_post_view_post_viewer_INDEX_7`), 부분 일치로 맞는다(D-25 리뷰의 H2 2.3.232 프로브). 구현은 같은 문면을 다시 확인한다. 싣지 않으면 필터가 H2 에서 맞추지 못하므로 멈추고 보고한다 — 맞추는 조건을 바꾸는 것은 정본 개정이다
+- [ ] 두 제약의 충돌에서 그 로거의 ERROR 가 없고, **그 로거의 WARN `SQL Error: …` 한 줄은 남는다**(H2 는 `SQL Error: 23505, SQLState: 23505`, MySQL 은 `SQL Error: 1062, SQLState: 23000`) — 판정 행·좋아요 각각 실제 충돌로 본다
+- [ ] **다른 제약의 위반과 다른 SQL 오류는 그 로거의 ERROR 로 남는다** — 예: `uk_attachment_storage_key` 의 중복, `fk_post_like_post_id` 의 위반. 필터를 넓힌 변이(그 로거의 ERROR 전부, 중복 키 위반 문면 전부 — MySQL `Duplicate entry`, H2 `Unique index or primary key violation`)에서 깨진다 — 후자는 `uk_attachment_storage_key` 의 줄이 잡는다
+- [ ] **로거의 수준을 내린 변이에서 깨진다** — 그 로거를 `OFF` 로 둔 변이에서 위 WARN·다른 ERROR 의 단언이 빨개진다([../process/review-policy.md §4.1](../process/review-policy.md)의 「실패할 수 없는 단언」 을 피한다)
+- [ ] **실제 출력은 Boot 가 읽은 설정 파일을 거쳐 본다** — 테스트가 필터를 손으로 붙이면 파일을 지운 변이가 살아남는다. 수단(appender 를 그 로거에 다는 것, 출력 캡처)은 구현이 고르고 파일을 지운 변이로 반증한다
+- [ ] Boot 의 기본 출력이 그대로다 — 루트에 콘솔만 있고 파일 appender 가 없다. 운영 프로파일의 `logging.level` 값(SQL·바인드 로거 `warn`)이 이 파일 뒤에도 적용된다
+- [ ] 필터의 단위 테스트가 MySQL 의 문면을 쓴다 — I-11 의 ERROR 줄 모양(`Duplicate entry '…' for key '<테이블>.<제약>'`)으로 두 제약은 버리고, 다른 제약 이름·다른 로거·WARN 수준은 버리지 않는다. 값은 지어낸 것을 쓴다(판정 키를 픽스처에 옮기지 않는다)
+- [ ] B-20·B-21·B-25 의 완료 기준이 그대로다 — 충돌이 200 인 것, UNIQUE 위반만 잡는 것
+- [ ] 기존 테스트가 깨지지 않는다
+- [ ] **실 MySQL 의 재측정은 이 항목의 완료 기준이 아니다** — I-12 가 잰다
+
+**검증** — 필터의 단위 테스트와 실제 출력 테스트
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| 판정 행의 UNIQUE 충돌(B-21 의 끼워넣기) | 그 로거의 ERROR 0, 그 로거의 WARN `SQL Error: …` 한 줄(H2 는 23505) 있음, 응답·집계는 B-21 의 기대 그대로. **파일·필터를 지운 변이에서 깨진다** |
+| 좋아요의 UNIQUE 충돌(B-20 의 끼워넣기) | 같음 |
+| `uk_attachment_storage_key` 의 중복 INSERT | 그 로거의 ERROR 1 — 제약 이름이 든다 |
+| `fk_post_like_post_id` 의 위반 — Hibernate 를 거쳐 낸다(예: 없는 글을 참조해 `saveAndFlush`, 또는 `EntityManager` 의 네이티브 쿼리). `JdbcTemplate` 은 `SqlExceptionHelper` 를 지나지 않는다 | 그 로거의 ERROR 1 |
+| 그 로거를 `OFF` 로 둔 변이 | 위 WARN·ERROR 단언이 깨진다 |
+| 단위 — I-11 모양의 MySQL 문면, 두 제약, ERROR | 버린다. 대문자 제약 이름도 버린다 |
+| 단위 — 다른 제약 이름, 다른 로거, 같은 문면의 WARN | 버리지 않는다 |
+| 단위 — 문면이 `null` 인 호출(수준 검사, 예: `isErrorEnabled`) | 버리지 않는다(NEUTRAL). 버리면 `logExceptions` 의 진입 검사가 거짓이 되어 WARN·다른 ERROR 가 모두 사라진다 |
+| 루트 logger 의 appender | 콘솔만 |
+
+> **H2 의 녹색은 MySQL 의 문면에서 맞춘다는 근거가 아니다.** 단위 테스트는 I-11 의 문면 모양으로 맞추는 조건을 고정하고, 앱으로는 I-12 가 잰다.
+
 ## 4. 넘기는 것
 
 ### 4.1 통합 계획이 I 항목으로 세울 측정 대상
@@ -781,7 +835,7 @@ DELETE /comments/{id}  한 트랜잭션 (404 CM001 -> 403 CM002 판정 뒤 — 1
 | **`like_count` 가 0 인 글에서 같은 계정의 누르기와 취소가 겹칠 때** `like_count` 가 `post_like` 행 수와 같은가 — 취소의 감소가 0행이고, 그 감소와 행 삭제 사이에 누르기가 커밋하는 경우다. 0행 감소가 `post` 행의 락을 쥐는지는 DB 에 달렸다: 2026-11-16 B-20 의 H2 프로브에서는 쥐지 않아 `like_count` 1·`post_like` 0 이 남았고, MySQL 의 반복 읽기가 쥐는지를 잰다(추정: 쥔다). 두 연결로 문장을 그 차례로 낸다(B-20 의 H2 프로브와 같은 방법). 누르기의 증가가 취소의 커밋까지 기다렸는지는 관측값으로 적는다. **어긋나면 결함이다** — 취소의 1)을 `post` 의 잠금 읽기로 바꿔 0행 감소에서도 `post` 행의 락을 쥐게 하는 정본 결정을 연다([../domain-model.md §6.1](../domain-model.md)의 「1)을 잠금 읽기로 잡고 증가를 근거 행이 생긴 뒤에 하는 모양도 요건을 지킨다」 는 누르기 쪽 모양이라 이 창을 닫지 않는다) | [../domain-model.md §6](../domain-model.md)·§6.1, B-20 의 H2 프로브([phase1.md](phase1.md) `D-21`) | B-20 |
 | 같은 글의 동시 첫 조회 — 서로 다른 조회자(조건부 UPDATE 의 간격 락과 INSERT 의 교착)·같은 조회자(+1 한 번). **2026-11-19 I-07 이 쟀다 — 반복 읽기에서 서로 다른 조회자·같은 조회자·서로 다른 새 글의 첫 조회가 교착했고(500 `C005`) 집계는 지켜졌다. 2026-11-20 `D-24` 가 순서를 바꾸지 않고 판정 트랜잭션을 READ COMMITTED 로 정했다.** B-25 뒤 같은 세 조합을 다시 잰다(I-11) | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용 | B-21, B-25 |
 | 상세 응답의 `viewCount` 가 판정의 커밋을 보는가 — MySQL 의 반복 읽기에서 | [../requirements/board.md §9.3](../requirements/board.md) | B-21 (H2 의 격리 수준은 B-21 이 잰다) |
-| 경합의 UNIQUE 충돌(판정 행·좋아요)이 남기는 로그 수준 — ERROR 면 [../conventions.md §6.1](../conventions.md)과 어긋난다. 2026-11-19 I-07 에서는 두 경로 모두 충돌이 0건이었다(판정은 충돌 전에 교착했다). 판정 행의 충돌은 B-25 뒤 I-11 이 잰다 | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용, [../domain-model.md §6.1](../domain-model.md) | B-20, B-21, B-25 |
+| 경합의 UNIQUE 충돌(판정 행·좋아요)이 남기는 로그 수준 — ERROR 면 [../conventions.md §6.1](../conventions.md)과 어긋난다. 2026-11-19 I-07 에서는 두 경로 모두 충돌이 0건이었다(판정은 충돌 전에 교착했다). **2026-11-20 I-11 이 판정 행의 충돌에서 `SqlExceptionHelper` 의 ERROR 를 쟀고, 같은 날 `D-25` 가 그 줄만 버리기로 정했다**([../conventions.md §8.1](../conventions.md)). B-26 뒤 그 ERROR 가 없고 WARN 은 남는지 다시 잰다(I-12) | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용, [../domain-model.md §6.1](../domain-model.md), [../conventions.md §8.1](../conventions.md) | B-20, B-21, B-25, B-26 |
 | 동시 답글, 같은 부모에 대한 답글 작성과 부모 삭제 — 교착과 집계 | [phase2.md §5.4](phase2.md), [../domain-model.md §6](../domain-model.md)의 블록인용 | B-17, B-22 |
 | 동시 업로드가 개수 상한을 넘지 않는가 | [../domain-model.md §6.2](../domain-model.md) | B-23 |
 | 같은 첨부의 동시 삭제가 `attachment_count` 를 한 번만 줄이는가 | [../domain-model.md §6.2](../domain-model.md) | B-24 |
