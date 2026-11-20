@@ -2,8 +2,8 @@
 title: 2차 board 작업 계획
 type: plan
 status: living
-version: v3
-updated: 2026-11-19
+version: v4
+updated: 2026-11-20
 read_when: "2차 기능 확장의 board 작업 항목(B-14 부터)의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integration.md, ../requirements/board.md, ../domain-model.md, ../api-contract.md, ../nfr.md]
 ---
@@ -22,7 +22,7 @@ related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integrati
 | 단계 | 항목 | 성격 |
 | --- | --- | --- |
 | **기반** | B-14, B-15, B-16 | 스키마·엔티티·`post` 집계의 좁은 UPDATE·에러 코드·인가 규칙·설정을 먼저 끝낸다. 기능 항목이 같은 엔티티·설정 파일을 고치지 않게 한다 — [phase1.md §1.1](phase1.md)의 기반 단계와 같은 이유다 |
-| **결함 수정** | B-17, B-18 | [../domain-model.md §6](../domain-model.md)의 블록인용이 2026-11-11 코드 읽기로 지목한 1차 코드의 자리다. **완료된 1차 항목의 산출물을 고치므로** 그 항목의 완료 기준과 충돌하지 않는지 먼저 본다 |
+| **결함 수정** | B-17, B-18, B-25 | B-17·B-18 은 [../domain-model.md §6](../domain-model.md)의 블록인용이 2026-11-11 코드 읽기로 지목한 1차 코드의 자리다. **완료된 1차 항목의 산출물을 고치므로** 그 항목의 완료 기준과 충돌하지 않는지 먼저 본다. B-25 는 2026-11-20 `D-24` 가 세웠다 — I-07 의 실 MySQL 측정이 B-21 의 판정에서 찾은 교착이다 |
 | **기능** | B-19 ~ B-24 | 기반 산출물을 읽고 자기 기능의 서비스·컨트롤러·DTO 와 자기 테이블의 리포지토리 문장을 만든다 |
 
 ```
@@ -31,6 +31,7 @@ related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integrati
                                           B-16 인가·선택적 리졸버·환경값 가드
 결함 수정  B-17 댓글 삭제 (의존 없음)
            B-18 집계 덮어쓰기 (B-14 뒤)
+           B-25 조회수 판정의 격리 수준 (B-21 뒤 — I-07 이 찾았다)
 기능
   글       B-18 -> B-19 카테고리 -> B-21 상세·조회수 -> B-24 내려받기·지우기·첨부 목록
   좋아요   B-20 (B-14·B-16 뒤)
@@ -55,6 +56,7 @@ related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integrati
 | B-22 | B-14, B-15, B-17 | B-17 |
 | B-23 | B-14, B-15, B-16 | B-24 (`attachment/*`) |
 | B-24 | B-21, B-23 | B-18 (`PostServiceTest`), B-19, B-21, B-23 |
+| B-25 | B-21, `D-24` | B-21 (`ViewCountJudge`·`ViewCountJudgeTest`), B-23·B-24 (`AttachmentServiceTest`) |
 
 **auth·member 계획과의 의존.** board 항목은 auth·member 계획의 항목을 기다리지 않는다. 걸리는 것은 통합 비교다 — 예: `C008` 매핑의 세 서비스 비교는 B-15 와 auth·member 계획의 multipart 예외 매핑 항목들(서비스마다 하나)이 모두 끝난 뒤다(§4.1).
 
@@ -718,6 +720,54 @@ DELETE /comments/{id}  한 트랜잭션 (404 CM001 -> 403 CM002 판정 뒤 — 1
 | 작성 응답의 `attachments` | 빈 배열 |
 | 상세 모양의 키 집합 (작성·수정·상세) | [../api-contract.md §4.3](../api-contract.md)의 상세 줄과 정확히 같다 — 리터럴 집합으로 대조한다 |
 
+---
+
+### B-25 조회수 판정 트랜잭션을 READ COMMITTED 로 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-board` |
+| 의존 | B-21, `D-24`(정본 개정 — [phase1.md](phase1.md)) |
+| 병렬 | §1.2 |
+| 공유 파일 | `post/support/ViewCountJudge`·`ViewCountJudgeTest` — B-21 의 산출물. `AttachmentServiceTest` — B-23·B-24 의 산출물 |
+| 마이그레이션 | 없음 |
+| 참조 | [../requirements/board.md §9.3](../requirements/board.md)(표와 블록인용), [../domain-model.md §4.5](../domain-model.md)·§6.2, [../nfr.md §1](../nfr.md), [../tech-stack.md §4.5](../tech-stack.md), [../process/review-policy.md §4.1](../process/review-policy.md) |
+
+**2026-11-20 `D-24` 가 세웠다.** 사용자가 같은 날 이 결함을 「측정 → 정본 개정 → board 수정」 순서로 지금 고치기로 정했다.
+
+**무엇이 틀렸나.** 2026-11-19 I-07(sp-board `7dab3bd` 의 커밋 메시지)이 실 MySQL 의 반복 읽기에서 B-21 의 판정이 동시 첫 조회마다 교착하는 것을 쟀다 — 서로 다른 조회자·같은 조회자·서로 다른 새 글 모두 동시 8 에서 요청의 대부분이 500 `C005` 였다. 0행 조건부 UPDATE 가 판정 행 인덱스 끝 간격의 next-key 락을 쥐고 서로의 INSERT 를 막는다. 집계는 지켜졌다. 수치와 대안의 측정은 [../requirements/board.md §9.3](../requirements/board.md)의 블록인용이 적는다. H2 에서는 드러나지 않는다 — B-21 의 H2 테스트 연결은 READ COMMITTED 다.
+
+**같은 측정이 찾은 둘째 빈틈 — 첨부 올리기의 순서를 고정하는 테스트가 없다.** [../domain-model.md §6.2](../domain-model.md)의 순서(`attachment_count` 의 조건부 UPDATE → `attachment` INSERT)는 맞고 B-23 의 코드도 그 순서다. 그런데 I-07 의 두 연결 프로브에서 그 순서를 뒤집으면 5/5 교착했고(지금 순서 0/5), B-23 의 리뷰가 순서를 뒤집은 변이는 H2 테스트에서 살아남았다. 정본은 고치지 않는다 — 테스트만 더한다.
+
+**고치는 모양.** `ViewCountJudge` 의 판정 트랜잭션 정의에 격리 수준 READ COMMITTED 를 건다. 순서(조건부 UPDATE → 존재 확인 → INSERT → +1)와 UNIQUE 충돌의 처리(`insertView` 가 `false` → `setRollbackOnly` → 200)는 그대로다. 서버나 데이터소스의 전역 격리 수준을 바꾸지 않는다 — 상세의 읽기를 포함한 다른 트랜잭션은 서버 기본 그대로다([../requirements/board.md §9.3](../requirements/board.md)).
+
+**산출물**
+- `post/support/ViewCountJudge` — 판정 트랜잭션의 격리 수준, javadoc. 클래스 주석의 「그 순서가 MySQL 에서 만드는 락은 §9.3 의 블록인용이 추정으로 적었고 실 MySQL 측정은 … 통합으로 넘겼다」 를 측정과 격리 수준의 이유로 고친다
+- `ViewCountJudgeTest` — 판정 트랜잭션의 격리 수준을 고정하는 테스트
+- `AttachmentServiceTest` — 올리기의 발행 순서를 고정하는 테스트
+
+**완료 기준**
+- [ ] **고치기 전에 격리 수준의 테스트가 B-21 코드에서 빨개지는 것을 보았다.** 결과를 보고에 적는다
+- [ ] 판정 트랜잭션의 격리 수준이 READ COMMITTED 다. 판정 밖의 트랜잭션(상세의 읽기)은 격리 수준을 선언하지 않는다
+- [ ] **격리 수준의 테스트는 효과가 아니라 설정을 본다.** H2 테스트 연결의 기본이 READ COMMITTED 라, 연결의 격리 수준만 읽거나 동시 조회의 결과만 보는 단언은 설정을 뺀 변이에서도 통과한다([../process/review-policy.md §4.1](../process/review-policy.md)의 「실패할 수 없는 단언」). 예: 판정 트랜잭션 안에서 그 트랜잭션에 선언된 격리 수준을 단언한다. 수단은 구현이 고르고 그 변이로 반증한다
+- [ ] 격리 수준의 지정이 그 트랜잭션의 연결에 실제로 닿는지(그 전제인 Hibernate 의 연결 모드 포함)와, **판정 트랜잭션이 끝날 때** 그 연결이 원래 격리 수준으로 돌아오는지를 코드 읽기로 확인해 보고에 적는다 — open-in-view 가 켜져 있으면 같은 요청의 상세 읽기가 판정과 같은 물리 연결을 쓰므로, 풀 반환이 아니라 트랜잭션 끝의 되돌림이 그 읽기의 격리를 정한다. 요청 안의 이 경로는 이 코드 읽기가 맡는다. 요청 뒤 풀 연결의 실 MySQL 관측은 I-11 이 한다([phase2-frontend-integration.md](phase2-frontend-integration.md))
+- [ ] B-21 의 판정 완료 기준이 그대로다 — 순서, `INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 를 쓰지 않는 것, UNIQUE 충돌이 200 인 것, `viewCount` 가 판정 커밋 뒤의 읽기인 것
+- [ ] **첨부 올리기의 발행 순서를 고정한다** — `update post` 가 `insert into attachment` 보다 먼저다. 순서를 뒤집은 변이로 반증한다
+- [ ] `ViewCountJudge` 의 javadoc 이 이 항목 뒤의 정본과 맞는다
+- [ ] 기존 테스트가 깨지지 않는다
+- [ ] **실 MySQL 의 재측정은 이 항목의 완료 기준이 아니다** — H2 는 그 교착을 재현하지 않는다. I-11 이 잰다
+
+**검증** — `ViewCountJudgeTest`·`AttachmentServiceTest` 확장
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| 판정 트랜잭션 안의 격리 수준 | READ COMMITTED. **설정을 뺀 변이에서 깨진다** |
+| 상세 읽기 트랜잭션의 격리 수준 | 선언되지 않았다(서버 기본) |
+| B-21 검증표의 판정 줄 — 같은 키의 동시 첫 조회, UNIQUE 충돌의 끼워넣기, 24시간 창 | B-21 의 기대 그대로 |
+| 첨부 올리기의 발행 순서 | `update post` 가 `insert into attachment` 보다 먼저다. **순서를 뒤집은 변이에서 깨진다** |
+
+> **H2 의 녹색은 MySQL 의 교착이 사라졌다는 근거가 아니다.** 위 표는 설정과 순서가 있는지를 고정한다. 그 설정이 실 MySQL 에서 교착을 없애는지는 2026-11-20 의 앱 밖 드라이버로 쟀고, 앱으로는 I-11 이 잰다.
+
 ## 4. 넘기는 것
 
 ### 4.1 통합 계획이 I 항목으로 세울 측정 대상
@@ -729,9 +779,9 @@ DELETE /comments/{id}  한 트랜잭션 (404 CM001 -> 403 CM002 판정 뒤 — 1
 | 같은 댓글의 동시 삭제가 `comment_count` 를 한 번만 줄이는가 | [phase2.md §5.4](phase2.md), [../domain-model.md §6](../domain-model.md)의 블록인용 | B-17 |
 | 같은 글의 동시 좋아요·취소에서 `like_count` 가 `post_like` 행 수와 같은가, 순서(`post` 먼저)가 교착을 막는가 | [../domain-model.md §6.1](../domain-model.md) | B-20 |
 | **`like_count` 가 0 인 글에서 같은 계정의 누르기와 취소가 겹칠 때** `like_count` 가 `post_like` 행 수와 같은가 — 취소의 감소가 0행이고, 그 감소와 행 삭제 사이에 누르기가 커밋하는 경우다. 0행 감소가 `post` 행의 락을 쥐는지는 DB 에 달렸다: 2026-11-16 B-20 의 H2 프로브에서는 쥐지 않아 `like_count` 1·`post_like` 0 이 남았고, MySQL 의 반복 읽기가 쥐는지를 잰다(추정: 쥔다). 두 연결로 문장을 그 차례로 낸다(B-20 의 H2 프로브와 같은 방법). 누르기의 증가가 취소의 커밋까지 기다렸는지는 관측값으로 적는다. **어긋나면 결함이다** — 취소의 1)을 `post` 의 잠금 읽기로 바꿔 0행 감소에서도 `post` 행의 락을 쥐게 하는 정본 결정을 연다([../domain-model.md §6.1](../domain-model.md)의 「1)을 잠금 읽기로 잡고 증가를 근거 행이 생긴 뒤에 하는 모양도 요건을 지킨다」 는 누르기 쪽 모양이라 이 창을 닫지 않는다) | [../domain-model.md §6](../domain-model.md)·§6.1, B-20 의 H2 프로브([phase1.md](phase1.md) `D-21`) | B-20 |
-| 같은 글의 동시 첫 조회 — 서로 다른 조회자(조건부 UPDATE 의 간격 락과 INSERT 의 교착)·같은 조회자(+1 한 번). 측정이 뒤집으면 판정 순서를 바꾼다 | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용 | B-21 |
+| 같은 글의 동시 첫 조회 — 서로 다른 조회자(조건부 UPDATE 의 간격 락과 INSERT 의 교착)·같은 조회자(+1 한 번). **2026-11-19 I-07 이 쟀다 — 반복 읽기에서 서로 다른 조회자·같은 조회자·서로 다른 새 글의 첫 조회가 교착했고(500 `C005`) 집계는 지켜졌다. 2026-11-20 `D-24` 가 순서를 바꾸지 않고 판정 트랜잭션을 READ COMMITTED 로 정했다.** B-25 뒤 같은 세 조합을 다시 잰다(I-11) | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용 | B-21, B-25 |
 | 상세 응답의 `viewCount` 가 판정의 커밋을 보는가 — MySQL 의 반복 읽기에서 | [../requirements/board.md §9.3](../requirements/board.md) | B-21 (H2 의 격리 수준은 B-21 이 잰다) |
-| 경합의 UNIQUE 충돌(판정 행·좋아요)이 남기는 로그 수준 — ERROR 면 [../conventions.md §6.1](../conventions.md)과 어긋난다 | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용, [../domain-model.md §6.1](../domain-model.md) | B-20, B-21 |
+| 경합의 UNIQUE 충돌(판정 행·좋아요)이 남기는 로그 수준 — ERROR 면 [../conventions.md §6.1](../conventions.md)과 어긋난다. 2026-11-19 I-07 에서는 두 경로 모두 충돌이 0건이었다(판정은 충돌 전에 교착했다). 판정 행의 충돌은 B-25 뒤 I-11 이 잰다 | [../requirements/board.md §9.3](../requirements/board.md)의 블록인용, [../domain-model.md §6.1](../domain-model.md) | B-20, B-21, B-25 |
 | 동시 답글, 같은 부모에 대한 답글 작성과 부모 삭제 — 교착과 집계 | [phase2.md §5.4](phase2.md), [../domain-model.md §6](../domain-model.md)의 블록인용 | B-17, B-22 |
 | 동시 업로드가 개수 상한을 넘지 않는가 | [../domain-model.md §6.2](../domain-model.md) | B-23 |
 | 같은 첨부의 동시 삭제가 `attachment_count` 를 한 번만 줄이는가 | [../domain-model.md §6.2](../domain-model.md) | B-24 |

@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v21
-updated: 2026-11-19
+version: v22
+updated: 2026-11-20
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -426,6 +426,8 @@ UPDATE account_token SET used_at = :now
 | viewedAt | LocalDateTime | NOT NULL. 컬럼 `DATETIME` | **마지막으로 집계된 조회의 시각.** 앱 시계의 값이다 |
 
 **행 하나가 "이 조회자의 이 글 조회가 이 시각에 집계됐다" 이다.** 판정은 [requirements/board.md §9.3](requirements/board.md)이 적는다 — 집계될 때만 `viewed_at` 이 바뀌고, 24시간 안의 조회는 행을 건드리지 않는다.
+
+**판정 트랜잭션의 격리 수준은 READ COMMITTED 다**(2026-11-20 `D-24`). 반복 읽기에서는 판정의 0행 조건부 UPDATE 가 `uk_post_view_post_viewer` 의 끝 간격(supremum)을 잠가, 동시 첫 조회끼리 — 같은 글이 아니어도 — 서로의 INSERT 를 막고 교착했다(2026-11-19 I-07 실측). 수치와 버린 대안, 남는 위험은 [requirements/board.md §9.3](requirements/board.md)의 블록인용이 적는다.
 
 **`post_id` 에 FK 를 두지 않는다.** 판정 INSERT 의 FK 검사가 `post` 행에 공유 락을 잡고 같은 트랜잭션이 이어서 `view_count` 의 좁은 UPDATE 로 배타 락을 요청하므로, 같은 글을 동시에 보는 트랜잭션끼리 승격 교착을 만들 것으로 본다(추정 — 실 MySQL 측정 대상). 좋아요(§4.4)는 `post` 의 배타 락을 **먼저** 잡아 그 문제를 피하지만(§6), 조회 판정은 집계 여부를 판정 행을 쓴 **뒤에야** 알므로, 그 순서를 쓰면 집계되지 않는 조회마다 `post` 의 배타 락을 잡고 되돌려야 해서 쓰지 않는다. FK 가 지키던 것은 "없는 글의 판정 행" 인데, 판정은 상세 조회의 404 판정 뒤에만 일어나고 `post` 행은 물리 삭제되지 않는다(soft delete). **잃는 것은 제약이 없다는 것뿐이다.**
 

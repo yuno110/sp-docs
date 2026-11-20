@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v36
-updated: 2026-11-12
+version: v37
+updated: 2026-11-20
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -429,6 +429,8 @@ view-count:
 **환경변수 이름과 속성 경로가 다르다**(위 「환경변수 이름은 속성 경로를 따른다」). 운영은 `application.yml` 의 placeholder 로 `ATTACHMENT_STORAGE_ROOT`·`VIEW_COUNT_HMAC_SECRET` 를 읽는다. `application-local.yml` 이 두 키를 리터럴로 덮으면 로컬에서는 그 환경변수가 쓰이지 않는다.
 
 **정리 작업은 board 의 첫 스케줄러다.** 스케줄링 활성화는 `global/config` 에 둔다([conventions.md §1.3](conventions.md)). 인스턴스가 여럿이면 각자 돌지만 지우는 조건이 같아 결과가 같다. 지우는 조건은 `viewed_at` 이므로 그 인덱스를 쓴다([domain-model.md §4.3](domain-model.md)).
+
+**조회수 판정 트랜잭션은 READ COMMITTED 로 연다**(2026-11-20 `D-24`, [requirements/board.md §9.3](requirements/board.md)). 서버의 전역 격리 수준을 바꾸지 않고 그 트랜잭션에만 건다 — 위 표의 설정 키가 아니라 코드의 트랜잭션 정의다. **전제: board 가 쓰는 MySQL 의 `binlog_format` 이 `ROW` 또는 `MIXED` 다.** 바이너리 로그가 켜져 있고 `STATEMENT` 이면 READ COMMITTED 트랜잭션의 쓰기가 거부되어 판정이 실패한다(MySQL 의 동작 — 이 프로젝트에서 재지 않았다). 2026-11-20 측정한 로컬 서버는 `ROW` 이고 바이너리 로그가 켜져 있었다. 서버를 바꾸면 `SELECT @@global.binlog_format, @@log_bin;` 으로 확인한다.
 
 **의존성을 더하지 않는다.** HMAC 은 JDK(`javax.crypto.Mac`), 스케줄링은 이미 있는 `spring-context`, 형식 판정은 매직 바이트 비교다 — 판정 라이브러리(예: Tika)를 들이지 않는 것이 결정이다([requirements/board.md §11](requirements/board.md)).
 

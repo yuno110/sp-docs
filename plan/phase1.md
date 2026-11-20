@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v76
-updated: 2026-11-19
+version: v77
+updated: 2026-11-20
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -2889,6 +2889,58 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | 고친 문장을 sp-board 의 B-24 `AttachmentService.delete`·`PostDetailResponse`·`PostService` 와 대조한다 | 맞는다 |
 | sp-docs 를 「면제」·「어긋난 상태」·「집계가 이미 0」·`WARN` 으로 훑는다 | §1.3 의 면제를 표보다 좁게 적는 문장과, 1) 의 0행만으로 WARN 을 남기는 것으로 읽히는 문장이 없다 |
 | 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-19 이다 |
+
+### D-24 조회수 판정의 교착 — I-07 측정과 판정 트랜잭션의 격리 수준 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `I-07`([phase2-frontend-integration.md](phase2-frontend-integration.md), sp-board `7dab3bd` 의 커밋 메시지)이 2026-11-19 에, 대안 측정이 2026-11-20 에 쟀다 |
+| 참조 | [../requirements/board.md §9.3](../requirements/board.md), [../domain-model.md §4.5](../domain-model.md)·§6.2, [../nfr.md §1](../nfr.md), [../tech-stack.md §4.5](../tech-stack.md), [phase2-board.md](phase2-board.md) 의 B-21·§4.1, [phase2-frontend-integration.md](phase2-frontend-integration.md) 의 I-07 |
+
+**`I-07` 이 찾았고, 사용자가 2026-11-20 에 이 결함을 「측정 → 정본 개정 → board 수정」 순서로 지금 처리하기로 정했다.** 고치는 모양(판정 트랜잭션만 READ COMMITTED)은 같은 날 대안 측정의 권고대로 오케스트레이터가 골랐다.
+
+1. **[../requirements/board.md §9.3](../requirements/board.md)의 판정이 실 MySQL 의 반복 읽기에서 교착한다.** 2026-11-19 I-07 실측(전역 반복 읽기, 동시 8 × 20회): 동시 첫 조회의 상세 조회가 500 `C005` 였다 — 서로 다른 조회자 120/160, 같은 조회자 110/160, 서로 다른 새 글 118/160. 0행 조건부 UPDATE 가 `uk_post_view_post_viewer` 의 supremum next-key X 락을 쥐고 서로의 insert intention 을 막았다. 집계는 지켜졌다. UNIQUE 충돌 경로는 닿지 않았다. I-07 의 리뷰가 [../nfr.md §1](../nfr.md)·§9.3 의 한계 조항(같은 행·같은 글) 전제를 벗어나 한계로 닫을 수 없다고 판정했다
+2. **앞 판의 블록인용은 그 교착을 같은 글의 서로 다른 조회자로만 추정했고, 대안(INSERT 먼저)이 같은 조회자끼리 교착할 것으로 추정했고, 「측정이 뒤집으면 순서를 바꾼다」 고 적었다.** 2026-11-20 대안 측정(앱의 SQL 과 트랜잭션 경계를 흉내 낸 다중 연결 드라이버, 같은 서버, 동시 8·2 × 20회, 다섯 케이스): 지금 순서는 동시 8 에서 요청의 87~88% 가 교착했다. INSERT 먼저는 교착 0 이지만 통상 경로(24시간 안의 재조회)마다 1062 를 거쳐 §9.3 표 첫 행의 이유와 어긋난다. 1213 의 재시도(1·2회)는 동시 8 의 서로 다른 조회자·서로 다른 새 글에서 최종 실패가 41~68% 남았다. **지금 순서에 판정 트랜잭션만 READ COMMITTED 로 두면 모든 케이스에서 교착 0·실패 0·집계 일치였고, 1062 는 같은 키의 동시 첫 조회에서만 났다** — 표 첫 행이 적은 자리이고 B-21 의 충돌 처리가 받는 경로다
+3. **남는 위험과 전제가 정본에 없었다.** 처음 INSERT 한 트랜잭션이 되돌아가면 같은 키를 기다리던 둘이 교착한다(세 연결 프로브 반복 읽기 5/5, READ COMMITTED 5/5, 커밋이면 0/5). READ COMMITTED 의 쓰기는 바이너리 로그가 켜져 있고 `binlog_format` 이 `STATEMENT` 인 서버에서 거부된다(MySQL 의 동작 — 재지 않았다. 측정 서버는 `ROW`, `log_bin` 켜짐)
+4. **첨부 올리기의 순서를 고정하는 테스트가 없다.** I-07 의 두 연결 프로브에서 [../domain-model.md §6.2](../domain-model.md)의 순서를 뒤집으면 5/5 교착했고(지금 순서 0/5), B-23 의 리뷰가 그 순서를 뒤집은 변이는 H2 에서 살아남았다. 정본의 순서는 맞으므로 정본은 고치지 않고 B-25 의 산출물에 넣는다
+
+사실은 sp-board `7dab3bd` 의 커밋 메시지와 대안 측정의 원자료(세션 scratchpad 의 `summary.json`·`probe-result.json`·`vp_driver.py`·`vp_probe.py`, 2026-11-20 읽기)로 확인했다 — 원자료는 저장소에 없다. 측정 서버의 `binlog_format` 은 원자료에 질의의 출력이 남지 않아, 2026-11-20 오케스트레이터의 읽기 질의로 확인했다(`ROW`, `log_bin` = 1, 전역 `REPEATABLE-READ`, 8.0.46).
+
+**산출물**
+- [../requirements/board.md §9.3](../requirements/board.md) — 표의 격리 수준 행, `viewCount` 행의 H2 문장, 로그 블록인용의 I-07 결과, 판정 순서 블록인용(측정·버린 대안·남는 위험·binlog 전제)
+- [../domain-model.md §4.5](../domain-model.md) — 판정 트랜잭션의 격리 수준 문단
+- [../nfr.md §1](../nfr.md) — 판정의 교착이 한계로 닫히지 않은 것과 남는 교착
+- [../tech-stack.md §4.5](../tech-stack.md) — 판정 트랜잭션의 격리 수준과 `binlog_format` 전제
+- [phase2-board.md](phase2-board.md) — B-25 와 그 자리(§1.1·§1.2), §4.1 의 조회 줄과 UNIQUE 충돌 로그 줄
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) — §1.1·§1.3 의 B-25·I-11, §1.3 의 「측정 뒤의 항목」 예, I-07 뒤의 블록인용, I-11
+- [../docs/checklist.md](../docs/checklist.md) — `D-24` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**sp-board 는 고치지 않는다.** B-25·I-11 의 체크리스트 줄은 그 저장소의 상태 원본이 갖는다([README.md](README.md)의 상태의 위치).
+
+**완료 기준**
+- [ ] §9.3 이 판정 트랜잭션의 격리 수준을 READ COMMITTED 로 정하고, 이유를 I-07 과 대안 측정의 수치·날짜로 적는다
+- [ ] INSERT 먼저와 재시도를 버린 이유, 남는 위험(처음 넣은 트랜잭션의 되돌림), binlog 전제가 §9.3 에 있다
+- [ ] §9.3 표 첫 행의 이유(「통상 경로는 읽기로 가르고 충돌을 내지 않는다」)가 READ COMMITTED 에서도 성립한다 — 그 측정에서 통상 경로의 1062 가 0 이다
+- [ ] 앞 판의 추정(같은 글만, 같은 조회자끼리의 교착)과 「측정이 뒤집으면 순서를 바꾼다」 가 측정으로 갱신되고, 앞 판이 무엇이었는지 적는다
+- [ ] [../nfr.md §1](../nfr.md)의 「교착은 한계」 가 판정 경로에 어디까지 남는지 적는다
+- [ ] B-25 가 결함 수정의 형식(무엇이 틀렸나·고치는 모양·고치기 전에 빨개지는 것을 본다)을 갖고, 격리 수준을 효과가 아니라 설정으로 고정하는 테스트와 첨부 순서를 고정하는 테스트가 산출물에 있다
+- [ ] 실 MySQL 재측정의 자리(I-11)가 [phase2-board.md §4.1](phase2-board.md)의 줄과 같은 조합·같은 기대다. I-07 의 판정을 되돌리지 않는다
+- [ ] 재지 않은 것을 사실로 적지 않는다 — `STATEMENT` 에서의 거부, 판정 트랜잭션이 끝난 연결의 격리 수준, 충돌의 로그 수준
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 옮긴 수치를 sp-board `7dab3bd` 의 커밋 메시지와 대안 측정의 `summary.json`·`probe-result.json` 과 대조한다 | 맞는다 |
+| 고친 문장을 sp-board 의 B-21 `ViewCountJudge` 와 대조한다 — 순서, 판정 트랜잭션이 상세의 읽기와 다른 것, UNIQUE 충돌의 처리 | 맞는다 |
+| sp-docs 를 「순서를 바꾼다」·「한계로 남」·`REPEATABLE`·「반복 읽기」·`READ COMMITTED`·「격리」·「교착」·「UNIQUE 충돌」·`1062` 로 훑는다 | 판정 순서를 측정 대상으로만 적거나, 판정의 교착을 같은 행의 한계로 적거나, 판정 트랜잭션의 격리를 서버 기본으로 읽히게 하는 문장이 없다 |
+| [phase2-board.md §4.1](phase2-board.md)의 조회 줄과 I-11 의 검증표를 나란히 읽는다 | 조합과 기대가 같다 |
+| 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-20 이다 |
 
 ---
 ## 7. 다음 단계

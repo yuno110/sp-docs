@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — 화면·통합
 type: plan
 status: living
-version: v3
-updated: 2026-11-17
+version: v4
+updated: 2026-11-20
 read_when: "2차 기능 확장의 화면 항목(F-07 부터)·통합 항목(I-06 부터)의 범위·의존·완료 기준을 확인하거나, 2차 전체(B·AU·M·F·I)의 순서와 병렬을 볼 때. 상태는 F 는 sp-frontend, I 는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, phase1.md, ../api-contract.md, ../security.md, ../tech-stack.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -18,10 +18,10 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 | 단계 | 항목 | 성격 | 함께 도는 것 |
 | --- | --- | --- | --- |
 | **기반** | B-14~B-16, AU-12~AU-15, M-14 | 스키마·엔티티·에러 코드·예외 매핑·경로 선언·설정을 먼저 끝낸다(이유는 각 계획의 §1.1) | 세 저장소가 서로 기다리지 않는다. 화면의 F-07 |
-| **결함 수정** | B-17, B-18, AU-22 | 1차 코드의 자리를 고친다(AU-22 는 2차 AU-17 의 재설정 확인도) — 그 항목들의 완료 기준과 먼저 대조한다([phase2-board.md §1.1](phase2-board.md), [phase2-auth-member.md §1.1](phase2-auth-member.md)). AU-22 는 2026-11-17 `D-22` 가 세웠다 | B-17 은 의존이 없지만 B-14 와 `Comment` 를 함께 고쳐 같이 돌리지 않는다([phase2-board.md §1.2](phase2-board.md)). B-18 은 B-14 뒤다. AU-22 는 AU-18 뒤이고 auth 안에서는 AU-19 다음이다([phase2-auth-member.md §1.2](phase2-auth-member.md)) |
+| **결함 수정** | B-17, B-18, B-25, AU-22 | 1차 코드의 자리를 고친다(AU-22 는 2차 AU-17 의 재설정 확인도, B-25 는 2차 B-21 의 판정을) — 그 항목들의 완료 기준과 먼저 대조한다([phase2-board.md §1.1](phase2-board.md), [phase2-auth-member.md §1.1](phase2-auth-member.md)). AU-22 는 2026-11-17 `D-22` 가, B-25 는 2026-11-20 `D-24` 가 I-07 의 측정으로 세웠다 | B-17 은 의존이 없지만 B-14 와 `Comment` 를 함께 고쳐 같이 돌리지 않는다([phase2-board.md §1.2](phase2-board.md)). B-18 은 B-14 뒤다. AU-22 는 AU-18 뒤이고 auth 안에서는 AU-19 다음이다([phase2-auth-member.md §1.2](phase2-auth-member.md)) |
 | **기능** | B-19~B-24, AU-16~AU-21, M-15·M-16 | 기반 산출물을 읽고 자기 기능을 만든다 | 저장소끼리 함께 돈다 — AU-16 은 F-08 과 한 번에 커밋된다(아래 문단, §1.4). 저장소 안은 각 계획의 §1.2 |
 | **화면** | F-07~F-16 | 서버의 기능 항목을 따라간다. **기반·기능 구분을 쓰지 않는다** — 한 워커가 의존 열을 따라 한다([phase2.md §7.2](phase2.md)의 이유와 같다) | 서버 항목과 함께 돈다. F 끼리는 순차다(§1.2) |
-| **통합** | I-06~I-10 | 2차 서버 항목이 모두 `done` 인 뒤 세 서비스를 함께 띄워 잰다 | F 와 함께 돌 수 있지만 같은 서비스 인스턴스에 동시에 걸지 않는다. I 끼리는 순차다(§1.3) |
+| **통합** | I-06~I-11 | 2차 서버 항목이 모두 `done` 인 뒤 세 서비스를 함께 띄워 잰다. I-11 은 I-07 이 찾은 결함을 고친 B-25 뒤의 재측정이다(2026-11-20 `D-24`) | F 와 함께 돌 수 있지만 같은 서비스 인스턴스에 동시에 걸지 않는다. I 끼리는 순차다(§1.3) |
 
 **단계는 성격이지 시각이 아니다.** 저장소마다 워커가 따로 돌므로 board 의 기능 단계와 auth 의 기반 단계가 함께 돌 수 있고, 화면 항목은 서버 의존이 끝나는 대로 시작한다. 서버 항목 사이의 의존과 병렬은 각 계획의 §1.2 가 갖는다.
 
@@ -30,6 +30,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 ```
 기반       B-14 B-15 B-16     AU-12 ~ AU-15     M-14
 결함 수정  B-17 B-18          AU-22 (AU-19 다음)
+           B-25 (B-21 뒤 — I-07 이 찾았다)
 기능       B-19 ~ B-24        AU-16 ~ AU-21     M-15 M-16
 화면       F-07                    (서버를 기다리지 않는다)
            AU-16 == F-08           (한 번에 커밋 — §1.4)
@@ -40,6 +41,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
            B-22 -> F-14            B-23 B-24 -> F-15
            F-08 ~ F-15 -> F-16
 통합       B·AU·M 모두 done -> I-06 -> I-07 ~ I-10 (순차)
+           B-25 -> I-11 (I 와 순차)
 ```
 
 ### 1.2 화면 항목의 의존
@@ -72,9 +74,10 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 | I-08 | I-06 | AU-12, AU-16~AU-19, AU-22 |
 | I-09 | I-06 | B-15, B-16, B-21, B-23, AU-14~AU-17, AU-19, M-15 |
 | I-10 | I-06 | B-15, AU-13, AU-19, AU-20, M-14~M-16 |
+| I-11 | B-25 (기동은 I-06 의 방법) | B-21, B-25 |
 
 - **I 는 F 를 의존으로 두지 않는다** — 재는 것이 서버의 성질이다. 브라우저로 재는 줄(I-10)도 수단을 그 항목이 고른다. 그래도 I-06 은 AU-16 을 거쳐 F-07·F-08 을 기다린다 — AU-16 은 F-08 과 한 번에 커밋된다(§1.1·§1.4). **다만 같은 서비스 인스턴스·DB 에 F 의 실제 서비스 e2e 와 I 의 측정을 동시에 돌리지 않는다** — e2e 의 요청이 집계·로그 수준·제한기 카운터의 측정에 섞인다
-- **측정이 정본의 기대와 다르면 코드를 고치지 않고 보고한다.** 고치는 항목은 계획을 먼저 개정해 세운다([README.md](README.md)의 항목 ID 규칙) — 1차의 B-10 이 그렇게 생겼다([phase1.md §7](phase1.md)). 정본이 「측정이 뒤집으면 바꾼다」 고 적은 자리(예: 조회수 판정의 순서 — [phase2-board.md §4.1](phase2-board.md))도 바꾸는 것은 측정 뒤의 항목이다
+- **측정이 정본의 기대와 다르면 코드를 고치지 않고 보고한다.** 고치는 항목은 계획을 먼저 개정해 세운다([README.md](README.md)의 항목 ID 규칙) — 1차의 B-10 이 그렇게 생겼다([phase1.md §7](phase1.md)). 정본이 측정을 기다린 자리도 바꾸는 것은 측정 뒤의 항목이다 — 예: 조회수 판정은 I-07 의 측정 뒤 2026-11-20 `D-24` 가 정본을 고치고 B-25 가 코드를 고친다([phase2-board.md §4.1](phase2-board.md)). 앞 판은 이 자리를 「측정이 뒤집으면 바꾼다」 고 적은 판정 순서로 들었다
 - **측정은 코드·스키마·seed 를 바꾸지 않는다**([integration.md](integration.md) I-04 의 블록인용). 1차 I-04 와 달리 측정에만 쓰는 설정의 덮음(예: 한도에 닿을 수 있는 요청 수 제한)은 허용한다 — 그 실행의 덮음이고, 커밋하지 않고 보고에 적는다
 - **정본이 기대를 정하지 않은 줄은 관측값을 적는다** — 예: `account.email` 의 콜레이션이 같다고 보는 표기(I-08). 그 값을 통과·실패로 적지 않는다
 
@@ -563,6 +566,43 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 | 답글 작성과 그 부모의 삭제를 동시에 | `comment_count` = 활성 댓글 수. 교착 여부 |
 | 개수 상한 하나 아래에서 동시 업로드 | 성공 1, `attachment_count` = 활성 행 = 상한, 남은 파일 수 = 행 수 |
 | 같은 첨부의 동시 삭제 | 성공 1, `attachment_count` 는 한 번만 준다 |
+
+> **2026-11-19 I-07 은 조회수 두 줄(서로 다른 조회자·같은 조회자)에서 결함을 찾았다** — 반복 읽기에서 동시 첫 조회가 교착해 500 `C005` 였다(sp-board `7dab3bd` 의 커밋 메시지). UNIQUE 충돌 줄은 충돌이 0건이라 재지 못했다. I-07 의 판정은 되돌리지 않는다. 고치는 항목은 B-25([phase2-board.md](phase2-board.md), 2026-11-20 `D-24`)이고, 그 뒤의 재측정은 I-11 이다.
+
+---
+
+### I-11 B-25 뒤 조회수 판정의 실 MySQL 재측정
+
+| | |
+| --- | --- |
+| 상태 원본 | `yuno110/sp-board` 의 `docs/checklist.md` |
+| 의존 | B-25. 세 서비스의 기동은 I-06 의 방법이다 |
+| 마이그레이션 | 없음 (§2) |
+| 측정 대상의 출처 | [phase2-board.md §4.1](phase2-board.md)의 조회 첫 조회 줄과 UNIQUE 충돌 로그 줄 — 2026-11-20 `D-24` 가 세웠다 |
+| 참조 | [../requirements/board.md §9.3](../requirements/board.md), [../nfr.md §1](../nfr.md), [../tech-stack.md §4.5](../tech-stack.md), [../conventions.md §6.1](../conventions.md), [integration.md](integration.md) I-04 |
+
+**I-07 은 `done` 이라 그 항목에 줄을 더하지 않는다.** B-25 는 H2 에서 설정과 순서만 고정하고 실 MySQL 의 교착을 재지 않으므로, 그 효과를 앱으로 재는 자리가 여기다. 측정에는 계정 토큰이 필요해 세 서비스를 띄운다 — I-07 과 같다. **B-25 가 `done` 이 되면 남은 I 항목보다 먼저 한다** — 같은 인스턴스에 다른 I 의 측정을 동시에 걸지 않는다(§1.3).
+
+**완료 기준**
+- [ ] 측정 전에 서버의 `@@global.binlog_format`·`@@log_bin`·`@@global.transaction_isolation` 을 읽어 적는다 — 판정 트랜잭션의 READ COMMITTED 는 `binlog_format` 이 `ROW` 또는 `MIXED` 일 것을 전제한다([../tech-stack.md §4.5](../tech-stack.md))
+- [ ] I-07 과 같은 방법으로 잰다 — 줄마다 동시 8 × 20회와 동시 2 × 20회, 교착은 `innodb_metrics` 의 `lock_deadlocks` 차분으로 센다. 방법과 결과를 보고에 적는다
+- [ ] 교착이 나면 횟수와 그때의 응답·집계를 적고, 코드를 고치지 않고 보고한다(§1.3)
+- [ ] **경합의 UNIQUE 충돌이 남기는 로그 수준을** `GlobalExceptionHandler` 가 남긴 줄과 그 밖(예: Hibernate 의 `SqlExceptionHelper`)으로 갈라 센다 — I-07 의 같은 완료 기준이다. ERROR 가 있으면 [../conventions.md §6.1](../conventions.md)과 어긋나는지 보고한다
+- [ ] 요청이 끝난 뒤 판정을 지난 board 풀 연결의 세션 격리 수준을 관측해 적는다(예: `performance_schema.variables_by_thread` 의 `transaction_isolation`). 요청 안의 상세 읽기 — 같은 물리 연결을 쓴다 — 의 격리는 B-25 의 코드 읽기가 맡는다. 풀은 반환 때 격리를 되돌릴 수 있어 이 관측이 그 경로를 가르지 못한다
+- [ ] 결과가 정본의 기대와 다르면 코드를 고치지 않고 보고한다(§1.3)
+
+**검증** — 기대는 정본의 것이다([../requirements/board.md §9.2](../requirements/board.md)·§9.3)
+
+| 케이스 | 기대 |
+| --- | --- |
+| 서로 다른 조회자의 같은 글 동시 첫 조회 | 전부 200, `view_count` = 조회자 수 = 판정 행, 교착 0 |
+| 같은 조회자의 동시 첫 조회 | 전부 200, +1 한 번, 교착 0 |
+| 서로 다른 새 글의 동시 첫 조회 | 전부 200, 글마다 +1, 교착 0 |
+| UNIQUE 충돌을 낸 요청 | 200 이고 500 이 아니다. 로그 수준 (핸들러·그 밖) |
+| 판정 직후의 상세 응답 | `viewCount` 가 판정을 반영한다 |
+| 요청 뒤 판정을 지난 board 풀 연결의 세션 격리 수준 | 서버 기본 |
+
+> **처음 넣은 판정이 되돌아갈 때의 교착은 이 표에 없다.** 그 경우는 INSERT 뒤의 실패가 있어야 나고, [../nfr.md §1](../nfr.md)의 한계로 남겼다. 측정 중에 나면 그때의 앞선 실패와 함께 적는다.
 
 ---
 

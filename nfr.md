@@ -2,8 +2,8 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v12
-updated: 2026-11-11
+version: v13
+updated: 2026-11-20
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
 ---
@@ -44,7 +44,11 @@ related: [architecture.md, process/dev-workflow.md]
 | `like_count` | 좋아요·취소 |
 | `attachment_count` | 첨부 올리기·지우기 |
 
-모두 좁은 UPDATE 이므로 소실 갱신은 없어야 한다. 같은 전환을 두 번 세는 중복 증감은 좁은 UPDATE 가 아니라 근거 행의 조건부 전환이 막는다([domain-model.md §6](domain-model.md)). 그 둘을 지키면 남는 것은 **같은 행의 락 대기와 교착**이고, 위 "교착 자체는 1차의 한계로 남긴다" 가 그대로 적용된다 — 인기 글 하나에 조회·좋아요·댓글이 몰리면 그 행이 줄을 세운다. **상세 조회의 쓰기 모양이 바뀐다** — 1차에는 요청마다 `post` 의 조회수 +1 이었고, 2차에서는 요청마다 판정 행(`post_view`)을 쓰고 집계될 때만 `post` 를 쓴다. 판정 순서의 교착 가능성은 [requirements/board.md §9](requirements/board.md)가 적고, 어느 것이 실제로 나는지는 실 MySQL 측정 대상이다([plan/phase2.md §5.4](plan/phase2.md)).
+모두 좁은 UPDATE 이므로 소실 갱신은 없어야 한다. 같은 전환을 두 번 세는 중복 증감은 좁은 UPDATE 가 아니라 근거 행의 조건부 전환이 막는다([domain-model.md §6](domain-model.md)). 그 둘을 지키면 남는 것은 **같은 행의 락 대기와 교착**이고, 위 "교착 자체는 1차의 한계로 남긴다" 가 그대로 적용된다 — 인기 글 하나에 조회·좋아요·댓글이 몰리면 그 행이 줄을 세운다. **상세 조회의 쓰기 모양이 바뀐다** — 1차에는 요청마다 `post` 의 조회수 +1 이었고, 2차에서는 요청마다 판정 행(`post_view`)을 쓰고 집계될 때만 `post` 를 쓴다. 판정 순서의 교착 가능성은 [requirements/board.md §9](requirements/board.md)가 적었고, 실 MySQL 에서 쟀다([plan/phase2.md §5.4](plan/phase2.md)).
+
+> **조회수 판정의 교착은 이 한계로 닫지 않았다**(2026-11-20 `D-24`). 2026-11-19 I-07 이 실 MySQL 의 반복 읽기에서 동시 첫 조회의 교착을 쟀다 — 같은 행이 아니라 판정 행 인덱스의 끝 간격을 다투어, **서로 다른 글**의 첫 조회끼리도 교착했고 상세 조회가 500 `C005` 였다. 위 「교착 자체는 1차의 한계로 남긴다」 는 같은 행의 락을 전제한 것이라 이 교착에 맞지 않는다. 그래서 판정 트랜잭션을 READ COMMITTED 로 두기로 정했고, 2026-11-20 앱 밖 드라이버의 측정에서 그 교착은 0 이었다([requirements/board.md §9.3](requirements/board.md)). 코드를 고치는 항목은 [plan/phase2-board.md](plan/phase2-board.md)의 B-25 다.
+>
+> **판정 경로에는 같은 키를 다투는 교착이 남는다.** 같은 키를 처음 넣은 트랜잭션이 그 뒤의 실패로 되돌아가면 그 키를 기다리던 다른 둘이 교착한다(같은 측정의 프로브 — 격리 수준과 무관했다). 판정의 `view_count` +1 이 `post` 행을 다투는 것은 위 표의 다른 집계와 같다. 둘 다 위 한계로 남긴다.
 
 > **글 수정·삭제가 집계를 되돌릴 수 있다**(추정). 엔티티 저장이 모든 컬럼을 싣는다면 수정 트랜잭션이 읽은 낡은 집계를 다시 쓴다 — [domain-model.md §6](domain-model.md)이 요건으로 막는다.
 
