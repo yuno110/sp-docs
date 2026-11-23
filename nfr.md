@@ -2,8 +2,8 @@
 title: 비기능 요구사항
 type: spec
 status: living
-version: v14
-updated: 2026-11-20
+version: v15
+updated: 2026-11-23
 read_when: "성능·장애 격리 기준을 확인하거나, 완료 기준의 검증 수단을 정할 때"
 related: [architecture.md, process/dev-workflow.md]
 ---
@@ -69,7 +69,7 @@ related: [architecture.md, process/dev-workflow.md]
 
 이 기준은 통합 검증 단계에서 실제로 서비스를 내리고 확인한다([plan/integration.md](plan/integration.md) I-02).
 
-**SMTP 는 auth 의 바깥 의존이다**(2026-11-11 `D-19`, [adr/0016](adr/0016-mail-and-verification-gate.md)). 메일은 커밋 뒤 따로 나가므로 SMTP 가 죽어도 API 응답은 실패하지 않는다 — **대신 가입과 계정 회복이 조용히 멈춘다.** 발송 실패가 WARN 이상의 로그로 드러나야 한다. 다시 보내는 장치는 없다 — 사용자가 재발송·재설정을 다시 요청한다([requirements/member.md §11.5](requirements/member.md)). 이 줄은 I-02 의 시나리오가 아니다 — I-02 는 1차의 세 서비스를 내린다. 2026-11-20 I-09(`D-26`)가 응답하지 않는 SMTP 로 쟀다 — 응답은 늦어지지 않았고, 대기열에서 버려진 가입은 토큰도 메일도 없었다(같은 절의 블록인용).
+**SMTP 는 auth 의 바깥 의존이다**(2026-11-11 `D-19`, [adr/0016](adr/0016-mail-and-verification-gate.md)). 메일은 커밋 뒤 따로 나가므로 SMTP 가 죽어도 API 응답은 실패하지 않는다 — **대신 가입과 계정 회복이 조용히 멈춘다.** 발송 실패가 WARN 이상의 로그로 드러나야 한다. 다시 보내는 장치는 없다 — 사용자가 재발송·재설정을 다시 요청한다([requirements/member.md §11.5](requirements/member.md)). 이 줄은 I-02 의 시나리오가 아니다 — I-02 는 1차의 세 서비스를 내린다. 2026-11-20 I-09(`D-26`)가 응답하지 않는 SMTP 로 쟀다 — 응답은 늦어지지 않았고, 대기열에서 버려진 가입은 토큰도 메일도 없었다(같은 절의 블록인용). 2026-11-23 `D-28` 이 발급과 발송의 대기열을 나누고, 앞 토큰을 새 메일이 SMTP 에 넘겨진 뒤에 지우기로 정했다 — SMTP 가 죽어도 이미 받은 링크는 산다(같은 절, 코드는 [plan/phase2-auth-member.md](plan/phase2-auth-member.md)의 AU-24).
 
 ## 3. 회복탄력성
 
@@ -79,7 +79,7 @@ related: [architecture.md, process/dev-workflow.md]
 | 타임아웃 미지정 | 금지. 기본값(무제한)으로 두지 않는다 |
 | 서킷 브레이커 | 2차 범위 |
 | SMTP 타임아웃 | 연결 5초 / 읽기 10초 / 쓰기 10초([tech-stack.md §4.7](tech-stack.md)). 발송은 요청 스레드 밖이라 API 응답 시간에 들지 않는다. 2026-11-11 `D-19` |
-| 메일 발송 대기열 | 상한을 둔다. 넘치면 버리고 WARN([tech-stack.md §4.7](tech-stack.md)). 상한은 메일 수가 아니라 작업 수다 — 메일 한 통이 두 작업이다([requirements/member.md §11.5](requirements/member.md), 2026-11-20 `D-26`) |
+| 메일 대기열 | 발급과 발송의 대기열을 나누고 각각 상한을 둔다. 넘치면 버리고 WARN([tech-stack.md §4.7](tech-stack.md)). 상한은 메일 수가 아니라 작업 수다 — 메일 한 통이 두 대기열에서 한 칸씩 쓴다([requirements/member.md §11.5](requirements/member.md), 2026-11-23 `D-28`. 앞 판은 한 대기열에서 두 칸이었다 — 2026-11-20 `D-26`) |
 
 ## 4. 확장성·가용성
 

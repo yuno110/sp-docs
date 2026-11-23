@@ -2,7 +2,7 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v29
+version: v30
 updated: 2026-11-23
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
@@ -23,7 +23,7 @@ related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md
 com.example.auth
 ├── AuthApplication.java
 ├── global
-│   ├── config          # SecurityConfig(인가·CORS), JpaConfig, QuerydslConfig, SwaggerConfig, WebConfig(ArgumentResolver), ClockConfig, 스케줄링 활성화, 발송 실행기
+│   ├── config          # SecurityConfig(인가·CORS), JpaConfig, QuerydslConfig, SwaggerConfig, WebConfig(ArgumentResolver), ClockConfig, 스케줄링 활성화, 메일의 발급·발송 실행기
 │   ├── common          # BaseTimeEntity, ApiResponse, PageResponse
 │   ├── error           # ErrorCode, BusinessException, GlobalExceptionHandler
 │   ├── ratelimit       # 요청 수 제한기(security.md §10)

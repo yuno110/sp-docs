@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v39
-updated: 2026-11-20
+version: v40
+updated: 2026-11-23
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -496,7 +496,10 @@ mail:
   from: ${MAIL_FROM}
   frontend-base-url: ${FRONTEND_BASE_URL}
   executor:
-    queue-capacity: 100
+    issue:
+      queue-capacity: 100
+    send:
+      queue-capacity: 100
 account-cleanup:
   interval: PT1H
 ```
@@ -509,14 +512,17 @@ account-cleanup:
 | 암호화 연결 | 정본 값 | **운영 프로파일은 STARTTLS 를 필수로 하거나 SMTPS 로 연결한다**(예: `mail.smtp.starttls.required: true`). 어느 쪽인지는 SMTP 제공자가 정한다. 로컬 Mailpit 은 평문이다 |
 | `mail.from` | **정책값** | 보내는 주소. 기본값이 없다 |
 | `mail.frontend-base-url` | **정책값** | 링크의 기준 주소(예: 화면의 오리진). 기본값이 없고 비었거나 `${…}` 이거나 `http`·`https` 의 절대 URL 이 아니면 기동이 실패한다. **요청의 `Host` 로 대신하지 않는다**([security.md §12](security.md)) |
-| `mail.executor.queue-capacity` | 편의값 | 발송 작업의 대기열 상한. 넘으면 버리고 WARN([requirements/member.md §11.5](requirements/member.md)). **메일 수가 아니라 작업 수다** — 메일 한 통이 발급·발송 두 작업이고, 보내지 않을 요청도 발급 작업 하나를 쓴다(2026-11-20 `D-26`, 같은 절) |
+| `mail.executor.issue.queue-capacity` | 편의값 | 발급 작업(계정 찾기·발송 상한·토큰 넣기 — DB 일만)의 대기열 상한. 넘으면 버리고 WARN([requirements/member.md §11.5](requirements/member.md)). 보내지 않을 요청(없는 이메일의 재설정·재발송 등)도 한 칸을 쓴다. **100 은 앞 판의 한 대기열 값을 그대로 둔 것이다** — 발급 작업은 SMTP 를 기다리지 않아 DB 의 속도로 빠지므로, 2026-11-20 I-09 가 한 대기열을 채운 요청 속도로는 차지 않을 것으로 본다(추정 — 나눈 뒤에는 재지 않았다. I-14 가 본다) |
+| `mail.executor.send.queue-capacity` | 편의값 | 발송 작업(SMTP 에 넘기기, 성공하면 앞 토큰 지우기)의 대기열 상한. 넘으면 버리고 WARN(같은 절). 실제로 나갈 메일만 한 칸씩 쓴다. 한 계정·한 주소에서 들어오는 수는 계정 id 의 발송 상한과 요청 수 제한이 묶는다([security.md §10](security.md)·§10.1). 전체 수는 묶지 않는다 — 넘친 발송은 버려지지만 앞 링크를 죽이지 않는다. 한 통에 읽기 타임아웃만큼 걸리는 SMTP 에서 100번째 칸의 메일은 약 100 × 10초(약 17분) 뒤에 시도된다 — 재설정 토큰의 수명(30분) 안이다(계산이다, 재지 않았다). **100 도 앞 판의 값을 그대로 둔 것이다.** 버려진 발송은 앞 링크를 죽이지 않는다([requirements/member.md §11.1](requirements/member.md)) |
 | `account-cleanup.interval` | 편의값 | 만료된 `account_token`·오래된 `login_attempt` 를 지우는 주기([domain-model.md §2.4](domain-model.md)·§2.5). 판정에 영향이 없다 |
+
+> **2026-11-23 `D-28` 이 대기열을 둘로 나누기로 정했다.** 앞 판은 `mail.executor.queue-capacity` 하나(100)였고, 발급 작업과 발송 작업이 스레드 하나·대기열 하나를 나눠 썼다 — 메일 한 통이 두 칸을 차례로 쓰고 보내지 않을 요청도 한 칸을 썼다(2026-11-20 `D-26`). 그 구조에서 DB 일만 하는 발급 작업이 SMTP 의 읽기 타임아웃(10초)을 기다리는 발송 뒤에 줄을 섰고, 대기열이 찬 동안 들어온 가입은 토큰도 메일도 없었고(I-09), 2026-11-23 메일 프로브에서는 없는 이메일의 요청 둘이 실제 계정의 발급 작업을 밀어냈다. **옛 키는 나눈 뒤 쓰이지 않는다** — 로컬 설정이나 기동 인자에 남아 있어도 읽히지 않으므로, 측정에서 대기열을 줄이려면 새 두 키를 쓴다. 나누는 코드는 AU-24 다([plan/phase2-auth-member.md](plan/phase2-auth-member.md)).
 
 **가드가 기동을 실패시킨다.** §4.3 의 측정대로 `@ConfigurationProperties` 는 미해석 리터럴을 통과시키므로 `spring.mail.*` 도 그렇게 들어올 수 있다 — 정책값마다 기동 시점의 검사를 두고 그 실패를 테스트가 본다.
 
 **시험용 발송기는 테스트 소스에만 둔다.** 메일을 메모리에 모으는 발송기를 `src/test` 에 두고 테스트가 그것으로 토큰을 꺼낸다. 운영 코드에 그 구현이 없고, 그 구현이 선택된 채 운영 프로파일로 뜨면 기동이 실패한다([security.md §12](security.md)).
 
-**정리 작업은 auth 의 첫 스케줄러다.** 스케줄링 활성화와 발송용 실행기를 `global/config` 에 둔다([conventions.md §1.1](conventions.md)). 인스턴스가 여럿이면 각자 돌지만 지우는 조건이 같아 결과가 같다 — board(§4.5)와 같다.
+**정리 작업은 auth 의 첫 스케줄러다.** 스케줄링 활성화와 메일의 발급·발송 실행기를 `global/config` 에 둔다([conventions.md §1.1](conventions.md)). 인스턴스가 여럿이면 각자 돌지만 지우는 조건이 같아 결과가 같다 — board(§4.5)와 같다.
 
 #### 4.7.1 로컬의 SMTP — Mailpit
 

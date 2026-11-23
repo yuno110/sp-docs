@@ -2,7 +2,7 @@
 title: 2차 작업 계획 — auth·member 기능 확장
 type: plan
 status: living
-version: v5
+version: v6
 updated: 2026-11-23
 read_when: "2차 기능 확장의 auth·member 작업 항목(AU-12 부터·M-14 부터)의 범위·의존·마이그레이션 번호·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md 를 본다"
 related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../domain-model.md, ../api-contract.md, ../security.md, ../conventions.md, ../tech-stack.md]
@@ -21,7 +21,7 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | **기반** — member | M-14 | 에러 코드·예외 매핑·경로 선언 — `C009` 매핑은 제한기와 함께 M-15 가 둔다. member 는 마이그레이션이 없다(§2) |
 | **기능** — auth | AU-16~AU-21 | 기반 산출물을 읽고 자기 파일을 만든다. 같은 Service·Controller 를 고치는 항목이 있어 저장소 안에서는 §1.2 의 순서를 따른다 |
 | **기능** — member | M-15, M-16 | M-14 뒤 |
-| **결함 수정** — auth | AU-22, AU-23 | AU-22 는 1차 AU-08·AU-09 와 2차 AU-17 의 산출물을, AU-23 은 2차 AU-18 의 세기를 고친다 — 그 항목들의 완료 기준과 먼저 대조한다. AU-22 는 2026-11-17 `D-22` 가, AU-23 은 2026-11-23 `D-27` 이 I-08 의 측정으로 세웠다 |
+| **결함 수정** — auth | AU-22~AU-24 | AU-22 는 1차 AU-08·AU-09 와 2차 AU-17 의 산출물을, AU-23 은 2차 AU-18 의 세기를, AU-24 는 2차 AU-14~AU-17 의 메일 실행기·발급 순서·확인을 고친다 — 그 항목들의 완료 기준과 먼저 대조한다. AU-22 는 2026-11-17 `D-22` 가, AU-23 은 2026-11-23 `D-27` 이 I-08 의 측정으로, AU-24 는 같은 날 `D-28` 이 I-09 와 메일 프로브의 측정으로 세웠다 |
 
 [phase1.md §1.1](phase1.md)과 같은 이유로 **순서 의존과 공유 상태를 기반에 몰았다.** 에러 코드와 `SecurityConfig` 의 경로·CORS 를 기반이 끝내므로 기능 항목은 그 파일들을 고치지 않는다.
 
@@ -46,6 +46,7 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
       ─────────────────────
       AU-22 계정 먼저 잠그기    [결함 수정]  <- 번호와 달리 AU-19 다음 (§1.2)
       AU-23 한 문장으로 세기    [결함 수정]  <- AU-18 뒤 (I-08 이 찾았다)
+      AU-24 발송 뒤 지우기      [결함 수정]  <- AU-22 뒤 (I-09 가 찾았다)
             \                                      /
              +---- 통합 측정 (§5.1) · 화면 항목 (§5.2) ----+
 ```
@@ -54,23 +55,24 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 
 | 항목 | 의존 | 겹치는 파일 (같은 저장소의 다른 항목) | 저장소 밖 |
 | --- | --- | --- | --- |
-| AU-12 | 없음 | `LoginAttemptRepository`·그 테스트 (AU-18·AU-21·AU-23), `AccountTokenRepository`·그 테스트 (AU-21) — AU-13·AU-14 와는 없어 함께 돌 수 있다 | — |
+| AU-12 | 없음 | `LoginAttemptRepository`·그 테스트 (AU-18·AU-21·AU-23), `AccountTokenRepository`·그 테스트 (AU-21·AU-24) — AU-13·AU-14 와는 없어 함께 돌 수 있다 | — |
 | AU-13 | 없음 | `GlobalExceptionHandler`·그 테스트 (AU-19) | 화면: 무인증 경로의 401 (§5.2) |
-| AU-14 | 없음 | `application.yml` (AU-19·AU-21), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-19) | 로컬 `local` 기동이 메일 설정을 요구하게 된다 (§1.3) |
-| AU-15 | AU-12, AU-14 | — | — |
-| AU-16 | AU-13, AU-15 | `AccountController`·`AccountService` (AU-17·AU-19·AU-20·AU-22), `AuthService` (AU-18) | 화면의 가입 흐름 (§1.3) |
+| AU-14 | 없음 | `application.yml` (AU-19·AU-21·AU-24), `MailDispatcher`·`MailExecutorConfig`·그 테스트 (AU-24), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-19) | 로컬 `local` 기동이 메일 설정을 요구하게 된다 (§1.3) |
+| AU-15 | AU-12, AU-14 | `AccountTokenIssuer`·그 테스트 (AU-24) | — |
+| AU-16 | AU-13, AU-15 | `AccountController`·`AccountService` (AU-17·AU-19·AU-20·AU-22, `AccountService` 는 AU-24 도), `AuthService` (AU-18) | 화면의 가입 흐름 (§1.3) |
 | AU-17 | AU-16 | `AccountController`·`AccountService` | 화면의 비밀번호 찾기·재설정 |
 | AU-18 | AU-12, AU-13, AU-16 | `AuthService` (AU-16), `LoginAttemptRepository`·그 테스트 (AU-12·AU-21·AU-23), `LoginAttemptService`·그 테스트 (AU-23), `AuthControllerTest` (AU-19) | 화면의 로그인 안내 |
-| AU-19 | AU-13, AU-16, AU-17 | `AccountController` (AU-16·AU-17·AU-20), `GlobalExceptionHandler`·그 테스트 (AU-13), `application.yml` (AU-14·AU-21), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-14), `AuthControllerTest` (AU-18) | 화면의 429 안내, 로컬 템플릿 (§1.3) |
+| AU-19 | AU-13, AU-16, AU-17 | `AccountController` (AU-16·AU-17·AU-20), `GlobalExceptionHandler`·그 테스트 (AU-13), `application.yml` (AU-14·AU-21·AU-24), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-14), `AuthControllerTest` (AU-18) | 화면의 429 안내, 로컬 템플릿 (§1.3) |
 | AU-20 | AU-12, AU-13 | `AccountController`·`AccountService` | 화면의 관리자 회원 목록 (M-16 과 함께) |
-| AU-21 | AU-12, AU-16, AU-18 | `application.yml` (AU-14·AU-19), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18·AU-23), `AccountTokenRepository`·그 테스트 (AU-12) | — |
-| AU-22 | AU-18 | `AccountService`·그 테스트 (AU-16·AU-17·AU-20) | — |
+| AU-21 | AU-12, AU-16, AU-18 | `application.yml` (AU-14·AU-19·AU-24), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18·AU-23), `AccountTokenRepository`·그 테스트 (AU-12·AU-24) | — |
+| AU-22 | AU-18 | `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-24) | — |
 | AU-23 | AU-18 | `LoginAttemptService`·그 테스트 (AU-18), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18·AU-21) | 실 MySQL 재측정 I-13 (§5.1) |
+| AU-24 | AU-15, AU-17, AU-22 | `AccountTokenIssuer`·그 테스트 (AU-15), `MailDispatcher`·`MailExecutorConfig`·그 테스트 (AU-14), `AccountTokenRepository`·그 테스트 (AU-12·AU-21), `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-22), `application.yml` (AU-14·AU-19·AU-21) | SMTP 소켓 경로 재측정 I-14 (§5.1). 측정의 기동 인자가 새 키를 쓴다 |
 | M-14 | 없음 | `GlobalExceptionHandler`·그 테스트 (M-15) | 화면: 무인증 경로의 401 |
 | M-15 | M-14 | `GlobalExceptionHandler`·그 테스트 (M-14), `MemberControllerTest` (M-16) | 화면의 429 안내, 로컬 템플릿 |
 | M-16 | M-14 | `MemberControllerTest` (M-15) | 화면의 관리자 회원 목록 (AU-20 과 함께) |
 
-**저장소마다 구현 워커가 하나면**(두 저장소의 `CLAUDE.md` 가 그렇게 적는다 — 2026-11-12 읽기) auth 는 AU-12 → AU-13 → … → AU-21 의 번호 순서로 하나씩 한다. **AU-20 은 의존이 적어 앞당길 수 있다**(예: 화면의 회원 목록을 먼저 할 때). **AU-22 는 번호와 달리 AU-19 다음에 한다** — 사용자가 2026-11-17 에 그 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다(`D-22`). **AU-23 은 2026-11-23 `D-27` 이 세웠고 AU-18 뒤에 한다** — 사용자가 그날 I-08 의 교착을 고치기로 정했다. 저장소 안의 병렬은 「겹치는 파일」 이 없는 항목끼리만 한다. auth 와 member 는 서로의 파일을 고치지 않으므로 두 저장소는 처음부터 함께 돈다.
+**저장소마다 구현 워커가 하나면**(두 저장소의 `CLAUDE.md` 가 그렇게 적는다 — 2026-11-12 읽기) auth 는 AU-12 → AU-13 → … → AU-21 의 번호 순서로 하나씩 한다. **AU-20 은 의존이 적어 앞당길 수 있다**(예: 화면의 회원 목록을 먼저 할 때). **AU-22 는 번호와 달리 AU-19 다음에 한다** — 사용자가 2026-11-17 에 그 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다(`D-22`). **AU-23 은 2026-11-23 `D-27` 이 세웠고 AU-18 뒤에 한다** — 사용자가 그날 I-08 의 교착을 고치기로 정했다. **AU-24 는 같은 날 `D-28` 이 세웠고 AU-22 뒤에 한다** — 사용자가 그날 메일 프로브를 보고 세 결함을 고치기로 정했다. AU-23 과는 겹치는 파일이 없다. 저장소 안의 병렬은 「겹치는 파일」 이 없는 항목끼리만 한다. auth 와 member 는 서로의 파일을 고치지 않으므로 두 저장소는 처음부터 함께 돈다.
 
 ### 1.3 저장소 밖과 맞물리는 때
 
@@ -244,6 +246,8 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | 운영 프로파일의 메일 속성 | 암호화 연결 요구가 켜져 있다 |
 | 메일 속성의 타임아웃 | §4.7 의 값이다 |
 
+> **2026-11-23 `D-28` 이 이 항목의 실행기를 정본에서 둘로 나눴다.** 위 산출물의 「발송 실행기(대기열 상한)」 와 완료 기준의 `mail.executor.queue-capacity` 는 그때의 정본([../tech-stack.md §4.7](../tech-stack.md)의 앞 판 — 실행기 하나·키 하나)을 따랐다. 지금은 발급 실행기와 발송 실행기가 각자 대기열과 키를 갖고, 버림 WARN 이 작업의 종류·계정 id·목적을 적는다 — 코드는 AU-24 가 바꾼다. **이 항목의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)).
+
 ---
 
 ### AU-15 링크 토큰 발급 작업 [기반]
@@ -286,6 +290,8 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | 같은 계정·목적의 둘째 발급 | 앞 토큰이 지워지고 새 토큰만 남는다. 다른 목적의 토큰은 남는다 |
 | 발송 상한을 넘는 요청 | 새 행·메일이 없고 WARN. 상한 안에서 마지막으로 보낸 링크의 토큰 행이 남아 있다(그 링크의 토큰을 해시해 읽힌다). 시계를 그 시간 너머로 움직이면 다시 보낸다. 목적마다 따로 센다 |
 | 발급 트랜잭션이 되돌려진다 | 메일이 없다 |
+
+> **2026-11-23 `D-28` 이 이 항목의 발급 순서를 정본에서 바꿨다.** 위 완료 기준의 「앞 토큰 지우기 → 새 토큰 넣기 → 커밋 뒤 발송」·「상한은 앞 토큰을 지우기 전에 본다」 와 검증표의 「둘째 발급」 줄은 그때의 정본([../requirements/member.md §11.1](../requirements/member.md)·§11.5 의 앞 판)을 따랐다. 그 순서에서 메일이 나가지 못하면 받은 링크가 하나도 살지 않았다(2026-11-23 메일 프로브, 6/6). 지금은 발급이 새 토큰만 넣고, 발송이 SMTP 에 넘기는 데 성공한 뒤 같은 계정·목적의 id 가 작은 토큰을 지운다 — 코드는 AU-24 가 바꾼다. 「요청 스레드는 DB 일을 하지 않는다」 는 그대로다. **이 항목의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)).
 
 ---
 
@@ -385,6 +391,8 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | 탈퇴한 계정 | 400 `AU007`, 비밀번호 그대로 |
 | 중간 실패 | 비밀번호·토큰 사용·Refresh Token·잠금·인증이 모두 그대로다 |
 | 한 번의 확인 | 커밋이 정확히 한 번 |
+
+> **2026-11-23 `D-28` 이 이 항목과 AU-16 의 확인에 단계를 하나 더했다** — 확인이 성공하면 같은 계정·목적의 나머지 토큰을 같은 트랜잭션에서 지운다([../requirements/member.md §11.2](../requirements/member.md)의 4, §11.4 의 7). 두 항목의 확인 순서는 그 전의 정본을 따랐다. 코드는 AU-24 가 더한다. **두 항목의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)).
 
 ---
 
@@ -729,6 +737,106 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 
 > **이 항목은 실 MySQL 을 재지 않는다** — 그 자리는 I-13 이다([phase2-frontend-integration.md](phase2-frontend-integration.md)). 프로브의 측정은 앱 밖의 드라이버였다.
 
+---
+
+### AU-24 메일이 나가지 못해도 받은 링크가 산다 — 앞 토큰은 발송 뒤 지우고, 발급과 발송의 실행기를 나눈다 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-auth` |
+| 의존 | AU-15, AU-17, AU-22 — 고치는 것이 AU-14·AU-15 의 실행기와 발급 순서, AU-16·AU-17 의 확인(재설정 확인은 AU-22 가 고친 모양)이다 |
+| 공유 파일 | `AccountTokenIssuer`·그 테스트 (AU-15), `MailDispatcher`·`MailExecutorConfig`·그 테스트 (AU-14), `AccountTokenRepository`·그 테스트 (AU-12·AU-21), `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-22), `application.yml` (AU-14·AU-19·AU-21), 발송 실행기를 주입받는 테스트와 `support/MailExecutorDrain` |
+| 마이그레이션 | 없음 — 두 지우기는 `idx_account_token_account_purpose` 를 쓴다([../domain-model.md §2.3](../domain-model.md)) |
+| 참조 | [../requirements/member.md §11.1](../requirements/member.md)·§11.2·§11.3·§11.4·§11.5, [../domain-model.md §2.4](../domain-model.md), [../security.md §12](../security.md), [../tech-stack.md §4.7](../tech-stack.md), [../conventions.md §1.1](../conventions.md), [phase1.md](phase1.md) D-28, [../process/review-policy.md §4.1](../process/review-policy.md) |
+
+**사용자가 2026-11-23 에 이 결함들을 고치기로 정했다**(`D-28`). 2026-11-20 I-09 가 찾고 `D-26` 이 후속 후보로 넘긴 세 줄(§5.3)을, 같은 날의 메일 프로브가 모두 사실로 확인했다. **완료된 AU-14·AU-15·AU-16·AU-17 의 산출물을 고치므로** 그 항목들의 완료 기준과 먼저 대조한다 — 실행기 하나·키 하나, 발급이 앞 토큰을 지우는 순서는 `D-28` 이 정본에서 바꿨다(AU-14·AU-15·AU-17 뒤의 블록인용).
+
+**무엇이 틀렸나**(sp-auth `3e012c2`, 2026-11-23 코드 읽기와 메일 프로브)
+- **메일이 못 나가면 받은 링크도 죽는다.** `AccountTokenIssuer.issue` 가 한 트랜잭션에서 앞 토큰을 지우고(`deleteByAccountIdAndPurpose`) 새 토큰을 넣어 함께 커밋한 뒤 발송을 건다. 발송이 실패하거나 발송 작업이 버려지면 메일함에 살아 있는 링크가 없다 — 프로브의 연결 거부·답하지 않는 SMTP·발송 작업 버림에서 인증·재설정 모두 링크 1 이 400 `AU007` 이었다(6/6)
+- **발급이 발송 뒤에 줄을 선다.** `MailExecutorConfig` 의 실행기 하나(스레드 1, 대기열 `mail.executor.queue-capacity`)에 요청 스레드가 발급 작업을, 발급 작업의 커밋 뒤가 발송 작업을 넣는다. DB 일만 하는 발급이 SMTP 의 읽기 타임아웃을 기다리는 발송 뒤에 서고, 없는 이메일의 요청도 칸을 쓴다 — I-09 에서 대기열이 찬 동안의 가입은 토큰이 없었고, 프로브에서 없는 이메일의 재설정 둘이 실제 계정의 발급 작업을 밀어냈다(2/2)
+- **버림 WARN 이 누구의 무엇인지 말하지 않는다.** 거부 처리기는 람다 그대로의 작업과 실행기만 받아 대기열 상한과 종료 여부만 적는다. 발급 작업을 버린 줄(요청 스레드)과 발송 작업을 버린 줄(실행기 스레드)이 같은 문장이다 — 프로브에서 발송 작업을 버린 계정은 「토큰 행은 있는데 메일 흔적이 없다」 로만 남았다
+
+**고치는 모양** — 정본 [../requirements/member.md §11.5](../requirements/member.md)의 마지막 두 문단과 [../domain-model.md §2.4](../domain-model.md)의 두 지우기 그대로다.
+
+```
+요청 스레드   재발송·재설정 — 발급 작업을 발급 실행기에 넘긴다. DB 일 없음 (지금 그대로)
+가입          계정 INSERT 의 커밋 뒤 발급 작업을 발급 실행기에 넘긴다 (지금 그대로)
+발급 작업     [발급 실행기] 자기 트랜잭션 — 계정 찾기 → 보낼 조건 → 발송 상한 → 새 토큰 넣기
+              앞 토큰을 지우지 않는다. 커밋 뒤 발송 작업(계정 id·목적·새 id)을 발송 실행기에 넘긴다
+발송 작업     [발송 실행기] SMTP 에 넘긴다. 실패하면 지금 그대로 WARN 하고 지우지 않는다
+              성공하면 자기 트랜잭션 — 같은 계정·목적의 id < 새 id 를 지운다. 실패하면 WARN, 둘 다 둔다
+확인          인증·재설정의 지금 순서 끝에 같은 계정·목적의 id <> 쓴 토큰을 지운다. 같은 트랜잭션
+거부 처리기   실행기마다 하나 — 작업의 종류·계정 id(없으면 null)·목적·대기열 상한·종료 여부를 WARN 한 줄. 던지지 않는다
+```
+
+- **`mail` 은 `account` 를 부르지 않는다**(AU-14 의 완료 기준, [../conventions.md §1.1](../conventions.md)의 트리). 발송 성공 뒤의 지우기는 부르는 쪽(`account`)이 넘긴다 — 예: 발송이 성공했을 때 부를 일을 메일과 함께 받는다. 그 일의 실패를 「발송 실패」 로 적지 않는다 — 메일은 나갔다
+- **작업을 싣는 형** — 종류(발급·발송), 계정 id(재발송·재설정의 발급은 넣는 순간 모르므로 null), 목적만 꺼낼 수 있다. **이메일·토큰·링크·`OutgoingMail` 을 처리기가 꺼낼 수 없게 한다.** 처리기는 작업의 `toString` 을 적지 않는다 — 람다는 이메일을 붙잡고 있다. **그 형의 `toString` 은 종류·계정 id·목적만 낸다**(또는 `OutgoingMail`·람다를 구성 요소로 갖지 않는다) — record 가 `OutgoingMail` 을 구성 요소로 가지면 기본 `toString` 이 이메일과 본문의 링크를 낸다. 그 형이 아닌 작업이 오면 종류를 모른다고 적고 내용은 적지 않는다. 목적은 `OutgoingMail` 처럼 이름으로 싣는다 — 형의 자리는 구현이 정하되 `mail` 이 `account` 를 부르지 않게 하고 패키지 순환을 만들지 않는다(예: 형을 `mail` 에 두고 `global/config` 의 처리기가 그것을 읽으면, 지금 `MailDispatcher` 가 `MailExecutorConfig` 를 import 하므로 `global.config ↔ mail` 이 서로를 import 한다)
+- **두 실행기는 지금 실행기의 설정을 그대로 갖는다** — 스레드 하나, 최대도 하나(최대가 크면 대기열이 차도 버리지 않는다 — 지금 javadoc 의 이유). 빈 이름·한정자와 스레드 이름 접두어가 둘을 가른다. 지금 javadoc 의 한정자 없는 `@Async` 경고는 「두 빈 중 하나를 고른다」 로 옮기지 않는다 — 빈이 둘일 때 무엇이 고르는지 재지 않았다(`3e012c2` 에는 `@EnableAsync`·`@Async` 가 없다). 「`@Async` 를 들일 때는 실행기를 한정자로 정한다」 만 남긴다
+- **키는 [../tech-stack.md §4.7](../tech-stack.md)의 두 줄**(`mail.executor.issue.queue-capacity`, `mail.executor.send.queue-capacity`, 둘 다 100)이다. 옛 키를 지운다. 옛 키를 쓰는 테스트·설정이 있으면 새 키로 옮긴다
+
+**산출물**
+- `global/config/MailExecutorConfig` — 실행기 둘과 거부 처리기 둘. javadoc
+- `mail/MailDispatcher` — 발송 실행기로 넘긴다. 발송 성공 뒤의 일을 받는 자리와 그 실패의 WARN
+- `account/service/AccountTokenIssuer` — 발급 실행기로 넘긴다. 앞 토큰 지우기를 걷고, 새 토큰의 id 와 성공 뒤 지우기를 발송에 싣는다. 작업을 형으로 감싼다. javadoc 의 순서
+- `account/repository/AccountTokenRepository` — 두 지우기 문장(`id < :newId`, `id <> :usedId`). 앞 판의 지우기 문장은 쓰는 곳이 없어지면 지운다
+- `account/service/AccountService` — 인증·재설정 확인의 끝에 나머지 지우기
+- 작업을 싣는 형 — 자리는 구현이 정한다
+- `src/main/resources/application.yml` — 두 키와 주석
+- 테스트 — `AccountTokenIssuerTest`·`MailDispatcherTest`·`MailExecutorConfigTest`·`AccountServiceTest` 의 해당 자리. `support/MailExecutorDrain` 은 두 실행기를 발급 → 발송 차례로 비운다. 실행기를 주입받는 테스트(`AccountControllerTest`·`RateLimitControllerTest` 등)는 새 한정자로
+
+**완료 기준**
+- [ ] **고치기 전에 검증표에서 「고치기 전 코드에서 깨진다」 를 적은 줄이 지금 코드에서 빨개지는 것을 보았다.** 빨갛다는 것은 단언의 실패다 — 새 빈·한정자가 없는 지금 코드에서는 실행기 하나로 같은 상황을 만들어(대기열을 채워) 본다. 컴파일 실패는 빨강으로 세지 않는다. 결과를 보고에 적는다
+- [ ] **(a) 발급 트랜잭션은 새 토큰만 넣는다.** 앞 토큰은 발송이 SMTP 에 넘기는 데 성공한 뒤 발송 작업의 자기 트랜잭션에서, 같은 계정·목적의 **id 가 새 토큰보다 작은 것만** 지운다. 발송이 실패하거나 발송 작업이 버려지면 지우지 않는다. 지우기가 실패하면 WARN 한 줄(계정 id·목적·예외의 종류)을 남기고 둘 다 둔다 — 다시 지우지 않는다
+- [ ] **(b) 확인이 성공하면 같은 계정·목적의 나머지 토큰을 지운다** — 인증 확인(member.md §11.2 의 4), 재설정 확인(§11.4 의 7). 확인과 같은 트랜잭션이고, 확인이 되돌려지면 지우기도 없다. 다른 목적의 토큰은 남는다. 한 번의 확인에 커밋이 한 번인 것(AU-16·AU-17)은 그대로다. **확인의 지우기에서 난 교착(락 예외)을 잡아 삼키지 않는다** — 삼키면 204 가 나가지만 무엇이 커밋되는지가 예외의 종류에 달린다. 교착(1213)이면 InnoDB 가 이미 트랜잭션 전체를 되돌렸고, 대기 시간 초과(1205)면 그 문장만 되돌린다(락 규칙으로 본 추론, 재지 않았다). 어느 쪽이든 응답이 상태를 말하지 않는다. 삼키지 않으면 확인 전체가 되돌려져 500 `C005`(마지막 그물의 ERROR 한 줄 `unhandled exception` 과 함께)로 끝나고 토큰 사용도 되돌려진다([../domain-model.md §2.4](../domain-model.md) — 이 지우기는 발송의 지우기·만료 행의 정리와 교착할 수 있다)
+- [ ] **(c) 발급 실행기와 발송 실행기가 따로다** — 각자 스레드와 대기열을 갖는다. 발송이 SMTP 에서 붙잡혀도 발급 작업이 돌고 토큰이 생긴다. 요청 스레드는 지금 그대로 DB 일을 하지 않는다(member.md §11.3, security.md §12)
+- [ ] **(d) 거부 WARN 이 작업의 종류·계정 id·목적을 적는다** — 가입의 발급과 발송은 계정 id 가 있고, 재발송·재설정의 발급은 null 이다. 그 줄에 이메일·토큰·링크가 없다. 작업을 싣는 형의 `toString` 에도 없다. 두 처리기 모두 던지지 않는다
+- [ ] **(e) 변이로 잡힌다** — 아래 변이 표의 변이마다 빨개지는 테스트를 보고에 적는다([../process/review-policy.md §4.1](../process/review-policy.md))
+- [ ] 발송 상한·보낼 조건·저장된 주소·링크의 모양·커밋 뒤 발송·가입의 커밋 뒤 발급은 AU-15·AU-16 그대로다. AU-15 검증표의 「같은 계정·목적의 둘째 발급」 줄은 발송이 끝난 뒤의 결과로 읽는다 — 바꾼 것을 보고에 적는다
+- [ ] 완료 보고가 각자의 로컬 설정이나 측정의 기동 인자에서 옮길 줄을 적는다 — 옛 키(`mail.executor.queue-capacity`)는 나눈 뒤 읽히지 않는다([../tech-stack.md §4.7](../tech-stack.md)의 블록인용)
+- [ ] 재지 않은 것을 사실로 적지 않는다 — SMTP 소켓 경로의 효과와 실 MySQL 에서 겹친 지우기의 교착은 I-14 가 잰다
+
+**검증** — 위 테스트(시험용 발송기, `support/MutableClock`), `./gradlew test`. 링크 1 은 앞 요청의 메일에서 꺼낸 토큰이다
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| 시험용 발송기가 던진다 — 다시 요청한 뒤 링크 1 로 확인(인증·재설정) | 204. 다시 요청한 동안 그 계정·목적의 행이 둘이다. **고치기 전 코드에서 깨진다** |
+| 발송이 성공한다 — 다시 요청한 뒤 링크 1, 새 링크 | 링크 1 은 400 `AU007`, 새 링크는 204 |
+| 발송 실행기가 그 발송 작업을 버린다 — 링크 1 로 확인 | 204. **고치기 전 코드에서 깨진다** |
+| 발급 실행기가 그 발급 작업을 버린다 — 링크 1 로 확인 | 204, 새 행이 없다 |
+| 같은 계정·목적의 두 발급이 모두 커밋된 뒤 두 발송이 차례로 성공한다 | 나중 링크 204. 먼저 링크와 링크 1 은 400 `AU007` |
+| 발송 실패 뒤 링크 1 로 확인한다 | 204. 같은 계정·목적의 행은 쓴 토큰 하나다. 다른 목적의 행은 그대로다. **고치기 전 코드에서 깨진다** |
+| 확인이 되돌려진다(탈퇴 계정) | 400 `AU007`. 같은 계정·목적의 행이 그대로다 |
+| 확인의 나머지 지우기가 락 예외를 던진다(대역 — 교착) | 500 `C005`. 토큰 사용이 되돌려져 링크 1 을 다시 확인하면 204 다. 같은 계정·목적의 행이 그대로다 |
+| 발송 뒤의 지우기가 실패한다(대역) | 메일 1통, WARN 한 줄(계정 id·목적, 토큰·링크 없음), 두 행이 그대로다. 「발송 실패」 줄이 없다 |
+| 시험용 발송기가 첫 발송에서 붙잡혀 있는 동안 가입 N건 | 발급 대기열이 비고 N개 계정의 토큰 행이 생긴다. 발송 대기열에 그 메일이 쌓인다. **고치기 전 코드에서 깨진다** |
+| 발급 실행기가 버린다 — 가입, 재설정 | WARN 에 종류 발급, 계정 id(가입은 그 id, 재설정은 null), 목적. **고치기 전 코드에서 깨진다** |
+| 발송 실행기가 버린다 | WARN 에 종류 발송, 계정 id, 목적. **고치기 전 코드에서 깨진다** |
+| 위 두 줄의 WARN | 요청의 이메일, 토큰, `#token=`, 링크의 기준 주소가 없다 |
+| 위 두 줄의 요청 | 버림 뒤에도 202 이고 예외가 요청 밖으로 나가지 않는다 — 두 처리기가 던지지 않는다 |
+| 발송 작업을 싣는 형의 `toString` | 종류·계정 id·목적만 있다. 이메일·`#token=` 이 없다 |
+| 실행기의 설정 | 두 빈이 각자 스레드 하나·최대 하나이고 대기열 상한이 각 키의 값이다 |
+| 발송 상한을 넘는 요청 | 새 행·메일이 없고 WARN. 링크 1 이 204 다 |
+| 발급 트랜잭션이 되돌려진다 | 메일이 없고 링크 1 이 204 다 |
+| AU-14·AU-15·AU-16·AU-17·AU-22 의 그 밖의 검증표 | 그대로 통과한다 |
+
+**변이** — (e) 의 대상이다.
+
+| 변이 | 잡는 줄 |
+| --- | --- |
+| 지우기 조건 `id < :newId` 를 「새 행 말고 전부」(`id <> :newId`)로 | 두 발급의 차례 줄 — 나중 링크가 `AU007` 이 된다 |
+| 지우기를 발급 트랜잭션으로 되돌린다 | 발송기가 던진다 줄, 발송 작업 버림 줄 |
+| 발송이 실패해도 지운다(지우기를 성공 뒤가 아닌 곳에) | 발송기가 던진다 줄 |
+| 지우기 조건에서 목적을 뺀다 | 발송 실패 뒤 확인 줄의 다른 목적, AU-15 의 둘째 발급 줄의 다른 목적 |
+| 확인의 나머지 지우기를 뺀다 | 발송 실패 뒤 확인 줄 |
+| 확인의 지우기를 확인의 트랜잭션 밖(커밋 뒤)에 둔다 | 확인이 되돌려진다 줄은 잡지 못할 수 있다 — 한 번의 확인에 커밋 한 번 줄(AU-16·AU-17)이 잡는다 |
+| 두 실행기를 한 빈으로 되돌리거나 발송을 발급 실행기에 넣는다 | 붙잡힌 발송 동안의 가입 줄 |
+| 처리기가 작업의 형을 꺼내지 않는다 | 두 버림 줄 |
+| 형이 `OutgoingMail` 을 구성 요소로 갖고 처리기가 `toString` 을 적는다 | WARN 의 내용 줄, 형의 `toString` 줄 |
+| 확인의 지우기에서 난 락 예외를 잡아 삼킨다 | 확인의 지우기가 락 예외를 던진다 줄 — 204 가 되고 토큰이 쓰인 채 남는다 |
+| 지우기의 실패를 잡지 않아 발송의 catch 로 간다 | 지우기 실패 줄 — 「발송 실패」 줄이 생긴다 |
+
+> **이 항목은 SMTP 소켓 경로(JavaMail 이 소켓으로 SMTP 에 붙는 경로)를 재지 않는다** — 그 자리는 I-14 다([phase2-frontend-integration.md](phase2-frontend-integration.md)). **확인의 지우기는 발송 작업의 지우기·만료 행의 정리(AU-21)와 교착할 수 있다**(D-28 리뷰 1라운드가 RR 의 락 규칙으로 따라간 추론, 재지 않았다, [../domain-model.md §2.4](../domain-model.md)) — 확인은 계정 행을 `FOR UPDATE` 로 잡지만, 계정 행이 없어도 `account_token` 의 next-key 락과 행 락만으로 고리가 생긴다. 정리는 만료 인덱스 → 행 → 계정·목적 인덱스 순으로 잡아 두 지우기와 순서가 반대다. InnoDB 가 한쪽을 되돌린다 — 발송이 되돌려지면 지우기 실패의 WARN 을 남기고 둘 다 두며, 확인이 되돌려지면 500 `C005` 이고 토큰 사용도 되돌려진다 — 정리와 겹쳤으면 그 링크가 다시 쓰이고, 발송의 지우기와 겹쳤으면 그 지우기가 이어서 그 링크를 지우므로 방금 넘겨진 새 메일의 링크가 산다. 지우기를 확인 트랜잭션에 두는 결정은 유지한다(재설정의 원자성, AU-22 의 순서는 그대로). 이 항목은 교착 자체를 H2 로 고정하지 않고 — H2 는 InnoDB 의 락을 재현하지 않는다([phase2.md §5.4](phase2.md)) — 대역의 락 예외로 「삼키지 않는다」 만 고정한다. 실 MySQL 에서의 차례는 I-14 가 본다.
+
 ## 4. member-service 작업 항목
 
 ### M-14 에러 코드·예외 매핑·경로 선언 [기반]
@@ -879,12 +987,13 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 | `C009` 의 본문·헤더를 auth·member 가 같게 내는가 — 둘의 비교다 | [../api-contract.md §8.1](../api-contract.md)의 `C009` 문단, [../conventions.md §6.1](../conventions.md) | AU-19, M-15 |
 | multipart 매핑이 세 서비스에서 같고, 한도를 넘는 multipart 가 실서버에서 413 `C008` 인가 — MockMvc 는 서블릿 컨테이너의 한도를 거치지 않는다 | [../conventions.md §6.1](../conventions.md)의 블록인용 | AU-13, M-14 (board 의 같은 매핑과 함께) |
 
-**결함 수정 항목이 실 MySQL 로 넘긴 것**(2026-11-17 `D-22`, AU-23 의 줄은 2026-11-23 `D-27`) — [phase2.md §5.4](phase2.md)의 단락에 없다. AU-22 의 줄은 [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 쟀고, AU-23 의 줄은 같은 문서의 I-13 이 잰다.
+**결함 수정 항목이 실서버로 넘긴 것**(2026-11-17 `D-22`, AU-23 의 줄은 2026-11-23 `D-27`, AU-24 의 줄은 같은 날 `D-28`) — [phase2.md §5.4](phase2.md)의 단락에 없다. AU-22 의 줄은 [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 쟀고, AU-23 의 줄은 같은 문서의 I-13 이, AU-24 의 줄은 I-14 가 잰다.
 
 | 대상 | 근거 | 항목 |
 | --- | --- | --- |
 | 같은 계정의 로그인과 비밀번호 변경·탈퇴·재설정 확인을 겹칠 때 — 로그인의 저장이 쓰는 쪽의 트랜잭션 안에 든다. 재설정 확인이 토큰을 읽은 뒤 계정 잠금을 기다리는 사이에 로그인의 저장이 커밋되는 차례를 포함하고, 그 계정에 `refresh_token` 행이 없는 상태에서 시작한다. 차례를 만드는 방법은 I-08 이 고른다(예: 다른 연결이 계정 행을 잠금 읽기로 잡아 두 요청을 그 앞에 세운다 — 어느 요청이 먼저 잠금을 얻었는지는 관측값으로 적는다) — 쓰는 쪽이 커밋한 뒤 로그인이 넣은 행이 없는가. 로그인은 기다린 뒤 401 `AU003` 이거나, 먼저 커밋했으면 그 행을 쓰는 쪽이 지웠어야 한다. 어긋나면 결함이다 | [../security.md §5.3](../security.md)의 블록인용, AU-22 의 「무엇이 틀렸나」 | AU-22 |
 | 같은 이메일과 서로 다른 이메일의 동시 첫 실패, 한도 이상의 동시 실패를 앱(Connector/J·Hibernate)으로 보낼 때 — 교착·UNIQUE 충돌·세지 못한 실패가 없고, 한도 이상이면 잠금 한 번·`failed_count` 0 인가. 그 사이 로거마다 남은 줄 | [../domain-model.md §2.5](../domain-model.md)의 블록인용, AU-23 의 「무엇이 틀렸나」 | AU-23 |
+| SMTP 가 연결을 거부하거나 답하지 않거나 발송·발급 작업이 대기열에서 버려질 때 — 이미 받은 링크가 사는가, 발송이 성공하면 죽는가. 버림 WARN 에 작업의 종류·계정 id·목적이 있고 이메일·토큰이 없는가. 발송이 막혀도 가입의 토큰이 생기는가. 재설정 요청·재발송의 응답 시간이 여전히 계정 유무로 갈리지 않는가 | [../requirements/member.md §11.5](../requirements/member.md)의 블록인용, AU-24 의 「무엇이 틀렸나」 | AU-24 |
 
 ### 5.2 화면 항목이 필요로 하는 것
 
@@ -933,9 +1042,9 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 
 - **표의 콜레이션을 마이그레이션이 정하지 않는다.** 표 선언이 문자셋만 적어 표가 서버의 기본 콜레이션을 받았다 — 잰 서버에서 `utf8mb4_0900_ai_ci`(NO PAD, 악센트 등도 같게 본다)였고 스키마의 `utf8mb4_general_ci` 와 다르다([../tech-stack.md §4.1](../tech-stack.md)). 서버 설정이 다르면 표의 비교 기준도 달라진다. **닉네임 유일성과 게시글 `keyword` 검색에 미치는 영향은 재지 않았다**([../requirements/member.md §7](../requirements/member.md), [../api-contract.md §4.1](../api-contract.md)). 바꾸면 이메일과 `login_attempt.email_key` 의 동치와 100자 판정의 근거([../requirements/member.md §12.1](../requirements/member.md))가 함께 움직이고 board 의 표도 걸린다. 근거 I-08
 - **로그인 실패의 동시 첫 실패가 교착으로 세지지 않는다 — AU-23 이 받는다**(2026-11-23 `D-27`). 사용자가 그날 세는 문장을 한 문장 upsert 로 바꾸기로 정했다([../domain-model.md §2.5](../domain-model.md)). 앞 판은 이 줄에 정본이 허용한 동작이라는 것과, 고치는 수단(다시 하기, 격리 수준, 첫 행을 만드는 방법)을 정하지 않았다는 것을 적었다. 2026-11-23 프로브는 서로 다른 이메일의 첫 실패끼리도 교착하는 것을 보였다. 근거 I-08 과 그 프로브
-- **보내지 않을 요청이 메일 대기열의 칸을 쓴다.** 없는 이메일의 재설정·재발송도 발급 작업 한 칸을 써서, SMTP 가 느릴 때 실제 가입의 메일을 밀어낼 수 있다([../requirements/member.md §11.5](../requirements/member.md)의 블록인용). 측정용 한도에서 관측했고, 운영 한도에서 IP 키를 여럿 가진 자에게만 열린 길이라는 것은 추정이다. 근거 I-09
-- **대기열이 버린 작업의 WARN 에 계정 id·목적이 없다.** 거부 처리기가 작업만 받기 때문이다(I-09 의 코드 대조). 어느 가입이 메일을 잃었는지 로그로 알 수 없다 — 그 계정은 재발송을 요청하기 전까지 인증하지 못한다. 근거 I-09
-- **메일이 나가지 못하면 이미 받은 링크도 죽는다**(추정 — 코드 순서, DB 로 확인하지 않았다). 발급 작업이 앞 토큰을 지운 뒤 발송이 실패하거나 발송 작업이 버려지는 경우다([../requirements/member.md §11.5](../requirements/member.md)의 블록인용). 앞 토큰을 언제 지울지는 [../requirements/member.md §11.1](../requirements/member.md)의 「마지막 메일의 링크만 산다」 를 바꾸는 결정이다. 근거 I-09 와 sp-auth `151c325` 의 코드 읽기
+- **보내지 않을 요청이 메일 대기열의 칸을 쓴다 — AU-24 가 받는다**(2026-11-23 `D-28`). 사용자가 그날 발급과 발송의 실행기를 나누기로 정했다([../requirements/member.md §11.5](../requirements/member.md)). 요청 스레드에서 거르는 안은 버렸다(같은 문서 §11.3). 앞 판은 이렇게 적었다 — 없는 이메일의 재설정·재발송도 발급 작업 한 칸을 써서, SMTP 가 느릴 때 실제 가입의 메일을 밀어낼 수 있다([../requirements/member.md §11.5](../requirements/member.md)의 블록인용). 측정용 한도에서 관측했고, 운영 한도에서 IP 키를 여럿 가진 자에게만 열린 길이라는 것은 추정이다. 근거 I-09
+- **대기열이 버린 작업의 WARN 에 계정 id·목적이 없다 — AU-24 가 받는다**(2026-11-23 `D-28`). 사용자가 그날 작업을 종류·계정 id·목적을 싣는 형으로 감싸기로 정했다. 같은 날의 메일 프로브는 발송 작업이 버려질 때도 같은 문장이 남는 것을 보였다. 앞 판은 이렇게 적었다 — 거부 처리기가 작업만 받기 때문이다(I-09 의 코드 대조). 어느 가입이 메일을 잃었는지 로그로 알 수 없다 — 그 계정은 재발송을 요청하기 전까지 인증하지 못한다. 근거 I-09
+- **메일이 나가지 못하면 이미 받은 링크도 죽는다 — AU-24 가 받는다**(2026-11-23 `D-28`). 같은 날의 메일 프로브가 사실로 확인했고(6/6), 사용자가 앞 토큰을 발송 성공 뒤에 지우기로 정했다([../requirements/member.md §11.1](../requirements/member.md)). 앞 판은 이렇게 적었다 — (추정 — 코드 순서, DB 로 확인하지 않았다). 발급 작업이 앞 토큰을 지운 뒤 발송이 실패하거나 발송 작업이 버려지는 경우다([../requirements/member.md §11.5](../requirements/member.md)의 블록인용). 앞 토큰을 언제 지울지는 [../requirements/member.md §11.1](../requirements/member.md)의 「마지막 메일의 링크만 산다」 를 바꾸는 결정이다. 근거 I-09 와 sp-auth `151c325` 의 코드 읽기
 - **비ASCII 주소의 가입.** 점 없는 `ı`(U+0131) 변형이 별개 계정으로 가입되고, `é`·ZWSP 가 든 주소는 가입은 되지만 인증 메일 발송이 실패했다([../requirements/member.md §2.0](../requirements/member.md)의 블록인용). 정본이 통과·실패를 정하지 않았다. 근거 I-08
 - **허용하지 않은 오리진의 403 이 계약 모양이 아니다**(2026-11-20 `D-26`, 근거 I-10). 평문 `Invalid CORS request`, `Content-Type` 없음([../security.md §1.1](../security.md)). JSON 으로 바꾸려면 CORS 처리의 거부 응답을 서비스가 쓰게 해야 한다. auth·member 에서 쟀고 board 는 재지 않았다
 - **쿼리 값의 대소문자 규칙이 없다**(2026-11-20 `D-26`, 근거 I-10). auth 계정 목록에서 `deleted=TRUE` 는 200, `role=admin`·`sort=LATEST` 는 400 `C002` 였다([../api-contract.md §2.5](../api-contract.md)). board 의 열거 파라미터도 같은 질문을 갖는다. 정하면 변환 쪽 코드가 바뀐다

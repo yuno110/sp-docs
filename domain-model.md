@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v25
+version: v26
 updated: 2026-11-23
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -205,7 +205,24 @@ UPDATE account_token SET used_at = :now
 -- 1행이면 성공. 0행이면 없음·만료·사용됨·목적 다름 — 가르지 않는다(400 AU007)
 ```
 
-**발급은 같은 계정·같은 목적의 앞 행을 지우고 새 행을 넣는다**(`idx_account_token_account_purpose`). 탈퇴는 이 테이블을 건드리지 않는다 — 확인이 같은 트랜잭션에서 `account.deleted` 를 본다([requirements/member.md §11.2](requirements/member.md)).
+**발급은 새 행만 넣는다. 같은 계정·같은 목적의 앞 행은 그 새 행의 메일이 SMTP 에 넘겨진 뒤 지운다**(2026-11-23 `D-28`, `idx_account_token_account_purpose`).
+
+```sql
+-- 발송 작업이 메일을 넘기는 데 성공한 뒤, 자기 트랜잭션에서
+DELETE FROM account_token
+ WHERE account_id = :accountId AND purpose = :purpose AND id < :newId
+-- 확인이 성공한 뒤, 확인의 트랜잭션에서
+DELETE FROM account_token
+ WHERE account_id = :accountId AND purpose = :purpose AND id <> :usedId
+```
+
+- **「`id < :newId`」 다. 「새 행 말고 전부」 가 아니다** — 겹친 두 발급에서 먼저 끝난 발송이 나중 행을 지우지 않게 한다. `id` 는 IDENTITY 라 나중에 넣은 행이 크다. 이유와 대가는 [requirements/member.md §11.1](requirements/member.md)
+- 발송이 실패하거나 발송 작업이 버려지면 지우지 않는다. 지우기가 실패하면 WARN 을 남기고 둘 다 둔다 — 그 행들은 확인의 지우기나 만료 뒤의 정리가 치운다
+- 확인의 지우기는 사용 처리(위의 조건부 UPDATE)와 같은 트랜잭션이다. 확인이 되돌려지면 지우기도 없다. **이 지우기는 발송 작업의 지우기·만료 행의 정리와 교착할 수 있다** — 확인은 사용 처리로 자기 토큰 행을 먼저 쥐고 마지막에 같은 계정·목적의 범위를 훑으므로, 그 범위를 먼저 훑던 지우기가 그 토큰 행을 기다리면 고리가 된다. 계정 행을 잡지 않아도 이 테이블의 next-key 락과 행 락만으로 생긴다(RR 의 락 규칙으로 본 추론, 재지 않았다). 만료 행의 정리는 `idx_account_token_expires_at` → 행 → 계정·목적 인덱스 순으로 잡아 두 지우기(계정·목적 인덱스 → 행)와 순서가 반대다. InnoDB 가 한쪽을 되돌린다 — 발송의 지우기면 위의 「지우기가 실패하면」 이고(WARN, 둘 다 둔다), 확인이면 500 `C005`(마지막 그물의 ERROR 한 줄 `unhandled exception` 과 함께)로 끝나고 토큰 사용도 되돌려진다 — 정리와 겹쳤으면 그 링크가 다시 쓰이고, 발송의 지우기와 겹쳤으면 그 지우기가 이어서 그 링크를 지우므로 방금 넘겨진 새 메일의 링크가 산다. 계정 행의 락 순서(토큰 행 → 계정 → …, [requirements/member.md §11.4](requirements/member.md))는 바뀌지 않는다 — 확인은 계정 뒤 마지막에 이 범위를 잡고, 이 범위를 먼저 잡고 계정을 잡는 경로는 없다
+
+> **앞 판은 발급 작업이 같은 트랜잭션에서 앞 행을 지우고 새 행을 넣었다**(2026-11-11 `D-19`). 그 순서에서는 메일이 나가지 못하면 받은 링크가 하나도 살지 않았다 — 2026-11-23 메일 프로브가 실 MySQL 에서 확인했다([requirements/member.md §11.5](requirements/member.md)의 블록인용). 코드는 [plan/phase2-auth-member.md](plan/phase2-auth-member.md)의 AU-24 가 바꾼다.
+
+탈퇴는 이 테이블을 건드리지 않는다 — 확인이 같은 트랜잭션에서 `account.deleted` 를 본다([requirements/member.md §11.2](requirements/member.md)).
 
 **만료된 행은 주기적으로 지운다**(`expires_at` 이 지난 행). 지운 행과 만료된 행은 확인의 결과가 같다(`AU007`) — 지워도 결과가 바뀌지 않는다. 주기는 [tech-stack.md §4.7](tech-stack.md).
 
