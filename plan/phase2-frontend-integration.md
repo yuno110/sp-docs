@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — 화면·통합
 type: plan
 status: living
-version: v6
-updated: 2026-11-20
+version: v7
+updated: 2026-11-23
 read_when: "2차 기능 확장의 화면 항목(F-07 부터)·통합 항목(I-06 부터)의 범위·의존·완료 기준을 확인하거나, 2차 전체(B·AU·M·F·I)의 순서와 병렬을 볼 때. 상태는 F 는 sp-frontend, I 는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, phase1.md, ../api-contract.md, ../security.md, ../tech-stack.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -18,10 +18,10 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 | 단계 | 항목 | 성격 | 함께 도는 것 |
 | --- | --- | --- | --- |
 | **기반** | B-14~B-16, AU-12~AU-15, M-14 | 스키마·엔티티·에러 코드·예외 매핑·경로 선언·설정을 먼저 끝낸다(이유는 각 계획의 §1.1) | 세 저장소가 서로 기다리지 않는다. 화면의 F-07 |
-| **결함 수정** | B-17, B-18, B-25, B-26, AU-22 | 1차 코드의 자리를 고친다(AU-22 는 2차 AU-17 의 재설정 확인도, B-25 는 2차 B-21 의 판정을, B-26 은 2차 B-20·B-21 의 충돌이 남기는 로그를) — 그 항목들의 완료 기준과 먼저 대조한다([phase2-board.md §1.1](phase2-board.md), [phase2-auth-member.md §1.1](phase2-auth-member.md)). AU-22 는 2026-11-17 `D-22` 가, B-25 는 2026-11-20 `D-24` 가 I-07 의 측정으로, B-26 은 같은 날 `D-25` 가 I-11 의 측정으로 세웠다 | B-17 은 의존이 없지만 B-14 와 `Comment` 를 함께 고쳐 같이 돌리지 않는다([phase2-board.md §1.2](phase2-board.md)). B-18 은 B-14 뒤다. AU-22 는 AU-18 뒤이고 auth 안에서는 AU-19 다음이다([phase2-auth-member.md §1.2](phase2-auth-member.md)) |
+| **결함 수정** | B-17, B-18, B-25, B-26, AU-22, AU-23 | 1차 코드의 자리를 고친다(AU-22 는 2차 AU-17 의 재설정 확인도, B-25 는 2차 B-21 의 판정을, B-26 은 2차 B-20·B-21 의 충돌이 남기는 로그를, AU-23 은 2차 AU-18 의 세기를) — 그 항목들의 완료 기준과 먼저 대조한다([phase2-board.md §1.1](phase2-board.md), [phase2-auth-member.md §1.1](phase2-auth-member.md)). AU-22 는 2026-11-17 `D-22` 가, B-25 는 2026-11-20 `D-24` 가 I-07 의 측정으로, B-26 은 같은 날 `D-25` 가 I-11 의 측정으로, AU-23 은 2026-11-23 `D-27` 이 I-08 의 측정으로 세웠다 | B-17 은 의존이 없지만 B-14 와 `Comment` 를 함께 고쳐 같이 돌리지 않는다([phase2-board.md §1.2](phase2-board.md)). B-18 은 B-14 뒤다. AU-22 는 AU-18 뒤이고 auth 안에서는 AU-19 다음이다. AU-23 은 AU-18 뒤다([phase2-auth-member.md §1.2](phase2-auth-member.md)) |
 | **기능** | B-19~B-24, AU-16~AU-21, M-15·M-16 | 기반 산출물을 읽고 자기 기능을 만든다 | 저장소끼리 함께 돈다 — AU-16 은 F-08 과 한 번에 커밋된다(아래 문단, §1.4). 저장소 안은 각 계획의 §1.2 |
 | **화면** | F-07~F-16 | 서버의 기능 항목을 따라간다. **기반·기능 구분을 쓰지 않는다** — 한 워커가 의존 열을 따라 한다([phase2.md §7.2](phase2.md)의 이유와 같다) | 서버 항목과 함께 돈다. F 끼리는 순차다(§1.2) |
-| **통합** | I-06~I-12 | 2차 서버 항목이 모두 `done` 인 뒤 세 서비스를 함께 띄워 잰다. I-11 은 I-07 이 찾은 결함을 고친 B-25 뒤의 재측정이다(2026-11-20 `D-24`). I-12 는 I-11 이 찾은 것을 고친 B-26 뒤의 재측정이다(2026-11-20 `D-25`) | F 와 함께 돌 수 있지만 같은 서비스 인스턴스에 동시에 걸지 않는다. I 끼리는 순차다(§1.3) |
+| **통합** | I-06~I-13 | 2차 서버 항목이 모두 `done` 인 뒤 세 서비스를 함께 띄워 잰다. I-11 은 I-07 이 찾은 결함을 고친 B-25 뒤의 재측정이다(2026-11-20 `D-24`). I-12 는 I-11 이 찾은 것을 고친 B-26 뒤의 재측정이다(2026-11-20 `D-25`). I-13 은 I-08 이 찾은 결함을 고친 AU-23 뒤의 재측정이다(2026-11-23 `D-27`) | F 와 함께 돌 수 있지만 같은 서비스 인스턴스에 동시에 걸지 않는다. I 끼리는 순차다(§1.3) |
 
 **단계는 성격이지 시각이 아니다.** 저장소마다 워커가 따로 돌므로 board 의 기능 단계와 auth 의 기반 단계가 함께 돌 수 있고, 화면 항목은 서버 의존이 끝나는 대로 시작한다. 서버 항목 사이의 의존과 병렬은 각 계획의 §1.2 가 갖는다.
 
@@ -32,6 +32,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 결함 수정  B-17 B-18          AU-22 (AU-19 다음)
            B-25 (B-21 뒤 — I-07 이 찾았다)
            B-26 (B-20·B-25 뒤 — I-11 이 찾았다)
+           AU-23 (AU-18 뒤 — I-08 이 찾았다)
 기능       B-19 ~ B-24        AU-16 ~ AU-21     M-15 M-16
 화면       F-07                    (서버를 기다리지 않는다)
            AU-16 == F-08           (한 번에 커밋 — §1.4)
@@ -44,6 +45,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 통합       B·AU·M 모두 done -> I-06 -> I-07 ~ I-10 (순차)
            B-25 -> I-11 (I 와 순차)
            B-26 -> I-12 (I 와 순차)
+           AU-23 -> I-13 (I 와 순차)
 ```
 
 ### 1.2 화면 항목의 의존
@@ -78,6 +80,7 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 | I-10 | I-06 | B-15, AU-13, AU-19, AU-20, M-14~M-16 |
 | I-11 | B-25 (기동은 I-06 의 방법) | B-21, B-25 |
 | I-12 | B-26 (기동은 I-06 의 방법) | B-20, B-21, B-26 |
+| I-13 | AU-23 (기동은 I-08 의 방법) | AU-18, AU-23 |
 
 - **I 는 F 를 의존으로 두지 않는다** — 재는 것이 서버의 성질이다. 브라우저로 재는 줄(I-10)도 수단을 그 항목이 고른다. 그래도 I-06 은 AU-16 을 거쳐 F-07·F-08 을 기다린다 — AU-16 은 F-08 과 한 번에 커밋된다(§1.1·§1.4). **다만 같은 서비스 인스턴스·DB 에 F 의 실제 서비스 e2e 와 I 의 측정을 동시에 돌리지 않는다** — e2e 의 요청이 집계·로그 수준·제한기 카운터의 측정에 섞인다
 - **측정이 정본의 기대와 다르면 코드를 고치지 않고 보고한다.** 고치는 항목은 계획을 먼저 개정해 세운다([README.md](README.md)의 항목 ID 규칙) — 1차의 B-10 이 그렇게 생겼다([phase1.md §7](phase1.md)). 정본이 측정을 기다린 자리도 바꾸는 것은 측정 뒤의 항목이다 — 예: 조회수 판정은 I-07 의 측정 뒤 2026-11-20 `D-24` 가 정본을 고치고 B-25 가 코드를 고친다([phase2-board.md §4.1](phase2-board.md)). 앞 판은 이 자리를 「측정이 뒤집으면 바꾼다」 고 적은 판정 순서로 들었다
@@ -679,6 +682,46 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 | 악센트 변형·`İ` 표기 | 관측값 — 계정 조회와 잠금 키가 같은 계정으로 모이는가 |
 | 끝 공백을 붙여 100자를 넘긴 이메일로 로그인 | 401 `AU003`, 계정에 닿지 않는다, `login_attempt` 행이 생기지 않는다 |
 | 같은 계정의 로그인과 비밀번호 변경·탈퇴·재설정 확인을 겹친다 — 로그인의 저장이 쓰는 쪽의 트랜잭션 안에 든다. 재설정 확인이 토큰을 읽은 뒤 계정 잠금을 기다리는 사이에 로그인의 저장이 커밋되는 차례를 포함하고, 그 계정에 `refresh_token` 행이 없는 상태에서 시작한다. 차례를 만드는 방법은 이 항목이 고른다(예: 다른 연결이 계정 행을 잠금 읽기로 잡아 두 요청을 그 앞에 세운다 — 어느 요청이 먼저 잠금을 얻었는지는 관측값으로 적는다) | 쓰는 쪽이 커밋한 뒤 로그인이 넣은 `refresh_token` 행이 없다 — 로그인은 기다린 뒤 401 `AU003` 이거나, 먼저 커밋했으면 그 행을 쓰는 쪽이 지웠다. 어긋나면 결함이다 — 근거는 [phase2-auth-member.md §5.1](phase2-auth-member.md)의 결함 수정 표다 |
+
+> **2026-11-20 I-08 의 첫 줄은 동시 첫 실패의 교착을 드러냈다**(sp-board `0d5ac03` 의 커밋 메시지) — 같은 이메일의 동시 첫 실패가 교착(1213)으로 세지 못했고, 동시 8회 실패에 잠기지 않은 회차가 하나 있었다. 검증표의 기대는 WARN 으로 남긴 실패를 허용해 I-08 은 통과했고, I-08 의 판정은 되돌리지 않는다. 같은 날 `D-26` 이 정본에 적었고, 2026-11-23 `D-27` 이 세는 문장을 바꿔 고치기로 정했다([../domain-model.md §2.5](../domain-model.md)). 고치는 항목은 AU-23([phase2-auth-member.md](phase2-auth-member.md)), 그 뒤의 재측정은 I-13 이다.
+
+---
+
+### I-13 AU-23 뒤 로그인 실패 카운터의 실 MySQL 재측정
+
+| | |
+| --- | --- |
+| 상태 원본 | `yuno110/sp-board` 의 `docs/checklist.md` |
+| 의존 | AU-23. 서비스의 기동은 I-08 의 방법이다 |
+| 마이그레이션 | 없음 (§2) |
+| 측정 대상의 출처 | [phase2-auth-member.md §5.1](phase2-auth-member.md)의 결함 수정 표의 AU-23 줄 — 2026-11-23 `D-27` 이 세웠다 |
+| 참조 | [../domain-model.md §2.5](../domain-model.md), [../requirements/member.md §12.1·§12.2](../requirements/member.md), [../security.md §11](../security.md), [../conventions.md §8.1](../conventions.md), [integration.md](integration.md) I-04 |
+
+**I-08 은 `done` 이라 그 항목에 줄을 더하지 않는다.** AU-23 은 H2 에서 문장과 판정만 고정하고 실 MySQL 의 교착을 재지 않는다. 2026-11-23 프로브는 같은 문장을 실 MySQL 에서 쟀지만 앱 밖의 드라이버라 Connector/J·Hibernate 를 지나지 않았고 로그를 보지 않았다. 그 효과를 앱으로 재는 자리가 여기다. **AU-23 이 `done` 이 되면 남은 I 항목보다 먼저 한다** — 같은 인스턴스에 다른 I 의 측정을 동시에 걸지 않는다(§1.3).
+
+**완료 기준**
+- [ ] 측정 전에 서버의 `@@global.transaction_isolation` 을 읽어 적는다 — 정본은 서버 기본(반복 읽기)에서 교착이 없기를 기대한다([../domain-model.md §2.5](../domain-model.md))
+- [ ] **I-08 과 같은 방법으로 잰다** — auth 를 `local` 로 띄우고, 동시 요청은 장벽으로 출발시키고, 교착은 `innodb_metrics` 의 `lock_deadlocks` 차분으로 센다. 요청 수 제한은 I-08 처럼 잠금 키와 무관한 쪽(예: 원격 주소 키)만 피한다. 줄마다 동시 수 × 20회다. 방법과 결과를 보고에 적는다
+- [ ] **서로 다른 이메일의 줄은 키가 인덱스의 같은 간격에 들게 고른다**(예: 같은 접두어에 번호를 붙인다) — 2026-11-23 프로브가 그렇게 교착을 냈다. 고른 방법을 적는다
+- [ ] **UNIQUE 충돌(1062)을 로그의 줄로 센다** — `SqlExceptionHelper` 의 WARN `SQL Error: 1062`. 교착도 같은 로거의 WARN `SQL Error: 1213` 으로 세어 `lock_deadlocks` 차분과 나란히 적는다
+- [ ] **로그를 로거마다 갈라 센다** — `SqlExceptionHelper` 의 WARN·ERROR, `LoginAttemptService` 의 WARN, `GlobalExceptionHandler` 의 줄. 전체 로그의 ERROR 수로 세지 않는다([integration.md](integration.md) I-04 의 로그 수준 줄)
+- [ ] 측정 전후 `login_attempt` 의 `AUTO_INCREMENT` 와 시도 수를 관측값으로 적는다 — 정본은 갱신이 그 값을 쓸 것으로 추정만 했다([../domain-model.md §2.5](../domain-model.md)). 통과·실패로 적지 않는다(§1.3)
+- [ ] 결과가 정본의 기대와 다르면 코드를 고치지 않고 보고한다(§1.3)
+
+**검증** — 기대는 정본의 것이다([../domain-model.md §2.5](../domain-model.md), [../requirements/member.md §12.2](../requirements/member.md))
+
+| 케이스 | 기대 |
+| --- | --- |
+| 같은 이메일, 시도 수가 한도 미만인 동시 첫 실패(동시 2·4) | `failed_count` = 시도 수, 전부 401 `AU003` |
+| 같은 이메일, 시도 수가 한도 이상인 동시 첫 실패(동시 8·16) | 회차마다 잠금 한 번, `failed_count` 0. `AU003` 은 한도 − 1, 나머지는 `AU005` |
+| 차례로 네 번 실패하고 1초 넘게 지난 뒤 다섯째 실패 — 잠근 행의 `updated_at` | `locked_until` − 15m 이고 넷째 뒤의 값과 다르다 — 잠근 시도의 판정 시각이다. H2 가 보지 못하는 `updated_at` 조건의 결과다([../domain-model.md §2.5](../domain-model.md)). 동시 회차는 판정 시각이 한 초라 이 조건을 가르지 못한다 |
+| 서로 다른 이메일의 동시 첫 실패(동시 8) | 이메일마다 `failed_count` 1, 전부 401 `AU003` |
+| 위 세 줄의 교착(`lock_deadlocks` 차분) | 0 |
+| 위 세 줄의 UNIQUE 충돌(WARN `SQL Error: 1062`) | 0 |
+| 위 세 줄의 `LoginAttemptService` WARN(세지 못한 실패)·`SqlExceptionHelper` ERROR·`GlobalExceptionHandler` 의 줄 | 0. 500 이 없다 |
+| 측정 전후 `AUTO_INCREMENT` 의 차와 시도 수 | 관측값 |
+
+> **처음 넣은 트랜잭션이 되돌아갈 때의 교착은 이 표에 없다.** 그 경우는 세는 문장 뒤의 실패가 있어야 나고, [../security.md §11](../security.md)의 한계로 남겼다. 측정 중에 나면 그때의 앞선 실패와 그 교착이 남긴 줄과 함께 적는다.
 
 ---
 

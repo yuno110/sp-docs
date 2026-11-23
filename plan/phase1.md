@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v79
-updated: 2026-11-20
+version: v80
+updated: 2026-11-23
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -3080,6 +3080,74 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | sp-docs 를 `general_ci`·`0900`·「콜레이션」·`PAD SPACE`·`login_attempt`·「교착」·`1213`·「대기열」·`queue`·`forward-headers`·`X-Forwarded-For`·「응답 시간」·「측정 대상」 으로 훑는다 | 스키마 콜레이션을 표의 기준으로, 1단계의 사실을 아직 재지 않은 것으로, 대기열 상한을 메일 수로 읽히게 하는 문장이 없다 |
 | sp-docs 를 `C008`·`multipart`·「마지막 그물」·`swallow`·`C002`·`fieldErrors`·「도달 불가」·「목록 엔드포인트」·「필수 파라미터 누락」·「지금 없다」·`Invalid CORS`·`PUT`·`charset`·`Retry-After`·`seed`·「AU-20 이 만든다」 로 훑는다 | 2차에서 생긴 경로를 없다고, 닫힌 측정을 측정 대상으로 읽히게 하는 현재형 문장이 없다 |
 | 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-20 이다 |
+
+### D-27 로그인 실패 카운터의 동시 첫 실패 교착 — 한 문장 upsert(ON DUPLICATE KEY UPDATE)로 센다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `I-08`([phase2-frontend-integration.md](phase2-frontend-integration.md), sp-board `0d5ac03` 의 커밋 메시지)이 2026-11-20 에, 대안 측정이 2026-11-23 에 쟀다 |
+| 참조 | [../domain-model.md §2.5](../domain-model.md)·§2.3, [../requirements/member.md §12.1·§12.2](../requirements/member.md), [../security.md §11](../security.md), [../conventions.md §8.1](../conventions.md), [../requirements/board.md §9.3](../requirements/board.md), [../tech-stack.md §4.5](../tech-stack.md), [phase2-auth-member.md](phase2-auth-member.md) 의 AU-18·§5.1·§5.3, [phase2-frontend-integration.md](phase2-frontend-integration.md) 의 I-08, D-22·D-24·D-26 |
+
+**`I-08` 이 찾고 `D-26` 이 후속 후보로 넘긴 교착을, 사용자가 2026-11-23 에 대안 측정을 보고 그 1안으로 고치기로 정했다** — 실패를 한 문장 `INSERT … ON DUPLICATE KEY UPDATE` 로 세고, 격리 수준은 서버 기본(반복 읽기) 그대로다. 흐름은 D-24 와 같다 — 측정 → 정본 개정 → 고치는 항목(AU-23) → 앱의 재측정(I-13).
+
+1. **I-08 의 측정.** 2026-11-20 I-08(auth 를 띄운 실 MySQL 의 반복 읽기): 같은 키의 동시 첫 실패가 `uk_login_attempt_email_key` 의 간격 락 뒤 insert intention 대기로 교착(1213)했고, 그 실패는 세지 않았다. 동시 8회 실패에 잠기지 않은 회차가 하나 있었다. UNIQUE 충돌·다시 하는 자리·500 은 0 이었다. 교착마다 `SqlExceptionHelper` 의 WARN·ERROR 와 `LoginAttemptService` 의 WARN 이 한 줄씩 남았다. 정본의 「락 경합」 규칙이 허용한 동작이라 I-08 은 통과했다
+2. **정본에 없던 사실 — 서로 다른 이메일의 첫 실패끼리도 교착한다.** 2026-11-23 대안 측정(앱의 SQL 과 트랜잭션 경계를 흉내 낸 다중 연결 드라이버, 같은 서버 8.0.46, 전역 반복 읽기. 같은 새 키에 동시 2·4·8·16 × 20회, 서로 다른 새 키 8개 × 20회, 행이 이미 있는 세 케이스에 동시 8 × 10회): 지금 순서는 같은 새 키에서 동시 2·4·8 이면 회차마다 하나를 빼고 모두, 동시 16 이면 320 가운데 296 이 교착했고, 서로 다른 이메일 8개의 첫 실패끼리 160 가운데 140 이 교착했다 — 두 트랜잭션이 같은 다음 키 앞 간격에 간격 X 락을 쥔 채 서로의 insert intention 을 기다렸다. 정본은 「같은 키」 로만 적었다([../security.md §11](../security.md), [../domain-model.md §2.5](../domain-model.md)). 프로브의 키는 접두어가 같아 한 간격에 몰렸다 — 실제 이메일 분포에서의 빈도는 재지 않았다. 드라이버는 BCrypt 의 흔들림 없이 요청을 겹쳐 I-08 보다 교착이 잦았다
+3. **대안의 결과**(같은 측정). 한 문장 upsert 는 반복 읽기·READ COMMITTED 모두 모든 케이스에서 교착 0·UNIQUE 충돌 0·세지 못한 실패 0 이었고, 한도 이상은 회차마다 잠금 한 번·`failed_count` 0 이었다. 동시 16 의 시간(중앙/최대)은 34/90ms 로, READ COMMITTED 안(33/42)·INSERT 먼저(33/45)와 중앙값이 비슷했다. 행이 이미 있는 케이스(24시간 안, 창이 지난 행, 잠금이 막 풀린 행)는 모든 변형에서 교착 0 이었다. 잠금 대기 시간 초과(1205)는 0 이었다. 「세지 못한 실패 + `failed_count` = 시도 수」, 잠긴 회차의 「잠금 한 번·`failed_count` 0·`AU003` = 4 + 세지 못한 실패」 는 모든 블록의 모든 회차에서 맞았다
+4. **문장의 모양과 H2.** 처음 쓴 문장은 MySQL 이 SET 을 왼쪽부터 대입하고 뒤의 식이 바뀐 값을 읽는 것에 기댔고, H2(2.3.232·2.4.240 의 MySQL 모드 — 모든 SET 식이 옛 값을 읽는다)에서 한도에 닿은 행이 `failed_count` 5 인 채 잠겼다. `failed_count` 식에 「`failed_count + 1 >= 5` 이면 0」 을 더한 모양은 두 DB 에서 같았고, 차례로 보낸 실패의 경로에서 지금 순서와 결과·행이 같았다. 영향 행 수는 mysql 클라이언트와 H2 에서 새 행 1, 바뀐 행 2, 그대로 0 이었다 — Connector/J 의 기본 설정에서의 값은 재지 않았다
+5. **남는 위험.** 처음 넣은 트랜잭션이 되돌아가면 그 키를 기다리던 둘 중 하나가 교착했다 — 세 연결 × 5회에서 지금 순서·INSERT 먼저·한 문장 upsert 는 5/5, READ COMMITTED 안만 0/5 였다(기다리던 쪽이 갱신의 레코드 락으로 기다리다 1062 → 다시 하기). 처음 넣은 쪽이 커밋하면 모든 변형에서 0 이었다. 한 문장 upsert 가 행이 있을 때도 `AUTO_INCREMENT` 값을 쓰는지와, 정리 작업(AU-21)의 지우기와 세기가 겹치는 경우는 재지 않았다
+
+사실은 sp-board `0d5ac03` 의 커밋 메시지와 대안 측정의 원자료(세션 scratchpad 의 `report.md`·`summary.json`·`result-*.json`·`risk-result-091845.json`·`la_driver.py`, 2026-11-23 읽기 — 저장소에 없다)로 확인했다. 측정 서버의 변수(`transaction_isolation` 반복 읽기, `binlog_format` `ROW`, `log_bin` 켜짐, `innodb_autoinc_lock_mode` 2)는 그 측정이 전후에 읽은 값이다. 지금 코드의 순서·격리·다시 하는 자리는 sp-auth `151c325` 의 `LoginAttemptService`·`LoginAttemptRepository`·`LoginAttempt`·`V8__create_login_attempt.sql` 을 2026-11-23 에 읽어 확인했다. 이 항목은 실 MySQL 에 접속하지 않았다.
+
+**결정 — 실패를 한 문장 upsert 로 세고, 판정은 같은 트랜잭션에서 그 행을 다시 읽어 한다**(사용자 2026-11-23). 실패 창(24시간)의 만료와 한도 도달의 잠금·카운터 0 을 그 문장 안에서 정한다. 잠긴 동안의 시도는 행을 바꾸지 않는다 — 값으로 그렇다. 식은 잠긴 행에도 `failed_count` 0 을 쓰지만 잠그는 문장이 이미 0 으로 두었다(같은 초의 `updated_at` 도 같다. 정본의 「1) 의 뜻」). 격리 수준은 서버 기본 그대로다. 문장의 뜻과 모양은 [../domain-model.md §2.5](../domain-model.md)가 갖는다. 처음 넣은 트랜잭션이 되돌아갈 때의 교착은 지금처럼 세지 않고 WARN 으로 끝낸다.
+
+**다시 하는 자리를 없앤다** — 이 항목이 코드와 정본으로 판단했다. 앞 판이 새 트랜잭션에서 한 번 더 한 자리는 INSERT 의 UNIQUE 충돌과 「0행인데 잠기지 않은 행」 이었다. 한 문장 upsert 에는 둘 다 없다 — 그 키의 충돌은 문장이 갱신으로 바꾸고(측정의 1062 0), 0행이면 읽어 가르는 갈래가 없다. 그 문장이 그래도 제약 위반을 낸다면 다른 유일 제약(PK)이나 키의 길이·빈 값이 원인인데, PK 는 자동 증가이고 키는 부르는 쪽이 먼저 검사한다([../requirements/member.md §12.1](../requirements/member.md)의 1). 그래서 나면 결함이다 — 잡아서 다시 하거나 `AU003` 으로 삼키면 [../AGENTS.md](../AGENTS.md) 불변식 9 를 어긴다. 지금 코드는 세기의 `DataIntegrityViolationException` 을 모두 다시 하는 자리로 받는다(sp-auth `151c325` 의 `LoginAttemptService` — 그 전제를 javadoc 이 적는다). 락 경합의 「다시 하지 않는다」(D-22)는 그대로다 — 아래 셋째 대안이 그 교착을 다시 해도 효과가 없음을 보였다.
+
+**버린 대안**(같은 측정)
+- **그 트랜잭션만 READ COMMITTED(2안)** — 교착 0·세지 못한 실패 0 이고, 처음 넣은 쪽이 되돌아갈 때의 교착도 0/5 였다. 그러나 같은 키의 동시 첫 실패마다 1062 를 거쳐 다시 하기로 센다(동시 16 에서 320 가운데 207). 그 충돌마다 `SqlExceptionHelper` 의 ERROR 줄에 정규화한 이메일 키가 실릴 것으로 본다(추정 — 앱을 띄우지 않았다). auth 에는 board 의 필터([../conventions.md §8.1](../conventions.md))가 없어 그 줄을 어떻게 다룰지 따로 정해야 하고, READ COMMITTED 의 쓰기가 `binlog_format` 이 `ROW`·`MIXED` 이기를 요구하는 전제([../tech-stack.md §4.5](../tech-stack.md))가 auth 에도 생긴다
+- **INSERT 먼저** — 교착 0 이지만 행이 있으면 매번 1062 를 거친다(행이 있는 케이스에서 시도마다). [../domain-model.md §2.5](../domain-model.md)의 순서(있는 행의 갱신이 먼저)와 반대이고, board 가 같은 이유로 버렸다([../requirements/board.md §9.3](../requirements/board.md))
+- **교착이면 새 트랜잭션에서 다시 한다(1·2회)** — 동시 16 에서 320 가운데 61·23, 서로 다른 이메일 8개에서 160 가운데 104·64 가 끝내 세지 못했고, 교착 수는 늘었다. 효과가 없고 D-22 의 「락 경합은 다시 하지 않는다」 와 어긋난다
+
+**고치지 않은 자리.** [../requirements/board.md §9.3](../requirements/board.md)의 「`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다」 행과 [phase2-board.md](phase2-board.md)의 B-21·B-25 기준은 조회수 판정의 것이라 그대로 둔다 — 그 판정은 D-24 가 READ COMMITTED 로 고쳤고 이 측정은 그 경로를 재지 않았다. [phase2.md §5.4](phase2.md)의 「첫 실패의 동시 INSERT 충돌 포함」 은 2026-11-11 의 측정 대상 목록이라 그대로 둔다. [../tech-stack.md](../tech-stack.md)는 고치지 않는다 — auth 의 격리는 서버 기본 그대로라 board 의 binlog 전제가 auth 에 생기지 않는다.
+
+**산출물**
+- [../domain-model.md §2.5](../domain-model.md) — 갱신 문장(1) 한 문장 upsert, 2) 행 읽기, 1) 의 뜻), SET 의 순서, 행 읽기 판정, 다시 하는 자리가 없는 것, 남는 교착, `AUTO_INCREMENT`, 정리 작업과의 겹침, 앞 판의 순서와 측정의 블록인용. 앞 판의 「`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다」 를 시점과 함께 고쳤다
+- [../requirements/member.md §12.2](../requirements/member.md) — 「증가는 원자적이다」 의 문장, I-08 문단의 「갱신 문장 2」 와 `D-27`·AU-23·I-13
+- [../security.md §11](../security.md) — 「동시 시도」 행의 한계(남는 교착, 고친 것, 서로 다른 이메일)
+- [../conventions.md §8.1](../conventions.md) — auth·member 블록인용의 로그인 실패 카운터(정상 결과로 바꾸는 충돌의 갈래에서 뺀다), I-08 문단의 `D-27` 과 남는 교착의 줄
+- [phase2-auth-member.md](phase2-auth-member.md) — AU-23 과 그 자리(§1.1·§1.2), AU-18 뒤의 블록인용, §5.1 의 결함 수정 표, §5.3 의 D-25 줄과 D-26 후보 줄
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) — §1.1·§1.3 의 AU-23·I-13, I-08 뒤의 블록인용, I-13
+- [../docs/checklist.md](../docs/checklist.md) — `D-27` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**sp-auth 는 고치지 않는다.** AU-23·I-13 의 체크리스트 줄은 그 저장소들의 상태 원본이 갖는다([README.md](README.md)의 상태의 위치).
+
+**완료 기준**
+- [ ] [../domain-model.md §2.5](../domain-model.md)가 1) 을 한 문장 upsert 로, 판정을 같은 트랜잭션의 행 읽기로 정하고, 문장의 뜻을 SQL 과 말로 적는다. 문장은 앞 대입의 새 값을 읽든 옛 값을 읽든 같은 결과를 내는 모양이고, SET 의 순서를 바꾸지 않는 이유가 있다
+- [ ] 잠긴 동안의 시도가 행을 바꾸지 않는다는 것이 문장과 말에 있다
+- [ ] 「`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다」 가 시점(2026-11-23 `D-27`)과 함께 고쳐지고, 앞 판이 무엇이었는지 적는다
+- [ ] 다시 하는 자리를 없앤 판단과 그 근거, 제약 위반을 삼키지 않는 것이 있다. 락 경합의 처리(D-22)는 그대로다
+- [ ] 서로 다른 이메일의 첫 실패끼리의 교착이 측정의 수치·날짜와 함께 [../domain-model.md §2.5](../domain-model.md)·[../security.md §11](../security.md)에 있다
+- [ ] 남는 위험 — 처음 넣은 트랜잭션의 되돌림(그 경우의 WARN 과 `SqlExceptionHelper` 의 줄), `AUTO_INCREMENT` 의 소비(추정), 정리 작업과의 겹침(재지 않았다) — 이 있다
+- [ ] 버린 대안과 그 이유가 이 절에 있다
+- [ ] D-26 이 적은 I-08 의 교착 한계 문장마다 `D-27` 이 고치고 재측정이 I-13 이라는 것이 있다 — [../requirements/member.md §12.2](../requirements/member.md), [../security.md §11](../security.md), [../conventions.md §8.1](../conventions.md), [../domain-model.md §2.5](../domain-model.md)
+- [ ] AU-23 이 결함 수정의 형식(무엇이 틀렸나·고치는 모양·고치기 전에 빨개지는 것을 본다)을 갖고, H2 의 잠금 전이 테스트·행 읽기 판정·동시 첫 실패를 H2 로 고정하지 않는 판단·변이 표가 있다. §5.3 의 후보 줄이 「AU-23 이 받는다」 다
+- [ ] I-13 이 I-08 과 같은 방법으로 앱(Connector/J·Hibernate)을 지나 잰다 — 같은 이메일·서로 다른 이메일의 동시 첫 실패, 한도 이상, 교착 수, 1062 수, 로거별 줄, 잠금 한 번·`failed_count` 0. I-08 의 판정을 되돌리지 않는다
+- [ ] 재지 않은 것을 사실로 적지 않는다 — Connector/J 의 영향 행 수, Hibernate·Connector/J 를 지난 교착, READ COMMITTED 안의 로그 줄, `AUTO_INCREMENT` 의 소비, 정리 작업과의 겹침, 실제 이메일 분포에서의 빈도
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 옮긴 수치를 sp-board `0d5ac03` 의 커밋 메시지와 대안 측정의 `summary.json`·`risk-result-091845.json`·`report.md` 와 대조한다 | 맞는다 |
+| 정본 §2.5 의 1) 을 대안 측정의 `la_driver.py` 의 문장(`S_ODKU`)과 대조한다 | SET 의 순서와 식이 같다 |
+| 고친 문장을 sp-auth `151c325` 의 `LoginAttemptService`·`LoginAttemptRepository` 와 대조한다 — 지금 코드의 순서, 다시 하는 자리, 락 경합의 처리, WARN | 「무엇이 틀렸나」 와 앞 판의 서술이 맞는다 |
+| sp-docs 를 `ODKU`·`ON DUPLICATE`·`INSERT IGNORE`·`login_attempt`·`LoginAttempt`·「동시 첫 실패」·「교착」·`1213`·`1062`·`RETRY`·「다시 하」·「한 번 더」·「같은 키」·`uk_login_attempt_email_key`·「세지 못한」·「조건부 UPDATE」·「갱신 문장」 으로 훑는다 | 로그인 실패를 세는 문장을 세 갈래로, 그 교착을 같은 키만의 것으로, 그 UNIQUE 충돌을 다시 하는 정상 결과로, 고칠지 정하지 않은 것으로 읽히게 하는 현재형 문장이 없다 |
+| AU-23 의 검증표·변이 표와 I-13 의 검증표를 정본 §2.5 와 나란히 읽는다 | 기대가 같다 |
+| 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-23 이다 |
 
 ---
 ## 7. 다음 단계

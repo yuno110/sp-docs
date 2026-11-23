@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — auth·member 기능 확장
 type: plan
 status: living
-version: v4
-updated: 2026-11-20
+version: v5
+updated: 2026-11-23
 read_when: "2차 기능 확장의 auth·member 작업 항목(AU-12 부터·M-14 부터)의 범위·의존·마이그레이션 번호·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md 를 본다"
 related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../domain-model.md, ../api-contract.md, ../security.md, ../conventions.md, ../tech-stack.md]
 ---
@@ -21,7 +21,7 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | **기반** — member | M-14 | 에러 코드·예외 매핑·경로 선언 — `C009` 매핑은 제한기와 함께 M-15 가 둔다. member 는 마이그레이션이 없다(§2) |
 | **기능** — auth | AU-16~AU-21 | 기반 산출물을 읽고 자기 파일을 만든다. 같은 Service·Controller 를 고치는 항목이 있어 저장소 안에서는 §1.2 의 순서를 따른다 |
 | **기능** — member | M-15, M-16 | M-14 뒤 |
-| **결함 수정** — auth | AU-22 | 1차 AU-08·AU-09 와 2차 AU-17 의 산출물을 고친다 — 그 항목들의 완료 기준과 먼저 대조한다. 2026-11-17 `D-22` 가 세웠다 |
+| **결함 수정** — auth | AU-22, AU-23 | AU-22 는 1차 AU-08·AU-09 와 2차 AU-17 의 산출물을, AU-23 은 2차 AU-18 의 세기를 고친다 — 그 항목들의 완료 기준과 먼저 대조한다. AU-22 는 2026-11-17 `D-22` 가, AU-23 은 2026-11-23 `D-27` 이 I-08 의 측정으로 세웠다 |
 
 [phase1.md §1.1](phase1.md)과 같은 이유로 **순서 의존과 공유 상태를 기반에 몰았다.** 에러 코드와 `SecurityConfig` 의 경로·CORS 를 기반이 끝내므로 기능 항목은 그 파일들을 고치지 않는다.
 
@@ -45,6 +45,7 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
       AU-21 정리 작업           [기능]
       ─────────────────────
       AU-22 계정 먼저 잠그기    [결함 수정]  <- 번호와 달리 AU-19 다음 (§1.2)
+      AU-23 한 문장으로 세기    [결함 수정]  <- AU-18 뒤 (I-08 이 찾았다)
             \                                      /
              +---- 통합 측정 (§5.1) · 화면 항목 (§5.2) ----+
 ```
@@ -53,22 +54,23 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 
 | 항목 | 의존 | 겹치는 파일 (같은 저장소의 다른 항목) | 저장소 밖 |
 | --- | --- | --- | --- |
-| AU-12 | 없음 | `LoginAttemptRepository`·그 테스트 (AU-18·AU-21), `AccountTokenRepository`·그 테스트 (AU-21) — AU-13·AU-14 와는 없어 함께 돌 수 있다 | — |
+| AU-12 | 없음 | `LoginAttemptRepository`·그 테스트 (AU-18·AU-21·AU-23), `AccountTokenRepository`·그 테스트 (AU-21) — AU-13·AU-14 와는 없어 함께 돌 수 있다 | — |
 | AU-13 | 없음 | `GlobalExceptionHandler`·그 테스트 (AU-19) | 화면: 무인증 경로의 401 (§5.2) |
 | AU-14 | 없음 | `application.yml` (AU-19·AU-21), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-19) | 로컬 `local` 기동이 메일 설정을 요구하게 된다 (§1.3) |
 | AU-15 | AU-12, AU-14 | — | — |
 | AU-16 | AU-13, AU-15 | `AccountController`·`AccountService` (AU-17·AU-19·AU-20·AU-22), `AuthService` (AU-18) | 화면의 가입 흐름 (§1.3) |
 | AU-17 | AU-16 | `AccountController`·`AccountService` | 화면의 비밀번호 찾기·재설정 |
-| AU-18 | AU-12, AU-13, AU-16 | `AuthService` (AU-16), `LoginAttemptRepository`·그 테스트 (AU-12·AU-21), `AuthControllerTest` (AU-19) | 화면의 로그인 안내 |
+| AU-18 | AU-12, AU-13, AU-16 | `AuthService` (AU-16), `LoginAttemptRepository`·그 테스트 (AU-12·AU-21·AU-23), `LoginAttemptService`·그 테스트 (AU-23), `AuthControllerTest` (AU-19) | 화면의 로그인 안내 |
 | AU-19 | AU-13, AU-16, AU-17 | `AccountController` (AU-16·AU-17·AU-20), `GlobalExceptionHandler`·그 테스트 (AU-13), `application.yml` (AU-14·AU-21), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-14), `AuthControllerTest` (AU-18) | 화면의 429 안내, 로컬 템플릿 (§1.3) |
 | AU-20 | AU-12, AU-13 | `AccountController`·`AccountService` | 화면의 관리자 회원 목록 (M-16 과 함께) |
-| AU-21 | AU-12, AU-16, AU-18 | `application.yml` (AU-14·AU-19), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18), `AccountTokenRepository`·그 테스트 (AU-12) | — |
+| AU-21 | AU-12, AU-16, AU-18 | `application.yml` (AU-14·AU-19), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18·AU-23), `AccountTokenRepository`·그 테스트 (AU-12) | — |
 | AU-22 | AU-18 | `AccountService`·그 테스트 (AU-16·AU-17·AU-20) | — |
+| AU-23 | AU-18 | `LoginAttemptService`·그 테스트 (AU-18), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18·AU-21) | 실 MySQL 재측정 I-13 (§5.1) |
 | M-14 | 없음 | `GlobalExceptionHandler`·그 테스트 (M-15) | 화면: 무인증 경로의 401 |
 | M-15 | M-14 | `GlobalExceptionHandler`·그 테스트 (M-14), `MemberControllerTest` (M-16) | 화면의 429 안내, 로컬 템플릿 |
 | M-16 | M-14 | `MemberControllerTest` (M-15) | 화면의 관리자 회원 목록 (AU-20 과 함께) |
 
-**저장소마다 구현 워커가 하나면**(두 저장소의 `CLAUDE.md` 가 그렇게 적는다 — 2026-11-12 읽기) auth 는 AU-12 → AU-13 → … → AU-21 의 번호 순서로 하나씩 한다. **AU-20 은 의존이 적어 앞당길 수 있다**(예: 화면의 회원 목록을 먼저 할 때). **AU-22 는 번호와 달리 AU-19 다음에 한다** — 사용자가 2026-11-17 에 그 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다(`D-22`). 저장소 안의 병렬은 「겹치는 파일」 이 없는 항목끼리만 한다. auth 와 member 는 서로의 파일을 고치지 않으므로 두 저장소는 처음부터 함께 돈다.
+**저장소마다 구현 워커가 하나면**(두 저장소의 `CLAUDE.md` 가 그렇게 적는다 — 2026-11-12 읽기) auth 는 AU-12 → AU-13 → … → AU-21 의 번호 순서로 하나씩 한다. **AU-20 은 의존이 적어 앞당길 수 있다**(예: 화면의 회원 목록을 먼저 할 때). **AU-22 는 번호와 달리 AU-19 다음에 한다** — 사용자가 2026-11-17 에 그 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다(`D-22`). **AU-23 은 2026-11-23 `D-27` 이 세웠고 AU-18 뒤에 한다** — 사용자가 그날 I-08 의 교착을 고치기로 정했다. 저장소 안의 병렬은 「겹치는 파일」 이 없는 항목끼리만 한다. auth 와 member 는 서로의 파일을 고치지 않으므로 두 저장소는 처음부터 함께 돈다.
 
 ### 1.3 저장소 밖과 맞물리는 때
 
@@ -436,6 +438,8 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | 다시 하기 — UNIQUE 충돌을 만든다(예: 대역) | 한 번 더 한다. 또 실패하면 `AU003` 과 WARN 한 줄 |
 
 > **2026-11-17 `D-22` 가 이 항목의 완료 기준이 전제한 「로그인 트랜잭션」 을 정본에서 걷었다.** 「로그인 트랜잭션과 다른 트랜잭션에서 커밋된다」 와 「로그인 트랜잭션이 먼저 연 스냅샷으로 읽지 않는다」 는 로그인 전체가 한 트랜잭션이라는 그때의 정본 문장([../requirements/member.md §12.2](../requirements/member.md))을 따라 쓰였다. AU-18 의 구현은 로그인을 트랜잭션으로 감싸지 않는다 — 2026-11-16 AU-18 의 리뷰가 감싼 구조에서 커넥션 풀이 멈추는 것을 쟀다. 위 기준과 표는 그 전의 문장이고 **이 항목의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 지금의 요건은 [../requirements/member.md §12.1·§12.2](../requirements/member.md)가 적는다 — 저장 때의 재확인(§12.1 의 7)과 락 경합의 처리([../domain-model.md §2.5](../domain-model.md))도 같은 날 AU-18 의 구현에서 정본으로 들어갔다.
+>
+> **2026-11-23 `D-27` 이 이 항목의 세는 순서를 정본에서 바꿨다.** 위 기준의 「조건부 UPDATE(없으면 INSERT)」·「`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다」·다시 하는 자리, 검증표의 다시 하기 두 줄은 그때의 정본([../domain-model.md §2.5](../domain-model.md)의 앞 판)을 따랐다. 그 순서가 실 MySQL 에서 동시 첫 실패끼리 교착했다(2026-11-20 I-08). 지금의 문장은 한 문장 upsert 와 같은 트랜잭션의 행 읽기이고 다시 하는 자리가 없다 — 코드는 AU-23 이 바꾼다. **이 항목의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)).
 
 ---
 
@@ -643,6 +647,88 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | 세 경로가 낸 `refresh_token` 문장(예: `RecordingStatementInspector`) | 일관 읽기로 고른 행을 id 로 지우는 모양이 아니다 |
 | AU-08·AU-09·AU-17 의 검증표 | 그대로 통과한다 |
 
+---
+
+### AU-23 로그인 실패를 한 문장 upsert 로 센다 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-auth` |
+| 의존 | AU-18 — 고치는 것이 AU-18 의 세기다 |
+| 공유 파일 | `LoginAttemptService`·그 테스트 (AU-18), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18·AU-21), `LoginAttempt` (AU-12) |
+| 마이그레이션 | 없음 |
+| 참조 | [../domain-model.md §2.5](../domain-model.md), [../requirements/member.md §12.1·§12.2](../requirements/member.md), [../security.md §11](../security.md), [../conventions.md §6.1](../conventions.md)·§8.1, [../tech-stack.md §5.3](../tech-stack.md), [phase1.md](phase1.md) D-27, [../process/review-policy.md §4.1](../process/review-policy.md) |
+
+**사용자가 2026-11-23 에 이 결함을 세는 문장을 한 문장 upsert 로 바꿔 고치기로 정했다**(`D-27`). 2026-11-20 I-08 이 찾았고 `D-26` 이 후속 후보로 넘겼다(§5.3). **완료된 AU-18 의 산출물을 고치므로** 그 항목의 완료 기준과 먼저 대조한다 — 「`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다」 와 다시 하는 자리의 기준은 `D-27` 이 정본에서 바꿨다(AU-18 뒤의 블록인용).
+
+**무엇이 틀렸나.** sp-auth `151c325` 의 `LoginAttemptService.countFailure` 는 [../domain-model.md §2.5](../domain-model.md) 앞 판의 세 갈래(조건부 UPDATE → 0행이면 그 키의 행을 읽어 가름 → 없으면 INSERT, UNIQUE 충돌이면 새 트랜잭션에서 한 번 더)를 서버 기본 격리(반복 읽기)에서 돈다(2026-11-23 코드 읽기). 없는 행을 찾는 0행 UPDATE 가 `uk_login_attempt_email_key` 에 간격 락을 쥐고, 동시 첫 실패의 INSERT 가 서로의 insert intention 을 기다려 교착(1213)한다. 락 경합은 다시 하지 않으므로 그 실패는 세지 않고 잠금이 늦어진다. 2026-11-20 I-08 이 앱으로 같은 키에서 쟀고, 2026-11-23 프로브가 서로 다른 이메일의 첫 실패끼리도 교착하는 것을 보였다(정본 §2.5 의 블록인용).
+
+**고치는 모양** — [../domain-model.md §2.5](../domain-model.md)의 갱신 문장 그대로다.
+
+```
+countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기본 격리)
+  1) 한 문장 upsert                         정본 §2.5 의 1). 네이티브 쿼리, 파라미터 바인딩
+  2) 같은 트랜잭션에서 그 키의 행을 읽는다   locked_until > :now 이면 AU005, 아니면 AU003
+  다시 하는 자리                            없다. 제약 위반을 잡지 않는다 — 락 경합이 아닌 DB 실패로 던진다
+  락 경합                                   지금 그대로. 다시 하지 않고 AU003, WARN 한 줄
+```
+
+- **네이티브 쿼리로 정본의 문장을 그대로 낸다** — 프로브가 잰 문장이다. 테스트의 H2(MySQL 모드)도 같은 문장을 돈다 — 프로브는 H2 2.3.232·2.4.240 의 MySQL 모드에서 쟀고, 프로젝트 테스트 URL 의 설정([../tech-stack.md §5.3](../tech-stack.md))에서 도는지는 이 항목이 확인한다. 문자열을 이어 붙이지 않는다([../security.md §1](../security.md)의 SQL Injection 행)
+- **문장의 결과를 판정에 쓰지 않는다** — 영향 행 수를 돌려주지 않는 모양을 권한다(예: 반환형 `void`). H2 의 값이 mysql 클라이언트와 같아 그 값으로 판정하는 변이를 H2 테스트가 잡지 못할 수 있다(아래 변이 표). 앱이 쓰는 Connector/J 의 값은 재지 않았다(정본 §2.5)
+- **남는 것** — 처음 넣은 트랜잭션이 되돌아갈 때의 교착과 `AUTO_INCREMENT` 의 소비(추정)는 정본 §2.5 가 적는다. 이 항목은 그것을 고치지 않는다
+
+**산출물**
+- `auth/repository/LoginAttemptRepository` — 한 문장 upsert 의 네이티브 쿼리. javadoc 에 SET 의 순서와 `updated_at` 의 조건을 바꾸지 않는 이유(정본 §2.5). 앞 판의 증가·잠금 문장은 쓰는 곳이 없어지면 지운다
+- `auth/service/LoginAttemptService` — 세기를 한 트랜잭션의 문장과 행 읽기로, 판정을 행 읽기로 한다. 다시 하는 자리(다시 하기의 결과 값과 제약 위반의 잡기, 「다시 해도 세지 못했다」 WARN)를 걷는다. 락 경합의 처리는 그대로다. javadoc
+- `auth/entity/LoginAttempt` — 갱신 문장을 적은 javadoc. 첫 실패 팩터리는 부르는 운영 코드가 없어진다 — 지울지는 구현이 고른다
+- 테스트 — `LoginAttemptRepositoryTest`·`LoginAttemptServiceTest` 의 해당 자리
+
+**완료 기준**
+- [ ] **고치기 전에 검증표에서 「고치기 전 코드에서 깨진다」 를 적은 줄이 지금 코드에서 빨개지는 것을 보았다.** 결과를 보고에 적는다. 교착 자체는 H2 에서 빨개지지 않는다(아래 (c))
+- [ ] **(a) 세는 문장이 정본 §2.5 의 1) 과 식까지 같다(SET 의 순서, `updated_at` 의 조건). H2 에서 한도 전이를 고정한다** — 검증표의 다섯째·넷째·잠긴 행·같은 초·창·잠금 시각·새 키 줄이다. 잠긴 동안의 시도는 `updated_at` 을 포함해 행의 모든 컬럼이 그대로다. **잠긴 행은 잠그는 문장이 만든 모양(`failed_count` 0, `updated_at = locked_until - 15m`)으로 심는다** — 문장은 잠긴 행의 `failed_count` 에 0 을 쓰고 같은 초에 잠긴 행의 `updated_at` 에 `:now` 를 쓰므로, 그 밖의 모양은 정본대로 구현해도 「그대로」 가 아니다(정본 §2.5 의 「1) 의 뜻」). 지금 `LoginAttemptRepositoryTest` 에서 1) 에 잠긴 행을 대는 `증가는_잠긴_행을_바꾸지_않는다`(sp-auth `151c325`, 219행)는 `failed_count` 0, `locked_until = NOW + 1s`, `updated_at = NOW - 14m` 으로 심어 `updated_at ≠ locked_until - 15m` 이다 — 이 항목이 1) 에 대는 잠긴 행 픽스처를 위 모양으로 바꾼다
+- [ ] **(b) 판정이 같은 트랜잭션의 행 읽기다** — 문장 뒤에 그 키의 행을 읽고 `locked_until > :now` 로 가른다. 영향 행 수를 쓰지 않는다. 세기는 트랜잭션 하나에 커밋 하나다
+- [ ] 다시 하는 자리가 없다 — 세는 문장이 제약 위반을 내면 다시 하지 않고 500 `C005` 이며 카운터는 그대로다. 락 경합(1213·1205)은 지금 그대로 `AU003` 과 WARN 한 줄(예외의 클래스만)이다
+- [ ] **(c) 동시 첫 실패의 교착은 H2 테스트로 고정하지 않는다.** H2 는 InnoDB 의 간격 락을 재현하지 않는다([phase2.md §5.4](phase2.md)) — AU-18 의 H2 테스트가 녹색인 채 I-08 이 실 MySQL 에서 그 교착을 쟀다. H2 에서 동시 첫 실패를 보내는 테스트는 고치기 전 코드에서도 녹색일 것으로 보아(추정 — 재지 않았다) 이 결함의 회귀 테스트가 되지 못하므로 더하지 않는다([../AGENTS.md](../AGENTS.md) 불변식 11). 그 회귀는 I-13 이 앱으로 잰다
+- [ ] **(d) 변이로 잡힌다** — 아래 변이 표의 변이마다 빨개지는 테스트를 보고에 적는다([../process/review-policy.md §4.1](../process/review-policy.md)). 표가 「잡지 못할 수 있다」 고 적은 변이는 그 수단으로 막혔는지 적는다
+- [ ] 응답·판정·트랜잭션 경계는 AU-18 그대로다 — 새 트랜잭션, 초로 자른 `Clock` 의 판정 시각, 잠긴 동안의 시도는 세지 않는다, 락 경합이 아닌 DB 실패는 삼키지 않는다. AU-18 검증표의 다시 하는 자리 두 줄(0행인데 잠기지 않은 행, UNIQUE 충돌)은 그 경로가 없어지므로 지우거나 「다시 하지 않는다」 로 바꾸고, 바꾼 것을 보고에 적는다
+- [ ] 정리 작업(AU-21)의 기준과 결과가 그대로다
+- [ ] 재지 않은 것을 사실로 적지 않는다 — 실 MySQL 의 교착은 I-13 이 잰다
+
+**검증** — 위 테스트(`support/MutableClock`), `./gradlew test`
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| 세기가 낸 `login_attempt` 문장(예: `RecordingStatementInspector`) | 쓰는 문장은 `ON DUPLICATE KEY UPDATE` 하나이고, 그 뒤 같은 트랜잭션에서 그 키를 읽는 SELECT 다. 0행 UPDATE 와 따로 낸 INSERT 가 없다. **고치기 전 코드에서 깨진다** |
+| 세는 문장의 SQL — 정본과 대조한다(AU-18 이 증가 문장의 순서를 본 방법) | 정본 §2.5 의 1) 과 식까지 같다 — SET 은 `locked_until`, `failed_count`, `updated_at` 순서이고, `updated_at` 의 조건에 `locked_until <> :now + 15m` 이 있다 |
+| 넷째 실패 | 401 `AU003`, `failed_count` 4, `updated_at = :now` |
+| 다섯째 실패 | 401 `AU005`, `locked_until = :now + 15m`, `failed_count` 0, `updated_at = :now` |
+| 판정과 세기 사이에 다른 연결이 잠금을 커밋한다(대역) — 잠긴 행에 세는 문장이 닿는다 | 401 `AU005`, 행의 모든 컬럼이 그대로(`updated_at` 포함) |
+| 같은 판정 시각에 막 잠긴 행 — `failed_count` 0, `locked_until = :now + 15m`, `updated_at = :now` | 401 `AU005`, 행 그대로 |
+| 창이 지난 행 — `failed_count` 4, `updated_at = :now - 24h` | 401 `AU003`, `failed_count` 1, 잠기지 않는다 |
+| `updated_at` 이 `:now - 24h` 보다 1초 뒤인 행 | 이어서 센다 |
+| `locked_until` 이 판정 시각과 같은 행 | 풀린 것으로 센다 |
+| 새 키 — 문장과 행 읽기 사이에 시계가 다음 초로 넘어간다 | (1, NULL, 판정 시각), 401 `AU003` |
+| 세는 문장이 제약 위반을 낸다(대역) | 500 `C005`, 다시 하지 않는다, 카운터 그대로 |
+| 세기가 락 경합(1213·1205)으로 실패한다(대역) | 다시 하지 않고 401 `AU003`, WARN 한 줄 — AU-18 의 줄 그대로 |
+| 실패 한 번의 트랜잭션 | 판정(읽기 전용)의 커밋, 세기의 커밋. 롤백이 없다 |
+| AU-18·AU-21 의 그 밖의 검증표 | 그대로 통과한다 |
+
+**변이** — (d) 의 대상이다.
+
+| 변이 | 잡는 줄 |
+| --- | --- |
+| `failed_count` 식에서 `WHEN failed_count + 1 >= 5 THEN 0` 을 뺀다 — MySQL 의 대입 순서에 기댄 모양 | 다섯째 실패 — H2 에서 `failed_count` 5 인 채 잠긴다(2026-11-23 프로브) |
+| SET 의 순서를 바꾼다(예: `updated_at` 을 앞으로) | SQL 대조 줄. H2 는 모든 SET 식이 옛 값을 읽어 결과 줄은 잡지 못한다(정본 §2.5) |
+| `updated_at` 의 조건에서 `locked_until <> :now + 15m …` 을 뺀다(`WHEN locked_until > :now THEN updated_at`) | SQL 대조 줄만 잡는다. H2 테스트는 잡지 못한다 — H2 는 옛 `locked_until` 을 읽어 결과가 맞고, MySQL 에서만 잠근 행이 옛 `updated_at` 을 지닌다(정본 §2.5) |
+| 잠긴 행에서도 `updated_at` 을 `:now` 로 바꾼다 | 잠긴 행 줄 |
+| 창 비교 `<=` 를 `<` 로 | 창이 지난 행 줄 |
+| 잠금 비교 `locked_until > :now` 를 `>=` 로 — 문장의 세 곳(세 SET 식의 첫 줄)을 모두 | `locked_until` 이 판정 시각과 같은 행 줄 |
+| 행 읽기를 다른 트랜잭션에서 한다 | 실패 한 번의 트랜잭션 줄 |
+| 제약 위반을 잡아 다시 하거나 `AU003` 으로 삼킨다 | 제약 위반 줄 |
+| 영향 행 수로 판정한다 | 결과 줄이 잡지 못할 수 있다 — H2 의 값이 mysql 클라이언트와 같았다(2026-11-23 프로브). 문장이 그 값을 돌려주지 않는 모양이면 이 변이를 쓸 수 없다 — 리뷰가 본다 |
+
+> **이 항목은 실 MySQL 을 재지 않는다** — 그 자리는 I-13 이다([phase2-frontend-integration.md](phase2-frontend-integration.md)). 프로브의 측정은 앱 밖의 드라이버였다.
+
 ## 4. member-service 작업 항목
 
 ### M-14 에러 코드·예외 매핑·경로 선언 [기반]
@@ -793,11 +879,12 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | `C009` 의 본문·헤더를 auth·member 가 같게 내는가 — 둘의 비교다 | [../api-contract.md §8.1](../api-contract.md)의 `C009` 문단, [../conventions.md §6.1](../conventions.md) | AU-19, M-15 |
 | multipart 매핑이 세 서비스에서 같고, 한도를 넘는 multipart 가 실서버에서 413 `C008` 인가 — MockMvc 는 서블릿 컨테이너의 한도를 거치지 않는다 | [../conventions.md §6.1](../conventions.md)의 블록인용 | AU-13, M-14 (board 의 같은 매핑과 함께) |
 
-**결함 수정 항목이 실 MySQL 로 넘긴 것**(2026-11-17 `D-22`) — [phase2.md §5.4](phase2.md)의 단락에 없다. [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 잰다.
+**결함 수정 항목이 실 MySQL 로 넘긴 것**(2026-11-17 `D-22`, AU-23 의 줄은 2026-11-23 `D-27`) — [phase2.md §5.4](phase2.md)의 단락에 없다. AU-22 의 줄은 [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 쟀고, AU-23 의 줄은 같은 문서의 I-13 이 잰다.
 
 | 대상 | 근거 | 항목 |
 | --- | --- | --- |
 | 같은 계정의 로그인과 비밀번호 변경·탈퇴·재설정 확인을 겹칠 때 — 로그인의 저장이 쓰는 쪽의 트랜잭션 안에 든다. 재설정 확인이 토큰을 읽은 뒤 계정 잠금을 기다리는 사이에 로그인의 저장이 커밋되는 차례를 포함하고, 그 계정에 `refresh_token` 행이 없는 상태에서 시작한다. 차례를 만드는 방법은 I-08 이 고른다(예: 다른 연결이 계정 행을 잠금 읽기로 잡아 두 요청을 그 앞에 세운다 — 어느 요청이 먼저 잠금을 얻었는지는 관측값으로 적는다) — 쓰는 쪽이 커밋한 뒤 로그인이 넣은 행이 없는가. 로그인은 기다린 뒤 401 `AU003` 이거나, 먼저 커밋했으면 그 행을 쓰는 쪽이 지웠어야 한다. 어긋나면 결함이다 | [../security.md §5.3](../security.md)의 블록인용, AU-22 의 「무엇이 틀렸나」 | AU-22 |
+| 같은 이메일과 서로 다른 이메일의 동시 첫 실패, 한도 이상의 동시 실패를 앱(Connector/J·Hibernate)으로 보낼 때 — 교착·UNIQUE 충돌·세지 못한 실패가 없고, 한도 이상이면 잠금 한 번·`failed_count` 0 인가. 그 사이 로거마다 남은 줄 | [../domain-model.md §2.5](../domain-model.md)의 블록인용, AU-23 의 「무엇이 틀렸나」 | AU-23 |
 
 ### 5.2 화면 항목이 필요로 하는 것
 
@@ -840,12 +927,12 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 - **auth·member 의 무인증 경로에 잘못된 토큰이 올 때의 응답.** 정본은 board 상세 조회에 대해서만 적는다([../requirements/board.md §9.1](../requirements/board.md)). AU-13·M-14 는 관측한 응답을 테스트로 묶을 뿐 정하지 않는다. claim 계약 위반 토큰(예: 열거 밖 `role`)이 무인증 경로로 올 때도 같다
 - **요청 수 제한 설정의 기동 가드.** [../tech-stack.md §4.6](../tech-stack.md)은 그 값들을 정본 값으로 분류해 가드를 요구하지 않는다. AU-19·M-15 의 가드는 AGENTS.md 불변식 9 를 근거로 이 계획이 정했다
 - **메일 헬스 지표.** 정본이 정하지 않았다. AU-14 의 끄기는 [../nfr.md §2](../nfr.md)를 근거로 이 계획이 정했다
-- **코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR.** 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 로그인 실패 카운터의 `uk_login_attempt_email_key`(다시 한다)와 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약들을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다. 로그인 실패 카운터는 2026-11-20 I-08 이 실 MySQL 에서 쟀다 — UNIQUE 충돌은 없었고 교착이 났다(아래 줄)
+- **코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR.** 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다. 로그인 실패 카운터의 `uk_login_attempt_email_key` 는 이 줄에서 빠졌다 — 2026-11-20 I-08 에서 UNIQUE 충돌은 없었고 교착이 났으며(아래 줄), 2026-11-23 `D-27` 뒤에는 세는 문장이 그 충돌을 내지 않는다([../conventions.md §8.1](../conventions.md)). 앞 판은 그것을 「다시 한다」 로 이 줄에 적었다
 
 **아래는 2026-11-20 `D-26` 이 2차 통합 측정(I-08·I-09)에서 옮긴 후속 후보다.** D-26 은 실측을 정본에 맞추기만 하고 동작을 바꾸지 않는다([phase1.md](phase1.md)의 D-26) — 그래서 코드나 마이그레이션을 바꿔야 풀리는 것을 여기에 둔다. 세울지와 어떻게 할지는 정하지 않았다.
 
 - **표의 콜레이션을 마이그레이션이 정하지 않는다.** 표 선언이 문자셋만 적어 표가 서버의 기본 콜레이션을 받았다 — 잰 서버에서 `utf8mb4_0900_ai_ci`(NO PAD, 악센트 등도 같게 본다)였고 스키마의 `utf8mb4_general_ci` 와 다르다([../tech-stack.md §4.1](../tech-stack.md)). 서버 설정이 다르면 표의 비교 기준도 달라진다. **닉네임 유일성과 게시글 `keyword` 검색에 미치는 영향은 재지 않았다**([../requirements/member.md §7](../requirements/member.md), [../api-contract.md §4.1](../api-contract.md)). 바꾸면 이메일과 `login_attempt.email_key` 의 동치와 100자 판정의 근거([../requirements/member.md §12.1](../requirements/member.md))가 함께 움직이고 board 의 표도 걸린다. 근거 I-08
-- **로그인 실패의 동시 첫 실패가 교착으로 세지지 않는다.** 정본이 허용한 동작이다 — 락 경합은 다시 하지 않고 WARN 으로 끝낸다([../domain-model.md §2.5](../domain-model.md)). 그만큼 잠금이 늦어지고(동시 8회 실패에 잠기지 않은 회차가 있었다), 교착마다 Hibernate 의 ERROR 가 남는다([../security.md §11](../security.md), [../conventions.md §8.1](../conventions.md)). 고치는 수단(다시 하기, 격리 수준, 첫 행을 만드는 방법)은 정하지 않았다 — 다시 하면 [../domain-model.md §2.5](../domain-model.md)의 「한 번 더」 규칙과 커넥션 규칙([../requirements/member.md §12.2](../requirements/member.md))을 함께 본다. 근거 I-08
+- **로그인 실패의 동시 첫 실패가 교착으로 세지지 않는다 — AU-23 이 받는다**(2026-11-23 `D-27`). 사용자가 그날 세는 문장을 한 문장 upsert 로 바꾸기로 정했다([../domain-model.md §2.5](../domain-model.md)). 앞 판은 이 줄에 정본이 허용한 동작이라는 것과, 고치는 수단(다시 하기, 격리 수준, 첫 행을 만드는 방법)을 정하지 않았다는 것을 적었다. 2026-11-23 프로브는 서로 다른 이메일의 첫 실패끼리도 교착하는 것을 보였다. 근거 I-08 과 그 프로브
 - **보내지 않을 요청이 메일 대기열의 칸을 쓴다.** 없는 이메일의 재설정·재발송도 발급 작업 한 칸을 써서, SMTP 가 느릴 때 실제 가입의 메일을 밀어낼 수 있다([../requirements/member.md §11.5](../requirements/member.md)의 블록인용). 측정용 한도에서 관측했고, 운영 한도에서 IP 키를 여럿 가진 자에게만 열린 길이라는 것은 추정이다. 근거 I-09
 - **대기열이 버린 작업의 WARN 에 계정 id·목적이 없다.** 거부 처리기가 작업만 받기 때문이다(I-09 의 코드 대조). 어느 가입이 메일을 잃었는지 로그로 알 수 없다 — 그 계정은 재발송을 요청하기 전까지 인증하지 못한다. 근거 I-09
 - **메일이 나가지 못하면 이미 받은 링크도 죽는다**(추정 — 코드 순서, DB 로 확인하지 않았다). 발급 작업이 앞 토큰을 지운 뒤 발송이 실패하거나 발송 작업이 버려지는 경우다([../requirements/member.md §11.5](../requirements/member.md)의 블록인용). 앞 토큰을 언제 지울지는 [../requirements/member.md §11.1](../requirements/member.md)의 「마지막 메일의 링크만 산다」 를 바꾸는 결정이다. 근거 I-09 와 sp-auth `151c325` 의 코드 읽기

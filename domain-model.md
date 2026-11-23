@@ -2,8 +2,8 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v24
-updated: 2026-11-20
+version: v25
+updated: 2026-11-23
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
 ---
@@ -225,37 +225,64 @@ UPDATE account_token SET used_at = :now
 
 **`email_key` 의 콜레이션을 `account.email` 과 같게 두는 이유** — 로그인의 계정 조회는 그 콜레이션으로 비교하므로 대소문자 등 표기가 다른 이메일이 같은 계정을 찾는다. 키가 다른 기준으로 비교되면 같은 계정의 실패가 표기마다 따로 세어져 잠금을 피한다. 키의 소문자 변환은 ASCII 대소문자를 맞추고, 같은 콜레이션의 UNIQUE 가 나머지를 맞춘다 — 비ASCII 를 앱에서 바꾸면 콜레이션이 같다고 보는 표기가 다른 키가 될 수 있어 바꾸지 않는다. **두 컬럼의 콜레이션이 같은지는 `information_schema` 로 확인한다** — 어느 콜레이션이 되는지는 테이블 선언과 서버 설정이 정한다(V1 의 `account` 는 `DEFAULT CHARSET = utf8mb4` 만 선언한다). 2026-11-20 I-08(`D-26`)이 읽은 값은 둘 다 `utf8mb4_0900_ai_ci` 였다([tech-stack.md §4.1](tech-stack.md)).
 
-**갱신 문장** — 순서와 원자성이 요건이고 문장의 모양은 예다.
+**갱신 문장** — 뜻과 원자성이 요건이다. 실패를 세는 1) 은 2026-11-23 실 MySQL 과 H2 에서 잰 모양이라, 바꾸면 두 DB 에서 다시 잰다(아래 「SET 의 순서」). 나머지 문장의 모양은 예다.
 
 ```
 실패를 센다 — 그 일만 하는 새 트랜잭션 (requirements/member.md §12.2)
-  1) UPDATE login_attempt
-        SET failed_count = CASE WHEN updated_at <= :now - 24h THEN 1 ELSE failed_count + 1 END,
-            updated_at   = :now
-      WHERE email_key = :key AND (locked_until IS NULL OR locked_until <= :now)
-       1행이면 2) 로
-       0행이면 그 키의 행을 읽는다
-         있고 locked_until > :now 이면 그 사이 다른 시도가 잠갔다   -> AU005
-         있고 잠기지 않았으면 그 사이 다른 시도가 넣었다  -> 새 트랜잭션에서 1) 부터 한 번 더
-         없으면 INSERT (email_key, failed_count, locked_until, updated_at) = (:key, 1, NULL, :now)
-           UNIQUE 충돌이면 같은 키의 동시 첫 실패다  -> 새 트랜잭션에서 1) 부터 한 번 더
-  2) UPDATE login_attempt
-        SET locked_until = :now + 15m, failed_count = 0, updated_at = :now
-      WHERE email_key = :key AND failed_count >= 5
-       1행이면 이번 실패가 잠갔다 -> AU005, 0행이면 AU003
+  1) INSERT INTO login_attempt (email_key, failed_count, locked_until, updated_at)
+     VALUES (:key, 1, NULL, :now)
+     ON DUPLICATE KEY UPDATE
+       locked_until = CASE WHEN locked_until > :now THEN locked_until
+                           WHEN (CASE WHEN updated_at <= :now - 24h THEN 1 ELSE failed_count + 1 END) >= 5
+                                THEN :now + 15m
+                           ELSE locked_until END,
+       failed_count = CASE WHEN locked_until > :now THEN 0
+                           WHEN updated_at <= :now - 24h THEN 1
+                           WHEN failed_count + 1 >= 5 THEN 0
+                           ELSE failed_count + 1 END,
+       updated_at   = CASE WHEN locked_until > :now
+                                AND (locked_until <> :now + 15m OR updated_at = :now) THEN updated_at
+                           ELSE :now END
+  2) 같은 트랜잭션에서 그 키의 행을 읽는다
+       locked_until > :now 이면  AU005   이번 실패가 잠갔거나 그 사이 다른 시도가 잠갔다
+       아니면                    AU003
+
+  1) 의 뜻
+    행이 없다                   (:key, 1, NULL, :now) 를 넣는다
+    있고 locked_until > :now    값이 바뀌지 않는다                    <- 잠긴 동안의 시도
+                                식은 failed_count 에 0 을 쓰지만 잠긴 행은 잠글 때 이미 0 이다
+                                같은 초에 잠긴 행(locked_until = :now + 15m)이면 updated_at 에 :now 를
+                                쓰지만 잠글 때 이미 :now 다. 잠그는 문장이 만든 모양(failed_count 0,
+                                updated_at = locked_until - 15m)일 때 참이다 — 그 밖의 행은 생기지 않는다
+    있고 잠기지 않았다           c = updated_at <= :now - 24h 이면 1, 아니면 failed_count + 1
+                                c >= 5 이면 locked_until = :now + 15m, failed_count = 0
+                                아니면 failed_count = c
+                                어느 쪽이든 updated_at = :now
 
 비밀번호가 맞았다·재설정 확인
   UPDATE login_attempt SET failed_count = 0, locked_until = NULL, updated_at = :now
    WHERE email_key = :key                           <- 행을 지워도 결과가 같다
 ```
 
-- **1) 이 행 락을 잡으므로 2) 의 판정이 같은 키의 동시 실패를 한 줄로 세운다.** 동시 실패 다섯 중 정확히 하나가 2) 에서 1행을 받는다
-- **다시 하는 자리(UNIQUE 충돌, 잠기지 않은 행)는 새 트랜잭션이다.** 잠기지 않은 행을 보는 것은 간격 락이 없는 격리 수준(예: READ COMMITTED)에서 같은 키의 동시 첫 실패가 그 사이 INSERT 를 커밋한 경우다 — 그 행을 잠금으로 읽으면 거짓 잠금이 나고 이번 실패가 사라진다. JPA 에서 제약 위반이 트랜잭션을 rollback-only 로 만들 수 있다 — [requirements/board.md §9.3](requirements/board.md)이 조회수 판정에서 같은 문제를 적었다. 한 번 더 해도 실패하면(예: 교착) 로그인 응답은 `AU003` 그대로이고 **세지 못한 실패를 WARN 으로 남긴다**
-- **「한 번 더 해도 실패하면」 의 실패는 다시 하는 자리를 또 만난 것과 락 경합이다**(2026-11-17 `D-22` — AU-18 의 구현에 맞췄다). 락 경합(예: MySQL 의 교착·잠금 대기 시간 초과)은 첫 시도에서 나도 다시 하지 않고 같은 응답과 WARN 으로 끝낸다. **락 경합이 아닌 DB 실패는 삼키지 않는다**(예: 커넥션을 얻지 못함) — [conventions.md §6.1](conventions.md)의 마지막 그물이 500 `C005` 로 낸다. 삼키면 DB 가 실패하는 동안의 실패가 세지지 않은 채 보통의 실패 응답으로 나가, 잠금이 열리는 쪽으로 실패한다
-- **`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다.** 쓰려면 실 MySQL 측정을 먼저 한다 — 영향 행 수가 H2 와 MySQL 에서 같다는 근거가 없다([requirements/board.md §9.3](requirements/board.md)과 같은 이유)
-- **없는 행을 찾는 1) 은 MySQL 의 반복 읽기에서 간격 락을 잡는다.** 같은 키의 동시 첫 실패가 교착한다 — 2026-11-20 I-08(`D-26`)이 실 MySQL 에서 확인했다. 교착은 `uk_login_attempt_email_key` 의 간격 락 뒤 insert intention 대기였고 첫 실패에서만 났다. UNIQUE 충돌과 다시 하는 자리는 나지 않았다. 위 「락 경합」 대로 다시 하지 않고 `AU003` 과 WARN 으로 끝나므로 그 실패는 세지 않는다 — 한계는 [security.md §11](security.md)
+- **2026-11-23 `D-27` 이 1) 을 한 문장으로 바꿨다.** 앞 판은 조건부 UPDATE → 0행이면 그 키의 행을 읽어 가르고 → 없으면 INSERT 하는 세 갈래였고, 한도 판정은 이어지는 둘째 UPDATE 였다. 그 순서가 MySQL 의 반복 읽기에서 동시 첫 실패끼리 교착했다(아래 블록인용). 카운터·잠금·응답의 결과는 앞 판과 같다 — 2026-11-23 프로브가 차례로 보낸 실패의 경로에서 두 모양의 결과와 행을 대조했다. **코드는 AU-23 이 바꾼다**([plan/phase2-auth-member.md](plan/phase2-auth-member.md)) — 그 전의 코드는 앞 판의 순서다
+- **1) 이 그 키의 행 락을 잡고 한도 판정이 그 문장 안에 있으므로 같은 키의 동시 실패가 한 줄로 선다.** 동시 실패 다섯 중 정확히 하나가 잠그고, 뒤의 시도는 잠긴 행을 보고 바꾸지 않는다
+- **SET 의 순서를 바꾸지 않는다 — `locked_until`, `failed_count`, `updated_at` 이다.** MySQL 은 한 테이블의 대입을 왼쪽부터 하고 뒤의 식은 앞에서 바뀐 값을 읽는다(MySQL 8.0 Reference Manual 의 UPDATE 문). H2(MySQL 모드)는 모든 SET 식이 옛 값을 읽는다 — 2026-11-23 프로브가 H2 2.3.232·2.4.240 에서 쟀다. 위 모양은 이 순서에서 두 읽기가 같은 결과를 낸다. 이번 시도가 잠그면 `failed_count` 식은 MySQL 에서 첫 줄(바뀐 `locked_until`), H2 에서 셋째 줄로 가서 둘 다 0 이다. **셋째 줄(`failed_count + 1 >= 5 THEN 0`)이 없는 모양은 MySQL 의 대입 순서에 기대어 H2 에서 틀렸다** — 한도에 닿은 행이 `failed_count` 5 인 채 잠겼다(같은 프로브). 순서를 바꾸면 MySQL 에서 뜻이 바뀌고(예: `updated_at` 을 앞에 두면 창 판정이 바뀐 시각을 읽어 24시간이 지난 실패도 이어서 센다) H2 의 결과는 바뀌지 않아 테스트가 그것을 보지 못한다
+- **`updated_at` 식의 `locked_until <> :now + 15m` 을 빼지 않는다.** MySQL 에서는 `updated_at` 식도 이번에 바뀐 `locked_until` 을 읽으므로, 이 절이 이번 시도가 막 잠근 행(→ `:now`)과 이미 잠긴 행(→ 그대로)을 가른다. 괄호 조건 `AND (locked_until <> :now + 15m OR updated_at = :now)` 전체가 없으면 H2 는 그대로 맞고 **MySQL 에서만 이번에 잠근 행이 옛 `updated_at` 을 지닌다**(예: `failed_count` 4, `updated_at = :now - 23h59m` 이면 잠긴 채 그 시각이 남는다). 그러면 정리 작업(아래)이 잠금 중인 행을 일찍 지울 수 있다 — 「오래된 행은 이미 풀렸다」 는 아래 문장이 이 절에 기댄다. 같은 초에 다른 시도가 잠근 행도 막 잠근 행으로 읽히지만 그 행의 `updated_at` 이 이미 `:now` 라 값이 같다. `OR updated_at = :now` 는 값으로는 군더더기다(빼도 결과가 같다) — 프로브가 잰 문장과 같게 둔다. 이 단락은 2026-11-23 `D-27` 리뷰의 시뮬레이터(MySQL 의 왼쪽 대입과 H2 의 옛 값 읽기를 흉내 내어 시작 행 442가지를 평가했다)로 확인한 것이다 — 그 변이를 DB 에서 재지는 않았다
+- **판정은 2) 의 행 읽기로 한다. 1) 의 영향 행 수로 판정하지 않는다.** 2026-11-23 프로브에서 mysql 클라이언트와 H2 는 새 행 1, 바뀐 행 2, 그대로 0 이었다. 앱이 쓰는 Connector/J 는 연결의 `CLIENT_FOUND_ROWS` 에 따라 그 값이 달라질 수 있고, 그 기본 설정에서의 값은 재지 않았다. 2) 는 1) 뒤 같은 트랜잭션에서 읽는다 — 1) 이 쥔 행 락 아래이고, 그 트랜잭션의 첫 일관 읽기라 1) 앞에 커밋된 잠금도 본다(MySQL 의 반복 읽기에서 스냅샷은 첫 일관 읽기 때 정해진다). 2026-11-23 프로브의 반복 읽기 측정에서 1) 이 행을 바꾸지 않은 뒤 2) 가 잠김을 본 시도가 312(동시 블록 310, 차례 경로 2), 잠기지 않은 행을 본 시도가 0 이었다(프로브의 Vd 블록 `result-Vd-091525.json`, 드라이버의 분류 `LOCKED_OTHER`·`NOOP_UNLOCKED`). 1) 앞에 같은 트랜잭션에서 그 행을 읽지 않는다. 1) 뒤에 행이 없으면 삼키지 않는다. `INSERT IGNORE` 는 쓰지 않는다 — 측정하지 않았다
+- **다시 하는 자리가 없다**(2026-11-23 `D-27`). 1) 은 그 키의 UNIQUE 충돌을 갱신으로 바꾸므로 같은 키의 동시 첫 실패가 UNIQUE 충돌(1062)을 내지 않고(프로브의 모든 케이스에서 0), 0행이면 행을 읽어 가르는 갈래가 없어 「0행인데 잠기지 않은 행」 도 생기지 않는다. 그래서 새 트랜잭션에서 한 번 더 하지 않는다. **1) 이 그래도 제약 위반을 내면 락 경합이 아닌 DB 실패다** — 아래 불릿대로 삼키지 않는다. 키가 비지 않고 100자 이하인 것은 부르는 쪽이 먼저 검사한다([requirements/member.md §12.1](requirements/member.md)의 1). 앞 판은 그 두 자리를 새 트랜잭션에서 한 번 더 했다 — 제약 위반이 JPA 트랜잭션을 rollback-only 로 만들 수 있어서였다([requirements/board.md §9.3](requirements/board.md)이 조회수 판정에서 같은 문제를 적었다)
+- **락 경합은 다시 하지 않는다**(2026-11-17 `D-22` — AU-18 의 구현에 맞췄다). 락 경합(예: MySQL 의 교착·잠금 대기 시간 초과)이면 로그인 응답은 `AU003` 그대로이고 **세지 못한 실패를 WARN 으로 남긴다.** **락 경합이 아닌 DB 실패는 삼키지 않는다**(예: 커넥션을 얻지 못함) — [conventions.md §6.1](conventions.md)의 마지막 그물이 500 `C005` 로 낸다. 삼키면 DB 가 실패하는 동안의 실패가 세지지 않은 채 보통의 실패 응답으로 나가, 잠금이 열리는 쪽으로 실패한다
+- **남는 교착 — 처음 넣은 트랜잭션이 되돌아갈 때.** 1) 로 새 키를 넣은 트랜잭션이 커밋하지 않고 되돌아가면 그 키를 기다리던 시도끼리 교착한다. 2026-11-23 세 연결 프로브에서 5/5 였고(반복 읽기·READ COMMITTED 같다), 처음 넣은 쪽이 커밋하면 0/5 였다. 1) 뒤에 되돌아가는 것은 2) 의 읽기나 커밋이 실패할 때다(예: 연결 끊김). 그 교착은 위 「락 경합」 이라 세지 않고 `AU003` 과 WARN 으로 끝난다 — 한계는 [security.md §11](security.md)
+- **1) 은 행이 있어 갱신할 때도 `AUTO_INCREMENT` 값을 하나 쓸 것으로 본다**(추정 — 재지 않았다. 잰 서버의 `innodb_autoinc_lock_mode` 는 2 였다). 그러면 `id` 에 빈 번호가 생긴다. `id` 는 `BIGINT` 다
+- **정리 작업(아래)의 지우기와 1) 이 같은 행에서 겹치는 경우는 재지 않았다**
 
-**오래된 행은 주기적으로 지운다**(`updated_at` 이 24시간보다 이른 행). 잠금은 15분이라 그 행은 이미 풀렸고, 1) 의 `CASE` 가 그 행을 1부터 다시 세므로 지운 행과 결과가 같다. 주기는 [tech-stack.md §4.7](tech-stack.md).
+> **앞 판의 순서는 MySQL 의 반복 읽기에서 동시 첫 실패끼리 교착했다 — 같은 키만이 아니다**(2026-11-23 `D-27`). 앞 판은 「없는 행을 찾는 1) 은 간격 락을 잡아 같은 키의 동시 첫 실패가 교착한다」 와 「`INSERT IGNORE`·`ON DUPLICATE KEY UPDATE` 로 판정하지 않는다. 쓰려면 실 MySQL 측정을 먼저 한다 — 영향 행 수가 H2 와 MySQL 에서 같다는 근거가 없다」 를 적었다. 이번 측정이 뒤의 문장을 바꿨다 — 그 문장을 쓰되 영향 행 수로 판정하지 않는다(위 불릿).
+>
+> - **2026-11-20 I-08**(`D-26`, 앱을 띄운 실 MySQL 의 반복 읽기): 같은 키의 동시 첫 실패가 `uk_login_attempt_email_key` 의 간격 락 뒤 insert intention 대기로 교착(1213)했다. 첫 실패에서만 났고, UNIQUE 충돌과 다시 하는 자리는 나지 않았다. 그 실패는 세지 않았다
+> - **2026-11-23 프로브**(앱의 SQL 과 트랜잭션 경계를 흉내 낸 다중 연결 드라이버, 같은 서버 8.0.46, 전역 반복 읽기, 동시 2·4·8·16 × 20회): 앞 판의 순서는 같은 새 키에서 동시 2·4·8 이면 회차마다 하나를 빼고 모두, 동시 16 이면 320 가운데 296 이 교착했다. **서로 다른 이메일 8개의 동시 첫 실패끼리도 160 가운데 140 이 교착했다** — 두 트랜잭션이 같은 다음 키 앞의 간격에 간격 X 락을 쥔 채 서로의 insert intention 을 기다렸다(교착 기록). 키가 인덱스의 같은 간격에 들면 이메일이 달라도 교착한다. 프로브의 키는 접두어가 같아 한 간격에 몰렸고, 실제 이메일의 분포에서 얼마나 나는지는 재지 않았다. 드라이버는 BCrypt 의 흔들림 없이 요청을 겹쳐 I-08 보다 교착이 잦았다
+> - **같은 측정에서 1) 의 한 문장은 모든 케이스에서 교착 0·UNIQUE 충돌 0·세지 못한 실패 0 이었다.** 한도 이상(동시 8·16)은 회차마다 잠금 한 번·`failed_count` 0 이었다. 행이 이미 있는 경우(24시간 안, 창이 지난 행, 잠금이 막 풀린 행)는 두 모양 모두 교착 0 이었다. 측정은 앱 밖이라 Connector/J·Hibernate 를 지나지 않았다 — 앱으로 다시 재는 자리는 I-13 이다([plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md))
+> - 버린 대안(그 트랜잭션만 READ COMMITTED, INSERT 먼저, 교착이면 다시 하기)과 그 이유는 [plan/phase1.md](plan/phase1.md)의 D-27 이 적는다
+
+**오래된 행은 주기적으로 지운다**(`updated_at` 이 24시간보다 이른 행). 잠금은 15분이고 잠근 행의 `updated_at` 은 잠근 시각이라(위 `updated_at` 식의 불릿) 그 행은 이미 풀렸고, 1) 의 `CASE` 가 그 행을 1부터 다시 세므로 지운 행과 결과가 같다. 주기는 [tech-stack.md §4.7](tech-stack.md).
 
 ## 3. sp_member (member-service 소유)
 

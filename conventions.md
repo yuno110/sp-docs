@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v28
-updated: 2026-11-20
+version: v29
+updated: 2026-11-23
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -254,9 +254,9 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 
 > **버린 대안**(2026-11-20 `D-25`). **로거 수준을 내린다** — 위 셋째 행. [requirements/board.md §9.3](requirements/board.md)의 블록인용이 이미 반대했다. **충돌을 내는 INSERT 를 Hibernate 밖(예: `JdbcTemplate`)으로 옮긴다** — 그 경로는 `SqlExceptionHelper` 를 지나지 않아 줄이 생기지 않지만, 한 엔티티의 쓰기가 두 갈래가 되고 B-20·B-21 이 고정한 충돌 분류(Hibernate 가 분류한 위반의 종류)와 `saveAndFlush` 의 근거를 다시 세워야 한다. 로그의 문제를 쓰기 경로를 바꿔 풀지 않는다. **한계로 적고 둔다** — 사용자가 2026-11-20 에 택하지 않았다.
 
-> **auth·member 는 이 결정의 범위 밖이다.** 두 서비스도 `DataIntegrityViolationException` 을 잡는 경로를 갖지만(2026-11-20 코드 읽기), 성격이 둘로 갈린다. **클라이언트 오류로 응답하는 충돌** — 가입의 `uk_account_email`(409 `AU002`), 닉네임 변경과 프로필 등록의 `uk_member_nickname`(409 `M003`) — 은 「정상 결과」 로 볼지부터 정해야 한다. **board 와 같이 정상 결과로 바꾸는 충돌** — 로그인 실패 카운터의 `uk_login_attempt_email_key`(다시 한다), 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`) — 은 같은 모양이지만 재지 않았고, 사용자 결정의 범위가 board 다. 같은 로거를 지나므로 같은 두 줄을 남길 것으로 본다(그때의 추정이다. 로그인 실패 카운터는 아래 측정에서 UNIQUE 충돌이 나지 않아 그 두 줄을 재지 못했고, 교착의 두 줄을 보았다). 넘긴 자리는 [plan/phase2-auth-member.md §5.3](plan/phase2-auth-member.md)이다.
+> **auth·member 는 이 결정의 범위 밖이다.** 두 서비스도 `DataIntegrityViolationException` 을 잡는 경로를 갖지만(2026-11-20 코드 읽기), 성격이 둘로 갈린다. **클라이언트 오류로 응답하는 충돌** — 가입의 `uk_account_email`(409 `AU002`), 닉네임 변경과 프로필 등록의 `uk_member_nickname`(409 `M003`) — 은 「정상 결과」 로 볼지부터 정해야 한다. **board 와 같이 정상 결과로 바꾸는 충돌** — 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`) — 은 같은 모양이지만 재지 않았고, 사용자 결정의 범위가 board 다. 같은 로거를 지나므로 같은 두 줄을 남길 것으로 본다(그때의 추정이다). **로그인 실패 카운터의 `uk_login_attempt_email_key` 는 2026-11-23 `D-27` 부터 이 갈래에 들지 않는다** — 세는 문장이 그 키의 충돌을 갱신으로 바꿔 UNIQUE 충돌을 내지 않고, 그래도 나면 다시 하지 않고 실패로 드러낸다([domain-model.md §2.5](domain-model.md)). 앞 판은 그것을 「다시 한다」 로 이 갈래에 적었고, 아래 측정에서 그 충돌은 나지 않았다. 넘긴 자리는 [plan/phase2-auth-member.md §5.3](plan/phase2-auth-member.md)이다.
 >
-> **로그인 실패 카운터는 2026-11-20 I-08 이 실 MySQL 에서 쟀다**(`D-26`). 같은 키의 동시 첫 실패에서 UNIQUE 충돌(1062)은 없었고 교착(1213)이 났다. 교착마다 그 로거가 WARN `SQL Error: 1213, SQLState: 40001` 과 ERROR `Deadlock found when trying to get lock; try restarting transaction` 을 남겼고, `LoginAttemptService` 가 세지 못한 실패의 WARN 을 남겼다. 그 ERROR 는 위 표의 규칙을 auth 에 넓혀도 버리지 않는 「다른 SQL 오류」 다 — 위 표의 필터는 board 의 것이고 auth 에는 없다. 세지 못한 실패라 [security.md §11](security.md)의 한계로 적었다.
+> **로그인 실패 카운터는 2026-11-20 I-08 이 실 MySQL 에서 쟀다**(`D-26`). 같은 키의 동시 첫 실패에서 UNIQUE 충돌(1062)은 없었고 교착(1213)이 났다. 교착마다 그 로거가 WARN `SQL Error: 1213, SQLState: 40001` 과 ERROR `Deadlock found when trying to get lock; try restarting transaction` 을 남겼고, `LoginAttemptService` 가 세지 못한 실패의 WARN 을 남겼다. 그 ERROR 는 위 표의 규칙을 auth 에 넓혀도 버리지 않는 「다른 SQL 오류」 다 — 위 표의 필터는 board 의 것이고 auth 에는 없다. 세지 못한 실패라 [security.md §11](security.md)의 한계로 적었다. **`D-27` 이 그 교착을 고친다**(2026-11-23, 코드는 AU-23, 앱의 재측정은 I-13 — [plan/phase2-auth-member.md](plan/phase2-auth-member.md), [plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md)). 고친 뒤에도 같은 키를 처음 넣은 트랜잭션이 되돌아가면 교착이 남고([domain-model.md §2.5](domain-model.md)), 그때도 같은 세 줄 — 그 로거의 WARN·ERROR 와 `LoginAttemptService` 의 WARN — 이 남을 것으로 본다(추정 — 그 경우를 잰 프로브는 앱 밖이라 로그를 보지 않았다).
 
 ## 9. 테스트
 
