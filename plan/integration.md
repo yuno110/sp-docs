@@ -2,8 +2,8 @@
 title: 통합 검증
 type: plan
 status: living
-version: v26
-updated: 2026-11-20
+version: v27
+updated: 2026-11-24
 read_when: "1차 개별 작업이 끝나고 세 서비스를 함께 검증할 때"
 related: [phase1.md, ../nfr.md, ../architecture.md]
 ---
@@ -217,7 +217,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 | 500 응답 본문 | **세 서비스 모두** 스택트레이스 없음. **500 은 유도해야 한다** — 아래 블록인용에 수단이 있다 |
 | **세 서비스의 로그 수준** | 클라이언트 오류는 `ERROR`가 **아니고** 마지막 그물은 `ERROR`다 ([../conventions.md §6.1](../conventions.md)). **`GlobalExceptionHandler` 가 남긴 줄로 센다** — 전체 로그로 세면 틀린다(Hibernate 의 `SqlExceptionHelper` 가 `ERROR` 를 따로 낸다. I-04 리뷰 실측). **절대 수치는 요청 집합에 따라 달라지므로 재현 대상이 아니다** — 두 극이 핸들러 단위로 성립하는지만 본다. **auth 는 이 단언을 자기 테스트에 갖지 않으므로 여기가 유일한 게이트다** |
 
-> **"세 서비스" 를 요구하는 네 줄 중 셋은 1차에 경로가 두 서비스에 없었다. 1차 I-04 실측이고 구현 차이가 아니다.** 2차에서 그 셋 모두 경로가 생겼다 — auth 의 페이징 응답과 `C002`(AU-20), board 의 필수 파트(B-23). member 에는 여전히 페이징 응답이 없다(M-16 의 일괄 조회는 배열이다). **아래 세 줄의 수치와 「없다」 는 1차 시점의 값이다**(2026-11-20 `D-26`, 근거 I-10). 완료 기준을 다시 쓸 때 **먼저 그 경로가 존재하는지 본다** — 없는 경로를 요구하면 측정이 불가능하거나, 소스 비교를 "충족" 으로 적는 공허한 충족이 된다.
+> **"세 서비스" 를 요구하는 네 줄 중 셋은 1차에 경로가 두 서비스에 없었다. 1차 I-04 실측이고 구현 차이가 아니다.** 2차에서 그 셋 모두 경로가 생겼다 — auth 의 페이징 응답과 `C002`(AU-20), board 의 필수 파트(B-23). member 에는 여전히 페이징 응답이 없다(M-16 의 일괄 조회는 배열이다). **아래 네 줄의 수치와 「없다」 는 1차 시점의 값이다**(2026-11-20 `D-26`, 근거 I-10. 넷째 줄은 위 「네 줄 중 셋」 에 들지 않지만 그 「없다」 도 1차 시점이다 — 2026-11-24 `D-29` 가 「세 줄」 을 고쳤다). 완료 기준을 다시 쓸 때 **먼저 그 경로가 존재하는지 본다** — 없는 경로를 요구하면 측정이 불가능하거나, 소스 비교를 "충족" 으로 적는 공허한 충족이 된다.
 >
 > - **페이징 응답**: 1차의 auth·member 에 목록 엔드포인트가 **없었다**(1차 I-04 실측. auth 의 계정 목록은 2026-11-11 `D-19` 가 설계했고 [AU-20](phase2-auth-member.md)이 2026-11-19 에 만들었다. member 는 [M-16](phase2-auth-member.md)의 일괄 조회가 있지만 페이징 응답이 아니다 — 2차의 비교는 [I-10](phase2-frontend-integration.md)). 매핑 전수(auth 8개·member 7개)에 목록 핸들러가 없고, **`PageResponse` 가 두 저장소에서 자기 파일 밖 사용처가 0건**이다(board 는 6곳). **"지금 없다" 까지만 확인됐다** — 목록이 생기는 것을 막는 테스트나 빌드 규칙은 **없다**(auth 테스트 21개·member 15개에 가드가 없고, member 의 라우팅 단언은 `/internal` 아래만 못박는다). 이 줄의 「지금」 은 1차 시점이다
 > - **`C002`(타입 불일치)**: 1차의 auth 는 두 컨트롤러에 `@PathVariable` 이 **0개**이고 `@RequestParam` 하나가 `String` 이다. `@RequestHeader`·`@CookieValue`·`@RequestPart`·`@ModelAttribute`·`@MatrixVariable`·`@RequestAttribute`·`@SessionAttribute` 가 **전부 0개**이고 커스텀 `Converter`·`Formatter`·`@InitBinder` 도 없다 — **변환 지점이 하나도 없다**(1차 I-04 실측. 2차의 auth 계정 목록은 `page`·`size`·`sort`·`role`·`deleted` 의 바인딩 실패를 400 `C002` 로 낸다([../api-contract.md §2.5](../api-contract.md)) — 2026-11-20 [I-10](phase2-frontend-integration.md)이 다섯 지점 모두에서 쟀다). `GET /accounts/abc` 는 매핑이 없어 **404 `C004`** 다. 노린 요청 10가지가 하나도 닿지 않았고 **member·board 에서는 쉽게 닿는다**(대조군). **"지금 없다" 까지만 확인됐다** — 1차 시점의 「지금」 이다
@@ -233,7 +233,7 @@ JVM 시간대는 실행 환경이 정한다([../adr/0011](../adr/0011-timezone-f
 >
 > **Claim 계약 위반 토큰은 셋 다 401 `A002` 이고 본문이 바이트 동일이다(각 119바이트). 갈리는 것은 `Content-Type` 하나다** — member 만 `application/json;charset=UTF-8` 이고 auth·board 는 `application/json` 이다. 집행 층이 달라서다(member 는 디코더 → `SecurityErrorResponder`, auth·board 는 리졸버 → `GlobalExceptionHandler`. 로그가 그것을 보여 준다 — member 만 `business exception: A002` 를 남기지 않는다). 쓰레기 토큰은 **셋 다** `charset=UTF-8` 이다. 검증표가 응답으로만 비교하라고 했고 상태·본문이 같으므로 결함이 아니다. **2차에도 같은 종류다** — 2026-11-20 I-10 에서 세 서비스의 필터가 낸 401·403 은 `application/json;charset=UTF-8`, 핸들러의 응답은 `application/json` 이었다(`D-26`). **대조군 토큰을 먼저 쳐서 서명 체계가 유효함을 고정한다** — 그러지 않으면 뒤의 401 이 서명 문제인지 claim 문제인지 가를 수 없다.
 >
-> **`role` 이 "있지만 열거 밖인 값" 이면 갈린다 — I-04 리뷰 실측이다.** auth 401 `A002` · member 200 · board 200. 소스가 갈림을 설명한다(auth 만 `Role.valueOf`, member·board 는 `hasText`). 검증표가 요구하는 것은 **누락** 두 경우이고 그 둘은 일치했으므로 이 항목의 미충족은 아니지만, **계약 밖 토큰이 두 서비스를 통과하는 것은 발견이다.** 권한 상승은 아니다 — 자세한 것은 [../tech-stack.md §2.1](../tech-stack.md)이 갖는다. **값 검증을 어디에 둘지는 별 항목이 결정한다.**
+> **`role` 이 "있지만 열거 밖인 값" 이면 갈렸다 — I-04 리뷰 실측이다.** auth 401 `A002` · member 200 · board 200. 소스가 갈림을 설명했다(auth 만 `Role.valueOf`, member·board 는 `hasText`). 검증표가 요구하는 것은 **누락** 두 경우이고 그 둘은 일치했으므로 이 항목의 미충족은 아니지만, **계약 밖 토큰이 두 서비스를 통과한 것은 발견이었다.** 권한 상승은 아니었다 — 자세한 것은 [../tech-stack.md §2.1](../tech-stack.md)이 갖는다. **값 검증을 어디에 둘지는 별 항목이 결정한다** 고 적었다. 그 뒤 D-02 가 2026-10-18 에 거부로 정했고 `M-12`(sp-member `bfc835f`)·`B-12`(sp-board `c9b5bb4`)가 맞췄다 — 셋 다 401 `A002` 다([../tech-stack.md §2.1](../tech-stack.md), 2026-11-24 `D-29`).
 >
 > **`ApiResponse` 모양이 아닌 에러 응답이 세 서비스에 공통으로 둘 있다. I-04 리뷰 실측이고 결함이 아니다 — 셋이 대칭이다.** 하나는 `/error`(Spring Boot 기본 모양, `status:999`), 다른 하나는 **쿼리에 `[` 를 넣는 등 Spring 에 닿기 전에 컨테이너가 자르는 요청**으로 **435바이트 HTML**(`text/html;charset=utf-8`, 상태 줄만)이다. 둘 다 누출이 없다(스택트레이스·SQL·호스트명 0건). **이 경계를 적어 두는 이유는 "세 서비스의 에러 응답 구조가 동일하다" 를 `ApiResponse` 로만 읽으면 그 밖이 보이지 않기 때문이다.**
 

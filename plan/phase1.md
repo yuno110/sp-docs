@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v81
-updated: 2026-11-23
+version: v82
+updated: 2026-11-24
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -3005,7 +3005,7 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | --- | --- |
 | 저장소 | `yuno110/sp-docs` |
 | 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `I-08`·`I-09`·`I-10`([phase2-frontend-integration.md](phase2-frontend-integration.md))이 2026-11-20 에 쟀다. 근거는 sp-board `0d5ac03`(I-08)·`9fdb8b1`(I-09)·`9300000`(I-10) 의 커밋 메시지와 I-10 의 독립 리뷰 1라운드(정본 후보 표 C1~C17)다 |
-| 참조 | 1단계 — [../requirements/member.md §2.0](../requirements/member.md)·§7·§11·§12, [../api-contract.md §4.1](../api-contract.md), [../tech-stack.md §4.1](../tech-stack.md)·§4.6·§4.7, [../domain-model.md §2.5](../domain-model.md), [../security.md §10.1](../security.md)·§11·§12, [../nfr.md §2](../nfr.md)·§3, [../conventions.md §8.1](../conventions.md), [phase2-auth-member.md §5.3](phase2-auth-member.md). 2단계 — [../conventions.md §6.1](../conventions.md), [../api-contract.md §2.3](../api-contract.md)·§2.5·§4.1·§8.1, [../tech-stack.md §4.5](../tech-stack.md), [../security.md §1.1](../security.md), [integration.md](integration.md) I-04, [phase2-frontend-integration.md](phase2-frontend-integration.md) I-10·§5, [phase2-board.md §4.3](phase2-board.md) |
+| 참조 | 1단계 — [../requirements/member.md §2.0](../requirements/member.md)·§7·§11·§12, [../api-contract.md §4.1](../api-contract.md), [../tech-stack.md §4.1](../tech-stack.md)·§4.6·§4.7, [../domain-model.md §2.5](../domain-model.md), [../security.md §10.1](../security.md)·§11·§12, [../nfr.md §2](../nfr.md)·§3, [../conventions.md §8.1](../conventions.md), [phase2-auth-member.md §5.3](phase2-auth-member.md), [phase2-board.md §4.3](phase2-board.md). 2단계 — [../conventions.md §6.1](../conventions.md), [../api-contract.md §2.3](../api-contract.md)·§2.5·§4.1·§8.1, [../tech-stack.md §4.5](../tech-stack.md), [../security.md §1.1](../security.md), [integration.md](integration.md) I-04, [phase2-frontend-integration.md](phase2-frontend-integration.md) I-10·§5, [phase2-board.md §4.3](phase2-board.md) |
 
 **오케스트레이터가 2026-11-20 에 열었다. 실측으로 확인된 사실을 정본에 맞추는 개정이고, 동작을 바꾸는 결정은 하지 않는다.** 코드나 마이그레이션을 바꿔야 풀리는 것은 고치는 항목을 세우지 않고, 해당 계획의 「넘기는 것」 절에 후속 후보로 적는다 — 무엇이 왜 남는지를 근거와 함께 적는다. **두 단계로 나눈다** — 1단계는 auth·member·메일, 2단계는 공통 응답·CORS·[integration.md](integration.md)의 I-04 다.
 
@@ -3044,8 +3044,9 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 - [../domain-model.md §2.5](../domain-model.md) — 콜레이션의 읽은 값, 동시 첫 실패의 교착
 - [../security.md](../security.md) — §10.1 의 콜레이션 괄호, §11 의 「동시 시도」 행, §12 의 「한 토큰을 두 번」·「응답이 계정의 존재를」 행
 - [../nfr.md](../nfr.md) — §2 의 SMTP 문단, §3 의 대기열 행
-- [../conventions.md §8.1](../conventions.md) — auth·member 블록인용에 로그인 실패 카운터의 측정
+- [../conventions.md §8.1](../conventions.md) — auth·member 블록인용에 로그인 실패 카운터의 측정, 그 블록인용의 추정에 시점 표지(리뷰 반영)
 - [phase2-auth-member.md §5.3](phase2-auth-member.md) — D-25 줄의 측정과 후속 후보
+- [phase2-board.md §4.3](phase2-board.md) — 콜레이션의 `keyword` 줄
 - [../docs/checklist.md](../docs/checklist.md) — `D-26` 줄, 그 파일 머리의 범위 표기와 출처 문단
 
 **산출물(2단계)**
@@ -3056,8 +3057,6 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 - [integration.md](integration.md) — I-04 의 완료 기준·검증표·블록인용에 1차 시점과 2차 경로(C3~C8), `Content-Type` 문단에 2차 관측(C15)
 - [phase2-frontend-integration.md](phase2-frontend-integration.md) — I-10 완료 기준 4 의 ADMIN 토큰 수단(C17), §5 의 화면 동작 항목(C16)과 `max-swallow-size` 안내 항목
 - [phase2-auth-member.md §5.3](phase2-auth-member.md) — 403 의 모양(C10)·대소문자(C14) 후보
-- [phase2-board.md §4.3](phase2-board.md) — 콜레이션의 `keyword` 줄(1단계 보충)
-- [../conventions.md §8.1](../conventions.md) — auth·member 블록인용의 추정에 시점 표지(1단계 보충)
 
 **코드 저장소는 고치지 않는다.**
 
@@ -3233,6 +3232,125 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | sp-docs 를 「앞 토큰」·「앞 행」·「마지막 메일」·「마지막으로 받은」·`queue-capacity`·「두 칸」·「대기열」·「실행기」·「발송 작업」·「발급 작업」·「받은 링크」·「버림」·「mail task discarded」·「계정 id 상한」 으로 훑는다 | 발급이 앞 토큰을 지운다고, 실행기·대기열이 하나라고, 버림 WARN 이 id 없이 남는 것이 정본의 동작이라고, 고칠지 정하지 않았다고 읽히게 하는 현재형 문장이 없다 |
 | AU-24 의 검증표·변이 표와 I-14 의 검증표를 정본 §11.1·§11.5 와 나란히 읽는다 | 기대가 같다 |
 | 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-23 이다 |
+
+### D-29 2차 측정(I-13·I-14)과 AU-24 리뷰가 남긴 정본·계획의 문구 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `I-13`·`I-14`([phase2-frontend-integration.md](phase2-frontend-integration.md))가 2026-11-23·2026-11-24 에 쟀고, `AU-24`([phase2-auth-member.md](phase2-auth-member.md))의 독립 리뷰 1라운드가 2026-11-24 에 쟀다. 근거는 sp-board `df3c72e`(I-13)·`87b953a`(I-14)·sp-auth `8050d0b`(AU-24) 의 커밋 메시지와 I-14·AU-24 의 리뷰다 |
+| 참조 | [../domain-model.md §2.4](../domain-model.md), [../conventions.md §8.1](../conventions.md), [phase2-auth-member.md](phase2-auth-member.md) 의 AU-24, [phase2-frontend-integration.md](phase2-frontend-integration.md) 의 I-13·I-14, [integration.md](integration.md) I-04, D-25·D-28 |
+
+**오케스트레이터가 2026-11-24 에 열었다. 동작을 바꾸지 않는 문서 개정이다** — D-26 과 같은 종류다. 세 단계로 나눈다 — 1단계는 아래 다섯, 2단계는 D-26 이 남긴 오래된 문서의 nit, 3단계는 sp-auth·sp-frontend 의 낡은 주석이다. 2·3단계의 내용은 그 단계가 이 절에 더한다.
+
+**1단계 — 측정과 리뷰가 드러낸 문구**
+
+1. **교착이 남기는 Hibernate 줄**(I-14 리뷰 F-1). 겹친 차례의 교착마다 `SqlExceptionHelper` 가 WARN `SQL Error: 1213, SQLState: 40001` 과 ERROR `Deadlock found when trying to get lock; try restarting transaction` 을 남겼다(6/6, `unhandled exception` 0). [../conventions.md §8.1](../conventions.md)의 I-08 블록인용이 이미 적은 줄이다. 그런데 [../domain-model.md §2.4](../domain-model.md)는 발송이 되돌려지는 갈래에 「WARN, 둘 다 둔다」 만, 확인이 되돌려지는 갈래에 「마지막 그물의 ERROR 한 줄」 만 적었고, AU-24 의 (b)·I-14 의 검증표가 같은 문구를 옮겼다. I-14 검증표의 「측정 동안의 ERROR 줄 0」 은 I-07·I-11·I-12·I-13 과 달리 로거를 가르지 않았다
+2. **겹친 지우기의 교착을 쟀다**(I-14 3단계). D-28 이 「RR 의 락 규칙으로 본 추론, 재지 않았다」 로 적은 확인의 지우기 ↔ 발송의 지우기 교착이 결정적 차례에서 인증 3·재설정 3 모두 났다. 6/6 발송의 지우기가 되돌려졌다 — 교착 기록의 무게가 발송 쪽 행 락 2·undo 0, 확인 쪽 인증 4·2, 재설정 6·3 이었다. 확인은 204 였고 이긴 확인이 새 행도 지워 두 링크 모두 400 `AU007` 이었다. 발송의 지우기는 `idx_account_token_account_purpose` 를 탔다. 확인이 되돌려지는 갈래와 정리와의 고리는 이 측정이 보지 않았다
+3. **「삼키면 204」**(AU-24 리뷰 minor-1). AU-24 의 (b)·변이 표는 확인의 지우기에서 난 락 예외를 삼키면 204 가 나간다고 적었다. 그것은 예외가 Hibernate 를 거치지 않을 때만 맞는다 — 테스트의 대역이 리포지터리 프록시 앞에서 던지는 경우다. 실제 락 예외는 Hibernate 가 트랜잭션을 rollback-only 로 표시해 삼켜도 커밋이 `UnexpectedRollbackException`(500)이 된다 — 리뷰가 H2 의 행 락으로 쟀다. sp-auth `8050d0b` 의 `AccountService` 주석은 이미 그렇게 고쳐졌다
+4. **변이 M3 의 문구**(AU-24 리뷰 6번). 변이 표는 「형이 `OutgoingMail` 을 구성 요소로 갖고 처리기가 `toString` 을 적는다」 였다. `OutgoingMail` 의 `toString` 은 AU-14 부터 계정 id·목적만 내므로 그 변이로는 새지 않는다 — 구현은 「형이 이메일·본문을 직접 갖는다」 로 바꿔 쟀고 리뷰가 동의했다. 같은 이유로 AU-24 의 「고치는 모양」 의 「record 가 `OutgoingMail` 을 구성 요소로 가지면 기본 `toString` 이 이메일과 본문의 링크를 낸다」 도 맞지 않았다
+5. **I-13 의 「`GlobalExceptionHandler` 의 줄 0」**(I-13 보고 §6). 그 핸들러는 업무 예외마다 WARN `business exception: <code>` 를 남겨 문자 그대로는 맞을 수 없다. I-13 은 「업무 예외가 아닌 줄(500 `C005` 등) 0」 으로 읽고 쟀다
+
+사실은 sp-board `df3c72e`·`87b953a`·sp-auth `8050d0b` 의 커밋 메시지, I-13·I-14 의 측정 보고(세션 scratchpad 의 `i13/report.md`·`i14/report.md`), I-14 의 독립 리뷰 1라운드(`review-i14/review1.md` 의 §4·F-1), AU-24 의 독립 리뷰 1라운드(`review-au24/review1.md` 의 minor-1·6번)와 변이 요약(`au24/mutation2-summary.txt`)으로 확인했다 — 2026-11-24 읽기, 저장소에 없다. `OutgoingMail` 의 `toString` 과 `AccountService` 의 주석은 sp-auth `3e012c2`·`8050d0b` 에서 읽었다. 이 항목은 실 MySQL 에 접속하지 않았다.
+
+**결정 — 문장만 실측에 맞춘다.** 재지 않은 갈래(확인이 되돌려지는 교착, 정리와의 교착, d 의 락 대기 시간 초과)는 추론이라 적고 지우지 않는다. **교착의 ERROR 줄을 거르는 필터(D-25 와 같은 종류)는 정하지 않는다** — I-14 리뷰가 권하지 않았다. 그 줄에는 경로를 가를 정보가 없어 거르면 잡지 않은 교착의 ERROR 까지 사라지고, [../conventions.md §8.1](../conventions.md)의 표 「교착 같은 다른 SQL 오류는 그대로 남긴다」 를 뒤집는다. 하려면 새 D 와 사용자 결정이 필요하다.
+
+**고치지 않은 자리.** D-28 절(위)은 그날의 기록이라 그대로 둔다 — 「값」 문단의 추정 괄호(「I-14 가 본다」)와 「남는 위험」 의 추론이다. 결과는 [../domain-model.md §2.4](../domain-model.md)·[../tech-stack.md §4.7](../tech-stack.md)·[../requirements/member.md §11.3](../requirements/member.md)이 갖는다. `done` 항목의 완료 기준에 있는 「I-14 가 잰다」(AU-24)·「I-13 이 잰다」(AU-23)는 정의 시점의 문장이라 그대로 둔다. I-13·I-14·AU-24 는 `done` 이라 판정을 뒤집지 않고, 고친 표·문장 뒤에 블록인용으로 무엇을 왜 고쳤는지 적는다. [../requirements/member.md §11.3](../requirements/member.md)과 [../tech-stack.md §4.7](../tech-stack.md)의 「발급 대기열은 DB 의 속도로 빠진다(추정 — I-14 가 본다)」 는 이 항목의 다섯 사실과 다른 사실이라 이 단계에서 고치지 않는다.
+
+**산출물(1단계)**
+- [../domain-model.md §2.4](../domain-model.md) — 확인의 지우기 줄의 괄호와 로그 괄호, I-14 의 실측 줄, 교착이 남기는 줄과 필터를 정하지 않은 이유
+- [phase2-auth-member.md](phase2-auth-member.md) — AU-24 의 「고치는 모양」 의 형 문단, (b), 변이 표의 두 줄, 끝의 블록인용과 그 뒤의 `D-29` 블록인용
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) — I-13 검증표의 핸들러 칸과 그 뒤의 블록인용, I-14 완료 기준의 겹친 차례 줄의 시점, 검증표의 d·겹친 차례·로그 줄과 그 뒤의 블록인용
+- [../docs/checklist.md](../docs/checklist.md) — `D-29` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**코드 저장소는 1단계에서 고치지 않는다.**
+
+**완료 기준(1단계)**
+- [ ] 위 다섯 사실이 각 자리에 시점과 근거와 함께 있다. 잰 것과 추론이 갈린다
+- [ ] 확인의 지우기 ↔ 발송의 지우기 교착의 추론 문장을 지우지 않고 I-14 의 실측을 덧붙인다
+- [ ] 「삼키면 204」 류 문장이 대역의 조건과 함께만 남고, sp-auth `8050d0b` 의 `AccountService` 주석과 맞는다
+- [ ] done 인 I-13·I-14·AU-24 의 판정을 뒤집지 않는다
+- [ ] 동작을 바꾸는 문장이 없고, 로거 필터를 정하지 않는다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증(1단계)**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 옮긴 수치와 문면을 sp-board `df3c72e`·`87b953a` 의 커밋 메시지, I-13·I-14 의 보고, I-14·AU-24 의 리뷰와 대조한다 | 맞는다 |
+| 고친 (b)·변이 표를 sp-auth `8050d0b` 의 `AccountService` 주석, `OutgoingMail` 의 `toString` 과 대조한다 | 맞는다 |
+| sp-docs 를 「마지막 그물의 ERROR」·`unhandled exception`·「삼키면」·「삼켜」·「RR 의 락 규칙」·「I-14 가 본다」·「I-14 가 잰다」·`OutgoingMail`·「`GlobalExceptionHandler` 의 줄」·「ERROR 줄」·`Deadlock found` 로 훑는다 | 교착이 ERROR 한 줄만 남긴다고, 겹친 지우기의 교착을 재지 않았다고, 삼키면 실제로 204 라고, `OutgoingMail` 을 가지면 샌다고 읽히게 하는 현재형 문장이 없다 |
+| 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-24 이다 |
+
+**2단계 — D-26 이 남긴 오래된 문서의 nit**
+
+세 계획의 「정본 개정으로 넘기는 것」 절([phase2-auth-member.md §5.3](phase2-auth-member.md), [phase2-board.md §4.3](phase2-board.md), [phase2-frontend-integration.md §5](phase2-frontend-integration.md))의 후보를 문서만 고치면 끝나는 것, 코드·마이그레이션이 필요한 것, 정책 결정이 필요한 것으로 갈랐다. **문서만 고치면 끝나는 것만 고친다.** 나머지 둘은 그 절에 그대로 남는다 — 무엇이 어느 쪽인지는 이 단계의 보고가 갖는다.
+
+6. **[integration.md](integration.md) I-04 의 「아래 세 줄」**(D-26 리뷰 n5). 그 블록인용의 글머리는 넷이고(페이징·`C002`·필수 파라미터·작성 응답의 시각), 넷째의 「없다」 도 1차 시점의 값이다
+7. **D-26 절의 산출물에 같은 문서가 두 번 나온다**(D-26 리뷰 n6). [../conventions.md §8.1](../conventions.md)이 산출물(1단계)과 산출물(2단계)의 「1단계 보충」 에 따로 있었고, [phase2-board.md §4.3](phase2-board.md)은 2단계 산출물에만 있고 1단계 참조에 없었다. 둘 다 1단계의 일이다
+8. **[../tech-stack.md §2.1](../tech-stack.md)의 블록인용이 `M-12`·`B-12` 를 `todo` 로 적었다**([phase2-board.md §4.3](phase2-board.md)의 넷째 후보). 두 항목은 열거 검사를 더했다(sp-member `bfc835f`·sp-board `c9b5bb4`). 같은 절의 집행 지점 표도 board 의 `role` 을 `hasText` 가드로만 적었다 — 지금 board 리졸버는 `ContractRole` 로 허용값을 본다(sp-board 의 `CurrentMemberArgumentResolver`, 2026-11-24 읽기). [../api-contract.md §6](../api-contract.md)의 `role` 검증 줄도 「아직 맞지 않았다 … `M-12`·`B-12` 가 맞춘다」 로 같은 낡음을 가졌다(훑기에서 찾았다)
+9. **「발급 대기열은 DB 의 속도로 빠진다(추정 — I-14 가 본다)」**([../requirements/member.md §11.3](../requirements/member.md), [../tech-stack.md §4.7](../tech-stack.md)). I-14 는 끝났지만 그 추정을 판정하는 조건(I-09 가 한 대기열을 채운 요청 속도)으로는 재지 않았다. 관련 관측은 둘이다 — 대기열 2칸의 측정에서 발송 스레드가 붙잡힌 지 0.27초 만에 대상 계정의 새 토큰 행이 생겼고, 운영값 100 에서 응답 시간을 재는 동안(요청 간격 20ms·300ms) 버림 WARN 이 0 이었다(I-14 보고의 1·2단계). 추정 표시는 남긴다
+
+**고치지 않은 것 — 2단계.** [../tech-stack.md §4.5](../tech-stack.md)의 업로드 한도(`max-request-size`·`max-swallow-size`)는 표가 정본 값으로 분류하지만 값(6MB·10MB)이 「예」 의 YAML 블록에만 있다. 그 값을 정본 값으로 올릴 근거(사용자 결정)가 정본에 없어 정책 결정으로 남긴다 — [phase2-board.md §4.3](phase2-board.md)의 그 후보는 그대로다. sp-frontend `client.ts` 의 낡은 주석([phase2-frontend-integration.md §5](phase2-frontend-integration.md)의 첫 후보)은 3단계의 몫이다.
+
+**산출물(2단계)**
+- [integration.md](integration.md) — I-04 블록인용의 「세 줄」 을 넷으로(6), 열거 밖 `role` 블록인용을 과거형으로 바꾸고 M-12·B-12 가 맞췄다고 덧붙인다(8, 2라운드 리뷰)
+- [phase1.md](phase1.md) — D-26 절의 참조(1단계)와 산출물 두 목록(7)
+- [../tech-stack.md](../tech-stack.md) — §2.1 의 블록인용(「권한 상승은 아니었다」·「고친 이유」 문단을 포함해 과거형으로, 지금의 판정 자리 셋을 덧붙임)과 집행 지점 표의 board 행(8), §4.7 의 `mail.executor.issue.queue-capacity` 행(9)
+- [../requirements/member.md §11.3](../requirements/member.md) — 「거르지 않는다」 줄의 추정 괄호(9)
+- [../api-contract.md §6](../api-contract.md) — `role` 검증 줄의 「아직 맞지 않았다」(8)
+- [phase2-board.md §4.3](phase2-board.md) — 넷째 후보 줄에 고친 자리(8)
+
+**완료 기준(2단계)**
+- [ ] 세 절의 후보마다 문서만·코드·결정 중 하나로 갈라 보고하고, 문서만 고치면 끝나는 것만 고친다
+- [ ] 상태 값을 체크리스트 밖에 적지 않는다 — 끝난 항목은 커밋으로 가리킨다([README.md](README.md)의 상태의 위치)
+- [ ] 9 의 추정을 판정하지 않는다 — 잰 조건과 관측만 적고 추정 표시를 남긴다
+- [ ] 1단계의 완료 기준 가운데 산문 규칙·「근거의 모양으로 훑는다」·`tools/check_refs.py` 를 이 단계에도 지킨다
+
+**검증(2단계)**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 8 을 sp-member `bfc835f`·sp-board `c9b5bb4` 의 커밋 메시지와 sp-board 의 `CurrentMemberArgumentResolver` 와 대조한다 | 맞는다 |
+| 9 를 I-14 보고의 1단계 c·2단계 로그 줄과 대조한다 | 맞는다 |
+| sp-docs 를 「`todo` 다」·「아직 맞지 않았다」·「I-14 가 본다」·「세 줄」·「1단계 보충」·`hasText`·「열거 밖」 으로 훑는다 | 끝난 항목을 `todo` 로, 끝난 측정을 앞으로 할 일로, 넷을 셋으로, 고쳐진 열거 밖 `role` 의 통과를 지금의 일로 읽히게 하는 문장이 없다(done 항목 정의 시점의 기록은 둔다) |
+| 2단계에서 처음 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-24 이다. 1단계에서 올린 문서(이 절이 있는 [phase1.md](phase1.md))는 다시 올리지 않는다 |
+
+**3단계 — 코드 저장소의 낡은 주석**
+
+동작을 바꾸지 않는다 — 주석만 고친다. 화면의 동작을 정본으로 올릴지([phase2-frontend-integration.md §5](phase2-frontend-integration.md)의 첫 후보)는 정책 결정이라 이 단계가 정하지 않는다.
+
+10. **sp-auth `AccountService` 가 발급을 「발송 실행기」 에 넘긴다고 적었다**(AU-24 리뷰). AU-24 뒤로 발급 작업은 발급 실행기(`mailIssueExecutor`)로 가고 발송 실행기는 SMTP 만 맡는다 — `AccountTokenIssuer.request` 가 발급 실행기에 넘긴다(2026-11-24 읽기). 재발송·비밀번호 재설정 요청의 javadoc 과 가입의 커밋 뒤 콜백 주석이 그랬다. 같은 모양으로 훑어 둘을 더 찾았다 — 메일 설정 클래스의 javadoc 이 실행기를 「발송 실행기」 하나로 적었고(지금 `global/config` 에 둘이 있다), 컨트롤러 테스트의 도우미 javadoc 둘이 가입·재설정이 넘긴 일을 「발송 실행기」 에 넘긴 것으로 적었다(그 도우미는 두 실행기를 다 비운다)
+11. **sp-frontend `client.ts` 의 `retryAfterOf` 주석이 「그 노출은 스텁으로 재지 못한다(I-10 이 잰다)」 로 끝났다**([phase2-frontend-integration.md §5](phase2-frontend-integration.md)의 첫 후보). I-10 은 2026-11-20 에 쟀다 — 직접 호출 모드의 화면(프로덕션 빌드)이 교차 출처 429 의 `Retry-After` 를 읽어 화면의 초가 그 값과 같았다([../security.md §1.1](../security.md)). 스텁으로 재지 못한다는 앞부분은 맞아 남긴다
+
+**산출물(3단계)**
+- sp-auth `AccountService.java` — 커밋 뒤 콜백 주석과 재발송·재설정 요청 javadoc 의 「발송 실행기」 를 발급 실행기로(10)
+- sp-auth `MailConfig.java` — javadoc 의 실행기를 발급·발송 실행기로(10)
+- sp-auth `AccountControllerTest.java` — 재설정 토큰을 꺼내는 도우미와 가입 뒤 기다리는 도우미의 javadoc(10)
+- sp-frontend `src/lib/api/client.ts` — `retryAfterOf` 주석의 I-10 괄호를 잰 날짜와 관측으로(11)
+- [phase2-frontend-integration.md §5](phase2-frontend-integration.md) — 첫 후보 줄에 고친 자리(11)
+- [phase1.md](phase1.md) — 이 절의 3단계
+
+**완료 기준(3단계)**
+- [ ] 코드 저장소에서 주석과 javadoc 만 바뀐다 — 실행되는 줄은 그대로다
+- [ ] sp-auth 에서 「발송 실행기」 가 발급 작업을 가리키는 주석이 남지 않는다
+- [ ] 화면의 동작을 정본으로 올릴지 정하지 않는다
+- [ ] 1단계의 완료 기준 가운데 산문 규칙·`tools/check_refs.py` 를 이 단계에도 지킨다
+
+**검증(3단계)**
+
+| 확인 | 기대 |
+| --- | --- |
+| sp-auth `.\gradlew.bat compileJava compileTestJava --no-daemon -q` | 종료 코드 0. 저장소 루트에 `hs_err`·`replay` 파일이 생기지 않는다 |
+| sp-frontend `pnpm typecheck` | 종료 코드 0 |
+| 세 저장소의 `git diff --cached` | 바뀐 줄이 모두 주석·javadoc·문서다 |
+| sp-auth 를 「발송 실행기」 로 훑는다 | 남은 자리는 모두 SMTP 를 맡는 실행기를 가리킨다 |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 3단계에서 고친 문서의 front matter | 1·2단계에서 올린 문서([phase1.md](phase1.md)·[phase2-frontend-integration.md](phase2-frontend-integration.md))는 다시 올리지 않는다 |
 
 ---
 ## 7. 다음 단계
