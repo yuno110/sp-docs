@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v82
+version: v83
 updated: 2026-11-24
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -3351,6 +3351,62 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | sp-auth 를 「발송 실행기」 로 훑는다 | 남은 자리는 모두 SMTP 를 맡는 실행기를 가리킨다 |
 | `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
 | 3단계에서 고친 문서의 front matter | 1·2단계에서 올린 문서([phase1.md](phase1.md)·[phase2-frontend-integration.md](phase2-frontend-integration.md))는 다시 올리지 않는다 |
+
+### D-30 업로드 한도(`max-request-size`·`max-swallow-size`)의 값을 정본 값으로 올린다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 근거는 사용자의 2026-11-24 결정이다. 공백은 `D-20` 이 [phase2-board.md §4.3](phase2-board.md)의 후보와 B-15 산출물의 괄호로 적었고, 위 D-29 절의 「고치지 않은 것 — 2단계」 가 정책 결정으로 남겼다 |
+| 참조 | [../tech-stack.md §4.5](../tech-stack.md)·§4.3, [phase2-board.md](phase2-board.md) 의 B-15·§4.3, [phase2.md §5.1](phase2.md), [../security.md §5.1](../security.md), D-18·D-29 |
+
+**사용자가 2026-11-24 에 정했다. 동작을 바꾸지 않는 문서 개정이다** — 값을 바꾸지 않고, 그 값이 정본의 어느 자리에 있는지를 바꾼다.
+
+**무엇이 갈려 있었나.** [../tech-stack.md §4.5](../tech-stack.md)의 표는 `spring.servlet.multipart.max-request-size`·`server.tomcat.max-swallow-size` 를 정본 값으로 분류했지만 요건 칸에 값이 없었다. 값(6MB·10MB)은 「예(`application.yml`)」 로 소개한 YAML 블록에만 있었다 — 2026-11-11 `D-18` 이 그 블록에 적은 값이다. 같은 표의 `max-file-size` 는 2026-11-11 의 사용자 결정(「개당 5MB」, [phase2.md §5.1](phase2.md))이라 요건 칸에 **5MB** 로 굵게 있다. B-15 는 블록의 값을 썼고, sp-board `src/main/resources/application.yml` 의 두 키는 지금 6MB·10MB 다(그 줄을 넣은 커밋은 `141bc47`, 2026-11-24 읽기). 그래서 값을 그대로 올리면 동작이 바뀌지 않는다.
+
+**결정**(사용자 2026-11-24) — [../tech-stack.md §4.5](../tech-stack.md)의 업로드 한도 값을 정본 값으로 올린다. `max-request-size` 는 **6MB**, `max-swallow-size` 는 **10MB** 다. 블록에 있던 값 그대로다.
+
+**이 항목이 정한 것**
+- 표의 두 요건 칸에 값을 굵게 적고 결정의 날짜를 단다. 블록은 예로 남긴다 — 블록을 소개하는 문장이, 값의 정본은 표이고 블록의 값은 그와 같다는 것과 블록의 `${…}` 는 값이 아니라 기본값을 두지 않는 정책값·비밀값을 환경변수로 받는 자리라는 것(§4.3)을 가른다. 블록의 주석은 업로드 한도마다 같은 「사용자 결정」 을 단다 — 앞 판은 개당 한도에만 달았다
+- 근거를 더하지 않는다. 6MB 는 블록 주석의 「파일 하나 + multipart 머리」 를 표의 「요청 하나에 파일 하나이므로 개당 한도보다 조금 크게 둔다」 뒤에 괄호로 적는다. 10MB 는 표가 적던 쓰임(한도를 넘은 요청의 나머지 본문을 읽어 버리는 양, 큰 사진을 실수로 고른 사용자가 413 을 받게 하려는 값) 그대로다 — 그 수를 고른 계산은 `D-18` 이 적지 않았고 이 항목도 지어 넣지 않는다
+
+**함께 고친 것 — [../security.md §5.1](../security.md)의 `LoginMember` 블록인용.** 「`M-12`·`B-12` 가 두 저장소에서 각각 고친다」 는 끝난 일이었다. 두 항목은 2026-10-18 에 javadoc 의 「권한 판정은 `RoleClaimConverter` 가 만든 `GrantedAuthority` 로 한다」 를 고쳤다 — member 는 「이 값으로 권한을 판정하는 자리가 member 에 없다」 로(sp-member `bfc835f`), board 는 Service 계층의 `role` 문자열 비교로(sp-board `c9b5bb4`). member 의 그 문장은 2026-11-16 `M-16`(sp-member `bf499f7`)이 프로필 일괄 조회(ADMIN)의 판정을 더하며 문자열 비교로 바꿨다. 지금 두 javadoc 은 판정을 `role` 문자열의 비교로 적고 `GrantedAuthority` 로 판정하지 않는다고 적는다. 그 문장을 과거형으로 바꾸고 이 사실을 읽은 날과 함께 덧붙였다.
+
+사실은 sp-board `src/main/resources/application.yml` 과 `141bc47` 의 이력, sp-docs `8f0a7c6`(`D-18`)이 블록·표에 적은 줄, sp-member `bfc835f`·`bf499f7` 과 sp-board `c9b5bb4` 의 `LoginMember` diff 와 커밋 메시지, 두 저장소의 지금 `LoginMember` 로 확인했다 — 2026-11-24 읽기.
+
+**고치지 않은 자리.** 위 D-29 절의 「고치지 않은 것 — 2단계」 는 그날의 기록이라 그대로 둔다 — 그날 정본에 사용자 결정이 없었던 것은 사실이고, 지금의 값은 [../tech-stack.md §4.5](../tech-stack.md)가 갖는다. [phase2.md §5.1](phase2.md)의 사용자 결정 표(2026-11-11)에 이 결정을 더하지 않는다 — 그날의 결정 기록이다. 다만 그 아래 「두 표에 없는 값은 `D-18` 이 정했다」 문단은 지금도 적용되는 규칙(사용자 결정이 아니므로 정본 개정으로 바꾼다)이라, 두 값이 그 밖이라는 것을 덧붙였다. D-18 절의 「사용자가 정하지 않은 값은 … [phase2.md §5.1](phase2.md)이 가른다」 는 그날의 기록이라 둔다. B-15 의 완료 기준 「multipart·Tomcat 설정이 [../tech-stack.md §4.5](../tech-stack.md)의 값이다」 는 값이 같아 그대로 참이다. [phase2-frontend-integration.md §5](phase2-frontend-integration.md)의 「`max-swallow-size` 를 넘는 업로드의 화면 안내」 는 다른 후보다 — 이 항목은 값의 자리를 정할 뿐 화면의 안내를 정하지 않는다.
+
+**산출물**
+- [../tech-stack.md §4.5](../tech-stack.md) — 블록을 소개하는 문장, 블록의 두 주석, 표의 `max-request-size`·`max-swallow-size` 행
+- [phase2-board.md](phase2-board.md) — B-15 산출물의 괄호, §4.3 의 후보 줄
+- [phase2.md §5.1](phase2.md) — 「두 표에 없는 값」 문단의 덧붙임
+- [../security.md §5.1](../security.md) — `LoginMember` javadoc 블록인용의 끝 문장
+- [phase1.md](phase1.md) — 이 절
+- [../docs/checklist.md](../docs/checklist.md) — `D-30` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**코드 저장소는 고치지 않는다.**
+
+**완료 기준**
+- [ ] [../tech-stack.md §4.5](../tech-stack.md)의 표가 `max-request-size`·`max-swallow-size` 의 값을 요건 칸에 굵게 적고, 2026-11-24 `D-30` 의 사용자 결정임을 적는다
+- [ ] 표의 값이 같은 절의 블록, sp-board `src/main/resources/application.yml` 의 값과 같다 — 동작이 바뀌지 않는다
+- [ ] 블록을 소개하는 문장이 값의 정본(표)과 예(블록)를 가르고, `${…}` 를 정본 값과 섞지 않는다
+- [ ] 6MB 의 근거(파일 하나 + multipart 머리)가 남고, 정본에 없던 근거를 더하지 않는다
+- [ ] [phase2-board.md §4.3](phase2-board.md)의 후보 줄이 끝난 후보의 문체(`D-29` 가 고친 바로 앞 후보)로 남고, B-15 산출물의 괄호가 갈림을 지난 일로 적는다
+- [ ] 위 D-29 절의 「고치지 않은 것 — 2단계」 를 고치지 않고, 이 절이 그것을 가리킨다
+- [ ] [../security.md §5.1](../security.md)의 블록인용이 `M-12`·`B-12` 를 끝난 일로 적고 두 저장소의 커밋과 지금의 `LoginMember` javadoc 에 맞는다. 상태 값이 아니라 커밋으로 가리킨다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 표의 두 값을 같은 절의 블록, sp-board `src/main/resources/application.yml` 과 대조한다 | 같다 |
+| [../security.md §5.1](../security.md)의 고친 문장을 sp-member `bfc835f`·`bf499f7`, sp-board `c9b5bb4` 의 `LoginMember` diff 와 두 저장소의 지금 `LoginMember` 와 대조한다 | 맞는다 |
+| sp-docs 를 `6MB`·`10MB`·`max-request-size`·`max-swallow-size`·「예시인지」·「블록에만」·「multipart 한도」·「업로드 한도」·「사용자 결정이 아니」·「정책 결정으로 남긴다」·「각각 고친다」 로 훑는다 | 두 값을 예에만 있는 것으로, 정하지 않은 것으로, 사용자 결정이 아닌 것으로, `M-12`·`B-12` 의 javadoc 수정을 앞으로 할 일로 읽히게 하는 현재형 문장이 없다(날짜가 박힌 그날의 기록은 둔다) |
+| 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-24 이다 |
 
 ---
 ## 7. 다음 단계

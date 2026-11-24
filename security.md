@@ -2,8 +2,8 @@
 title: 보안 설계
 type: explanation
 status: living
-version: v26
-updated: 2026-11-23
+version: v27
+updated: 2026-11-24
 read_when: "인증·인가를 구현하거나, JWT 키를 다루거나, 권한 검증 위치를 정할 때"
 related: [api-contract.md, adr/0004-rs256-over-hs256.md, tech-stack.md]
 ---
@@ -287,7 +287,7 @@ boolean ok = (account != null)
 >
 > **이 행의 v21 까지는 「member 는 이 판정을 갖지 않는다 — §5.2 의 매트릭스에서 ADMIN 으로 갈리는 것이 전부 board 기능이다」 였다.** 그때 참이었다. 2026-11-11 `D-19` 가 MR-13 을 auth·member 에 두면서 두 서비스가 같은 방식의 판정을 갖게 됐다 — 수단(Claim 의 `role` 값으로 판정하고 `GrantedAuthority` 를 쓰지 않는다)은 바뀌지 않는다. auth 의 `LoginAccount.role` 은 `Role` enum 이고 member·board 는 문자열이라 비교의 모양이 다르다. **새 판정도 「`ADMIN` 과 같을 때만 허용」 의 모양으로 적는다** — 모르는 값이 허용 분기로 가지 않게 하는 이유는 [tech-stack.md §2.1](tech-stack.md)이 적는다.
 >
-> **이 행의 앞 판이 "`role` claim 기반 `GrantedAuthority` — member·board가 갖는다" 였다. 두 겹으로 틀렸다** — 판정 수단이 `GrantedAuthority` 가 아니고(문자열 비교다), 그때 member 는 그 판정을 갖지 않았다. **member·board 의 `LoginMember` javadoc 이 그 틀린 문장을 옮겨 적었다** — `M-12`·`B-12` 가 두 저장소에서 각각 고친다(거짓의 종류가 다르다).
+> **이 행의 앞 판이 "`role` claim 기반 `GrantedAuthority` — member·board가 갖는다" 였다. 두 겹으로 틀렸다** — 판정 수단이 `GrantedAuthority` 가 아니고(문자열 비교다), 그때 member 는 그 판정을 갖지 않았다. **member·board 의 `LoginMember` javadoc 이 그 틀린 문장을 옮겨 적었다** — 2026-10-18 에 `M-12`(sp-member `bfc835f`)·`B-12`(sp-board `c9b5bb4`)가 두 저장소에서 각각 고쳤다. 거짓의 종류가 달랐다 — member 는 판정이 없었고, board 는 판정이 있되 수단이 틀렸다. member 의 판정은 뒤에 프로필 일괄 조회(ADMIN)가 더했고 그 javadoc 도 그때 바뀌었다(`M-16`, sp-member `bf499f7`). 지금 두 javadoc 은 판정을 `role` 문자열의 비교로 적고 `GrantedAuthority` 로 판정하지 않는다고 적는다(2026-11-24 `D-30` 의 읽기 — 앞 판은 이 문장을 「`M-12`·`B-12` 가 … 각각 고친다」 로 적었다).
 
 소유자 검증을 Controller나 Security 설정에 두지 않는다. 리소스를 조회해야 판정할 수 있기 때문이다.
 

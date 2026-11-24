@@ -2,7 +2,7 @@
 title: 2차 board 작업 계획
 type: plan
 status: living
-version: v7
+version: v8
 updated: 2026-11-24
 read_when: "2차 기능 확장의 board 작업 항목(B-14 부터)의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integration.md, ../requirements/board.md, ../domain-model.md, ../api-contract.md, ../nfr.md]
@@ -188,7 +188,7 @@ related: [phase2.md, phase1.md, phase2-auth-member.md, phase2-frontend-integrati
 **산출물**
 - `global/error/ErrorCode` — [../api-contract.md §8.1](../api-contract.md)·§8.3 에서 `D-18` 이 더한 코드. 코드·HTTP 상태·메시지는 그 절 그대로다
 - `global/error/GlobalExceptionHandler` — [../conventions.md §6.1](../conventions.md) 표의 multipart 줄
-- `application.yml` — `spring.servlet.multipart.max-file-size`·`max-request-size`, `server.tomcat.max-swallow-size`. 값은 [../tech-stack.md §4.5](../tech-stack.md)의 YAML 블록이 적은 것이다(그 표가 이 키들을 정본 값으로 분류한다. 값이 그 블록에만 있는 갈림은 이 문서 §4.3)
+- `application.yml` — `spring.servlet.multipart.max-file-size`·`max-request-size`, `server.tomcat.max-swallow-size`. 값은 [../tech-stack.md §4.5](../tech-stack.md)의 YAML 블록이 적은 것이다(그 표가 이 키들을 정본 값으로 분류한다. 값이 그 블록에만 있던 갈림은 2026-11-24 `D-30` 이 같은 값을 표에 정본 값으로 적어 정했다 — 이 문서 §4.3)
 
 **핸들러를 넣기 전에 한 번 잰다.** [../conventions.md §6.1](../conventions.md)이 「지금은 셋 다 마지막 그물로 떨어질 것으로 본다」 를 측정 대상으로 두었고(그때의 문장 — 2026-11-20 `D-26` 이 그 블록인용을 결과로 바꿨다), 이 항목이 병합되면 board 에서 그 상태가 사라진다. 실제 서블릿 컨테이너(기동한 board 나 내장 Tomcat 을 띄운 테스트)에 인증을 지나는 요청으로(예: 유효한 토큰) 한도를 넘는 multipart 를 보내 상태·코드·로그 수준을 보고에 적는다. 추정과 다르면 다른 그대로 적는다. **검증표에 넣지 않는다** — 핸들러를 넣은 뒤에는 재현되지 않는다. `MockMvc` 는 컨테이너의 한도를 거치지 않으므로 이 측정의 수단이 아니다([../tech-stack.md §4.5](../tech-stack.md)).
 
@@ -872,5 +872,5 @@ DELETE /comments/{id}  한 트랜잭션 (404 CM001 -> 403 CM002 판정 뒤 — 1
 - **답글의 부모 확인과 커밋 사이의 창.** [../requirements/board.md §12](../requirements/board.md)가 댓글 삭제를 `post` 먼저로 고친 뒤(B-17) 「그때 다시 본다」 고 적었다. B-22 는 닫지 않는다
 - **지워진 글의 활성 첨부를 지울 때의 결과.** 404 `AT001` 로 정한 것은 없는·이미 지운 첨부뿐이고([../api-contract.md §4.7](../api-contract.md), [../requirements/board.md §11](../requirements/board.md)), [../domain-model.md §6.2](../domain-model.md)의 삭제 흐름은 글이 지워졌는지 보지 않는다. B-24 의 검증표는 이 경우를 단언하지 않는다
 - **[../tech-stack.md §2.1](../tech-stack.md)의 블록인용이 `B-12` 를 `todo` 로 적었다**(「아직 맞지 않았다(두 항목이 `todo` 다)」). 같은 절의 `D-18` 블록인용은 「열거 검사는 B-12 가 더했다」 고 적고, sp-board `docs/checklist.md` 의 `B-12` 는 `done` 이다(2026-11-12 읽기). **2026-11-24 `D-29` 가 고쳤다** — 그 블록인용, 같은 절의 집행 지점 표의 board 행, [../api-contract.md §6](../api-contract.md)의 같은 문장
-- **[../tech-stack.md §4.5](../tech-stack.md)의 업로드 한도 값이 정본 값인지 예시인지 갈리지 않는다.** 표는 `max-request-size`·`max-swallow-size` 를 정본 값으로 분류하지만 값은 「예」 로 소개한 YAML 블록에만 있다. B-15 는 그 블록의 값을 쓴다
+- **[../tech-stack.md §4.5](../tech-stack.md)의 업로드 한도 값이 정본 값인지 예시인지 갈리지 않았다.** 표는 `max-request-size`·`max-swallow-size` 를 정본 값으로 분류했지만 값은 「예」 로 소개한 YAML 블록에만 있었다. B-15 는 그 블록의 값을 썼다. **2026-11-24 `D-30` 이 정했다** — 사용자 결정으로 그 블록의 값(6MB·10MB)을 표의 요건 칸에 정본 값으로 적었다. 값이 같아 B-15 의 설정은 그대로다
 - **표의 콜레이션이 게시글 `keyword` 검색에도 걸린다**(2026-11-20 `D-26`, 근거 I-08). 표가 서버의 기본 콜레이션 `utf8mb4_0900_ai_ci` 를 받아 대소문자뿐 아니라 악센트 등도 같게 본다([../tech-stack.md §4.1](../tech-stack.md)). 검색에 미치는 영향은 재지 않았다. 후보는 [phase2-auth-member.md §5.3](phase2-auth-member.md)의 콜레이션 줄이 갖는다

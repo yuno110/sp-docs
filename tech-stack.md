@@ -2,7 +2,7 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v41
+version: v42
 updated: 2026-11-24
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
@@ -397,17 +397,17 @@ cp src/main/resources/application-local.yml.example src/main/resources/applicati
 
 ### 4.5 board 의 업로드·조회수 설정
 
-**2026-11-11 `D-18` 이 더했다.** 첨부([requirements/board.md §11](requirements/board.md))와 조회수 판정([requirements/board.md §9](requirements/board.md))이 새 설정을 갖는다. 예(`application.yml`):
+**2026-11-11 `D-18` 이 더했다.** 첨부([requirements/board.md §11](requirements/board.md))와 조회수 판정([requirements/board.md §9](requirements/board.md))이 새 설정을 갖는다. **값은 블록 뒤의 표가 정한다** — 정본 값으로 분류한 키는 표의 요건 칸에 값을 굵게 적었고 블록의 값은 그와 같다. 블록의 `${…}` 는 값이 아니라 기본값을 두지 않는 정책값·비밀값을 환경변수로 받는 자리다(§4.3). 예(`application.yml`):
 
 ```yaml
 spring:
   servlet:
     multipart:
       max-file-size: 5MB        # 개당 한도. 사용자 결정
-      max-request-size: 6MB     # 파일 하나 + multipart 머리
+      max-request-size: 6MB     # 파일 하나 + multipart 머리. 사용자 결정
 server:
   tomcat:
-    max-swallow-size: 10MB
+    max-swallow-size: 10MB      # 한도를 넘은 요청의 나머지 본문을 읽어 버리는 양. 사용자 결정
   forward-headers-strategy: none
 attachment:
   storage-root: ${ATTACHMENT_STORAGE_ROOT}
@@ -419,8 +419,8 @@ view-count:
 | 키 | 분류(§4.3) | 요건 |
 | --- | --- | --- |
 | `spring.servlet.multipart.max-file-size` | 정본 값 | **5MB.** 넘으면 413 `C008`([api-contract.md §8.1](api-contract.md)). Boot 기본값(1MB)이 사용자 결정보다 작으므로 반드시 적는다 |
-| `spring.servlet.multipart.max-request-size` | 정본 값 | 요청 하나에 파일 하나이므로 개당 한도보다 조금 크게 둔다. 넘으면 같은 413 |
-| `server.tomcat.max-swallow-size` | 정본 값 | 한도를 넘은 요청의 **나머지 본문을 읽어 버리는** 양이다. 큰 사진을 실수로 고른 사용자가 413 을 받게 하려는 값이다. **이보다 큰 본문에서는 클라이언트가 보는 것이 갈린다** — 2026-11-20 I-09 가 쟀다(`D-26`). 본문을 다 보낸 뒤 응답을 읽는 클라이언트(원시 소켓)는 상태줄을 받지 못하고 연결 중단을 보았고, 보내는 중에 응답을 읽는 curl 은 413 `C008` 을 받았다. 서버 쪽은 두 경우 모두 핸들러가 413 을 만들고 WARN 한 줄을 남겼다 — 응답 전송·연결 종료의 모양은 재지 않았다. **토큰이 없는 요청의 401 도 같다** — 401 은 본문을 읽지 않아 본문 전체가 버릴 양이 되므로, 이 값을 넘는 본문에서는 원시 소켓이 401 도 받지 못했다. 브라우저가 어느 쪽인지는 재지 않았다 — 이 값을 넘는 파일에서는 화면의 `C008` 안내가 닿지 않을 수 있다([plan/phase2-frontend-integration.md §5](plan/phase2-frontend-integration.md)). auth·member 는 이 키를 적지 않아 Boot 기본값이고 같은 성질을 보였다(I-10) |
+| `spring.servlet.multipart.max-request-size` | 정본 값 | **6MB**(2026-11-24 `D-30` 사용자 결정 — 앞 판은 값을 위 블록에만 적었다). 요청 하나에 파일 하나이므로 개당 한도보다 조금 크게 둔다(파일 하나 + multipart 머리). 넘으면 같은 413 |
+| `server.tomcat.max-swallow-size` | 정본 값 | **10MB**(2026-11-24 `D-30` 사용자 결정 — 앞 판은 값을 위 블록에만 적었다). 한도를 넘은 요청의 **나머지 본문을 읽어 버리는** 양이다. 큰 사진을 실수로 고른 사용자가 413 을 받게 하려는 값이다. **이보다 큰 본문에서는 클라이언트가 보는 것이 갈린다** — 2026-11-20 I-09 가 쟀다(`D-26`). 본문을 다 보낸 뒤 응답을 읽는 클라이언트(원시 소켓)는 상태줄을 받지 못하고 연결 중단을 보았고, 보내는 중에 응답을 읽는 curl 은 413 `C008` 을 받았다. 서버 쪽은 두 경우 모두 핸들러가 413 을 만들고 WARN 한 줄을 남겼다 — 응답 전송·연결 종료의 모양은 재지 않았다. **토큰이 없는 요청의 401 도 같다** — 401 은 본문을 읽지 않아 본문 전체가 버릴 양이 되므로, 이 값을 넘는 본문에서는 원시 소켓이 401 도 받지 못했다. 브라우저가 어느 쪽인지는 재지 않았다 — 이 값을 넘는 파일에서는 화면의 `C008` 안내가 닿지 않을 수 있다([plan/phase2-frontend-integration.md §5](plan/phase2-frontend-integration.md)). auth·member 는 이 키를 적지 않아 Boot 기본값이고 같은 성질을 보였다(I-10) |
 | `server.forward-headers-strategy` | 정본 값 | **`none`.** `X-Forwarded-For` 로 `remoteAddr` 를 바꾸지 않는다 — 비로그인 조회자 식별이 그 값을 쓴다([security.md §9](security.md)). 클라우드 플랫폼을 감지하지 않는 로컬 기본값과 같지만 의도를 보이려고 적는다(Boot 는 클라우드 플랫폼을 감지하면 기본값이 `NATIVE` 다). 게이트웨이를 들이면 [adr/0014](adr/0014-view-count-dedup.md)를 다시 본다 |
 | `attachment.storage-root` | **정책값** | 기본값이 없다. **이미 있고 쓸 수 있는 디렉터리**여야 하며 아니면 **기동이 실패한다** — 서버가 만들지 않는다. 엉뚱한 곳에 디렉터리를 만들고 올라오는 것보다 실패가 낫다 |
 | `view-count.hmac-secret` | **비밀값** | 기본값이 없다. 비었거나 **설정값 문자열의 UTF-8 바이트 길이가 32보다 짧으면 기동이 실패한다**(Base64 로 디코드하지 않는다 — 키는 그 바이트 그대로다. 32 는 HMAC-SHA256 의 출력 길이이고 그보다 짧은 키는 강도를 낮춘다) |
