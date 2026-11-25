@@ -2,8 +2,8 @@
 title: 코드 컨벤션
 type: spec
 status: rule
-version: v30
-updated: 2026-11-23
+version: v31
+updated: 2026-11-24
 read_when: "코드를 작성하거나 리뷰할 때. 패키지를 새로 만들 때"
 related: [tech-stack.md, adr/0007-shared-code-policy.md, process/dev-workflow.md]
 ---
@@ -187,7 +187,7 @@ public class PostService {
 
 **세 서비스가 이 표를 똑같이 구현한다**(위 `C009` 줄은 그것을 가진 두 서비스가 같게 둔다). 다만 **클래스 자체는 복제 대상이 아니다**(§7.2) — 서비스별 `ErrorCode`에 의존하므로 각자 쓴다. 같아야 하는 것은 **핸들러 집합·코드·로그 수준·응답 본문**이고, 그 일치를 [plan/integration.md](plan/integration.md) I-04 가 3자 비교했다(1차). 2차에 더한 multipart·`C009` 줄은 [plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md) I-10 이 2026-11-20 에 비교했다 — 상태·본문·헤더가 같았다. **로그 문장은 같아야 하는 것에 들지 않는다** — 그 비교에서 `C009` 의 WARN 문장이 auth(`rate limit exceeded: <규칙>`)와 member(`… rule <규칙>, retry after <N>s`) 사이에 달랐고, 이 개정은 그것을 관찰로만 둔다(`D-26`). **표를 먼저 고치지 않고 한 서비스만 늘리지 않는다.**
 
-**로그 수준을 가른다.** 클라이언트 오류는 `warn`, **마지막 그물만 `error`**다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](AGENTS.md) 불변식 9). **핸들러를 거치지 않는 프레임워크의 ERROR 도 같은 취지로 본다** — 코드가 잡아 정상 결과로 바꾸는 UNIQUE 충돌에 Hibernate 가 남기는 ERROR 는 §8.1 이 다룬다(2026-11-20 `D-25`).
+**로그 수준을 가른다.** 클라이언트 오류는 `warn`, **마지막 그물만 `error`**다. 흔한 클라이언트 실수가 ERROR 경보를 만들면 원인이 서버에 있는 500과 구별되지 않는다([../AGENTS.md](AGENTS.md) 불변식 9). **핸들러를 거치지 않는 프레임워크의 ERROR 도 같은 취지로 본다** — 코드가 잡아 정본이 정한 응답으로 바꾸는 UNIQUE 충돌에 Hibernate 가 남기는 ERROR 는 §8.1 이 다룬다(2026-11-20 `D-25`, 2026-11-24 `D-31` 이 409 로 응답하는 충돌과 auth·member 로 넓혔다).
 
 **양쪽을 다 단언한다.** 클라이언트 오류가 `error`가 아닌 것만 보면 **반대 방향이 열린다** — 마지막 그물을 `warn`으로 낮추면 500이 ERROR 경보를 전혀 만들지 않게 되고, 그것이 더 나쁘다. M-02 리뷰에서 그 변이가 잡히지 않는 것이 측정됐다.
 
@@ -228,6 +228,7 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 - `GlobalExceptionHandler` — 서비스별 `ErrorCode`에 의존한다. **다루는 예외 집합과 코드 매핑은 §6.1이 고정한다** — 파일은 각자 쓰지만 동작은 같아야 한다
 - **JWT 검증·발급 코드** — 직접 만들지 않고 Spring 표준을 쓴다([tech-stack.md §2](tech-stack.md))
 - **요청 수 제한기**(2026-11-11 `D-19`) — auth·member 가 각자 쓴다. 규칙(대상·한도)이 서비스마다 다르고 복제본의 정본 주석으로 묶을 만한 공통 모양이 없다. **같아야 하는 것은 동작이다** — 키·창·응답·`Retry-After`·버킷 카운터는 [security.md §10](security.md)이 고정한다
+- **UNIQUE 충돌 로그의 필터**(2026-11-24 `D-31`) — logback 의 TurboFilter 클래스를 서비스가 각자 쓴다. 맞추는 제약 이름의 목록이 서비스마다 다르다(§8.1 의 표). **같아야 하는 것은 동작이다** — 맞추는 로거·수준·이름과 그 밖을 그대로 두는 것은 §8.1 이, 설정 파일의 요건은 [tech-stack.md §4.8](tech-stack.md)이 고정한다
 
 ## 8. 로깅
 
@@ -236,27 +237,41 @@ public record ApiResponse<T>(boolean success, T data, ErrorResponse error) { }
 
 ### 8.1 정상 경합의 UNIQUE 충돌이 남기는 Hibernate 로그
 
-**2026-11-20 `D-25` 가 정했다.** 대상은 **정본이 정상 결과로 정했고 코드가 잡아 정상 응답으로 바꾸는 UNIQUE 충돌**이다. 지금은 board 의 `uk_post_view_post_viewer`([requirements/board.md §9.3](requirements/board.md))와 `uk_post_like_post_account`([domain-model.md §6.1](domain-model.md))다 — 이름은 [domain-model.md §4.3](domain-model.md)의 인덱스 표가 정본이다.
+**2026-11-20 `D-25` 가 정했고 2026-11-24 `D-31` 이 넓혔다.** 대상은 **코드가 잡아 정본이 정한 응답으로 바꾸는 UNIQUE 충돌**이다. 지금은 아래 표의 제약이다 — 이름은 [domain-model.md §2.3·§3.2·§4.3](domain-model.md)의 인덱스 표가 정본이다. 앞 판(`D-25`)은 「정본이 정상 결과로 정했고 코드가 잡아 정상 응답으로 바꾸는 UNIQUE 충돌」 이었고 board 의 제약만 들었다 — 409 로 응답하는 충돌은 「정상 결과」 로 볼지부터 정해야 했다(아래 블록인용). `D-31` 은 응답이 200 이든 409 든 정본이 정한 응답이면 넣는다(사용자 결정 — 이유는 아래 「409 로 응답하는 충돌도 넣는다」).
 
-**무엇이 남나.** 그런 충돌마다 Hibernate 의 `org.hibernate.engine.jdbc.spi.SqlExceptionHelper` 가 두 줄을 남긴다 — WARN `SQL Error: 1062, SQLState: 23000` 과, 드라이버의 위반 메시지를 그대로 실은 ERROR(예: `Duplicate entry '…' for key 'post_view.uk_post_view_post_viewer'`). 2026-11-20 I-11 이 실 MySQL 에서 같은 조회자의 동시 첫 조회로 쟀다 — 충돌마다 두 줄이었고 응답은 전부 200, `GlobalExceptionHandler` 의 줄은 없었다. ERROR 줄의 중복 값에는 판정 키(로그인은 계정 id, 비로그인은 접속 주소의 HMAC)가 실린다.
+| 서비스 | 제약 | 충돌의 결과 — 정본 | 잡아 바꾸는 코드 |
+| --- | --- | --- | --- |
+| board | `uk_post_view_post_viewer` | 집계하지 않고 200 — [requirements/board.md §9.3](requirements/board.md) | `ViewCountJudge` |
+| board | `uk_post_like_post_account` | 「2)와 같은 결과」(200) — [domain-model.md §6.1](domain-model.md) | `LikeService` |
+| auth | `uk_account_email` | 가입이 409 `AU002` — 「최종 판정은 UNIQUE 제약이고, 생성 요청이 409를 돌려준다」([api-contract.md §2.3](api-contract.md)) | `AccountService` 의 가입 |
+| member | `uk_member_nickname` | 409 `M003` — 프로필 등록은 [api-contract.md §2.3](api-contract.md)의 같은 문장, 닉네임 변경은 [requirements/member.md §7](requirements/member.md) | `MemberService` 의 프로필 등록과 닉네임 변경 |
+| member | `uk_member_account_id` | 프로필 등록의 멱등 표 — 200, 409 `M006`·`M007`([api-contract.md §3](api-contract.md)) | `MemberService` 의 프로필 등록 — 그 계정의 행을 되읽어 그 표를 따른다 |
+
+**무엇이 남나.** 그런 충돌마다 Hibernate 의 `org.hibernate.engine.jdbc.spi.SqlExceptionHelper` 가 두 줄을 남긴다 — WARN `SQL Error: 1062, SQLState: 23000` 과, 드라이버의 위반 메시지를 그대로 실은 ERROR(예: `Duplicate entry '…' for key 'post_view.uk_post_view_post_viewer'`). 2026-11-20 I-11 이 실 MySQL 에서 같은 조회자의 동시 첫 조회로 쟀다 — 충돌마다 두 줄이었고 응답은 전부 200, `GlobalExceptionHandler` 의 줄은 없었다. 조회수 판정의 ERROR 줄에는 중복 값으로 판정 키(로그인은 계정 id, 비로그인은 접속 주소의 HMAC)가 실린다. **auth·member 의 제약은 재지 않았다** — 같은 로거를 지나므로 같은 두 줄을 남기고 ERROR 줄의 중복 값에 이메일·닉네임·계정 id 가 실릴 것으로 본다(2026-11-24 의 추정이다. 실 MySQL 재측정은 I-15 다). **409 로 응답하는 충돌에는 줄이 하나 더 있다** — 핸들러가 업무 예외의 WARN `business exception: <코드>` 를 남긴다(§6.1, 2026-11-24 auth·member 의 `GlobalExceptionHandler` 코드 읽기). 그 줄에는 코드만 있고 값은 없다. 사전 검사가 낸 409 도 같은 줄이므로 그 줄로 충돌을 세지 않는다.
 
 | 규칙 | 이유 |
 | --- | --- |
-| **그 로거의 ERROR 중 위 제약 이름이 든 줄만 버린다**(제약 이름은 대소문자를 가리지 않고 맞춘다). 그 밖의 ERROR — 다른 제약의 위반, 교착 같은 다른 SQL 오류 — 는 그대로 남긴다 | 정상 경합이 ERROR 경보가 되면 원인이 서버에 있는 500 과 구별되지 않는다(§6.1 의 「로그 수준을 가른다」). 제약 이름으로 맞추는 것은 그 줄이 어느 충돌인지 가를 수 있는 것이 메시지뿐이어서다. 대소문자는 DB 와 설정에 따라 다르다 — H2 는 프로젝트의 테스트 URL(`DATABASE_TO_LOWER=TRUE`, [tech-stack.md §5.3](tech-stack.md))에서 소문자에 `_INDEX_n` 접미사를 붙여 내고(예: `public.uk_post_view_post_viewer_INDEX_7` — D-25 리뷰의 H2 2.3.232 프로브, sp-member `MemberService` javadoc 의 `public.uk_member_account_id_INDEX_B`), 그 설정이 없으면 대문자로 낸다. 그래서 이름의 부분 일치로 맞춘다 |
+| **그 로거의 ERROR 중 그 서비스의 제약 이름(위 표)이 든 줄만 버린다**(제약 이름은 대소문자를 가리지 않고 맞춘다). 그 밖의 ERROR — 다른 제약의 위반, 교착 같은 다른 SQL 오류 — 는 그대로 남긴다 | 정상 경합이 ERROR 경보가 되면 원인이 서버에 있는 500 과 구별되지 않는다(§6.1 의 「로그 수준을 가른다」). 제약 이름으로 맞추는 것은 그 줄이 어느 충돌인지 가를 수 있는 것이 메시지뿐이어서다. 대소문자는 DB 와 설정에 따라 다르다 — H2 는 프로젝트의 테스트 URL(`DATABASE_TO_LOWER=TRUE`, [tech-stack.md §5.3](tech-stack.md))에서 소문자에 `_INDEX_n` 접미사를 붙여 내고(예: `public.uk_post_view_post_viewer_INDEX_7` — D-25 리뷰의 H2 2.3.232 프로브, sp-member `MemberService` javadoc 의 `public.uk_member_account_id_INDEX_B`), 그 설정이 없으면 대문자로 낸다. 그래서 이름의 부분 일치로 맞춘다 |
 | **WARN 줄은 그대로 둔다** | 제약 이름이 없어 그 줄만으로는 어느 충돌인지 가를 수 없다 — 거르면 다른 제약의 WARN 도 함께 사라진다. 중복 값이 실리지 않고 ERROR 경보가 아니다. **충돌의 빈도를 로그에서 세는 흔적이 이 줄이다** |
 | **로거의 수준을 바꾸지 않는다** | 그 로거는 Hibernate 가 변환하는 모든 SQL 오류를 남긴다. 게다가 ERROR 가 꺼져 있으면 WARN 줄도 남기지 않는다(Hibernate 6.6 의 `logExceptions` 코드 읽기) — 수준을 내리면 진짜 제약 위반과 다른 SQL 오류가 흔적 없이 조용해진다 |
-| **버린다. 수준을 낮춰 다시 남기지 않고, 잡는 코드도 로그를 더하지 않는다** | 버리는 것은 실패가 아니라 앱이 정상 결과로 분류한 충돌을 프레임워크가 한 번 더 보고한 줄이다. 흔적은 위 WARN 이 남긴다. 같은 제약의 충돌이라도 코드가 잡지 않은 경로에서 나면 예외가 §6.1 의 마지막 그물에 닿아 핸들러가 ERROR 를 남긴다 — 실패는 그 줄로 드러난다([../AGENTS.md](AGENTS.md) 불변식 9) |
-| **필터는 logback 의 컨텍스트 수준 필터(TurboFilter)이고 서비스의 `logback-spring.xml` 에 둔다.** 프로파일을 가리지 않는다 | 모든 appender 에 함께 걸린다. 프로파일마다 다르면 로컬에서 본 로그와 운영의 경보가 갈린다. 설정 파일의 요건은 [tech-stack.md §4.5](tech-stack.md) |
+| **버린다. 수준을 낮춰 다시 남기지 않고, 잡는 코드도 로그를 더하지 않는다** | 버리는 것은 실패가 아니라 앱이 정본의 응답으로 바꾼 충돌을 프레임워크가 한 번 더 보고한 줄이다. 흔적은 위 WARN 이 남긴다. 같은 제약의 충돌이라도 코드가 잡지 않은 경로에서 나면 예외가 §6.1 의 마지막 그물에 닿아 핸들러가 ERROR 를 남긴다 — 실패는 그 줄로 드러난다([../AGENTS.md](AGENTS.md) 불변식 9) |
+| **필터는 logback 의 컨텍스트 수준 필터(TurboFilter)이고 서비스의 `logback-spring.xml` 에 둔다.** 프로파일을 가리지 않는다 | 모든 appender 에 함께 걸린다. 프로파일마다 다르면 로컬에서 본 로그와 운영의 경보가 갈린다. 설정 파일의 요건은 [tech-stack.md §4.8](tech-stack.md). 필터 클래스는 서비스마다 각자 쓴다(§7.2) |
 
-**판정 키가 로그에 실리지 않게 하는 것도 이 규칙의 효과다.** 판정 행의 보존 상한(24시간 + 정리 주기, [security.md §9](security.md))은 DB 의 것이고, 로그에 실린 키는 그 상한 밖에 남는다.
+**409 로 응답하는 충돌도 넣는다**(2026-11-24 `D-31`, 사용자 결정). 코드가 잡아 정본이 정한 응답으로 바꾸므로 실패가 아니고, 그 응답에 맞는 줄은 핸들러가 남기는 클라이언트 오류의 WARN 이다(§6.1 의 「로그 수준을 가른다」). 프레임워크의 ERROR 가 그 위에 남으면 흔한 가입·닉네임 경합이 ERROR 경보가 된다. 그 ERROR 줄에는 이메일·닉네임이 중복 값으로 실릴 것으로 본다(위 「무엇이 남나」 의 추정 — 아래 문단). 충돌의 빈도는 위 WARN `SQL Error: 1062` 로 센다. 같은 제약의 위반이라도 코드가 잡지 않은 경로에서 나면 핸들러의 ERROR 로 드러난다(위 표의 「버린다」 행).
 
-**제약을 더하려면 정본이 먼저다.** 그 충돌을 정상 결과로 정한 정본 문장과, 그 충돌만 잡아 정상 응답으로 바꾸는 코드가 있어야 목록에 넣는다. 잡지 않는 제약을 넣으면 실패의 ERROR 가 사라진다.
+**중복 값이 로그에 실리지 않게 하는 것도 이 규칙의 효과다.** 로그에 실린 값은 DB 가 그 값에 거는 규칙 밖에 남는다 — 판정 키는 판정 행의 보존 상한(24시간 + 정리 주기, [security.md §9](security.md)) 밖에, 닉네임은 탈퇴가 그 값을 비우는 것([domain-model.md §3.1](domain-model.md)) 밖에 남는다. 메일 경로의 로그도 이메일을 싣지 않는다([security.md §12](security.md)). 앞 판은 「판정 키가 로그에 실리지 않게 하는 것도 이 규칙의 효과다」 였다(`D-25`).
 
-> **버린 대안**(2026-11-20 `D-25`). **로거 수준을 내린다** — 위 셋째 행. [requirements/board.md §9.3](requirements/board.md)의 블록인용이 이미 반대했다. **충돌을 내는 INSERT 를 Hibernate 밖(예: `JdbcTemplate`)으로 옮긴다** — 그 경로는 `SqlExceptionHelper` 를 지나지 않아 줄이 생기지 않지만, 한 엔티티의 쓰기가 두 갈래가 되고 B-20·B-21 이 고정한 충돌 분류(Hibernate 가 분류한 위반의 종류)와 `saveAndFlush` 의 근거를 다시 세워야 한다. 로그의 문제를 쓰기 경로를 바꿔 풀지 않는다. **한계로 적고 둔다** — 사용자가 2026-11-20 에 택하지 않았다.
+**제약을 더하려면 정본이 먼저다.** 그 충돌의 결과를 정한 정본 문장과, 그 충돌만 잡아 그 응답으로 바꾸는 코드가 있어야 목록에 넣는다 — 위 표의 「충돌의 결과 — 정본」 과 「잡아 바꾸는 코드」 열이 그것이다. 잡지 않는 제약을 넣으면 실패의 ERROR 가 사라진다. 앞 판은 「그 충돌을 정상 결과로 정한 정본 문장과, 그 충돌만 잡아 정상 응답으로 바꾸는 코드」 였다(`D-25`).
 
-> **auth·member 는 이 결정의 범위 밖이다.** 두 서비스도 `DataIntegrityViolationException` 을 잡는 경로를 갖지만(2026-11-20 코드 읽기), 성격이 둘로 갈린다. **클라이언트 오류로 응답하는 충돌** — 가입의 `uk_account_email`(409 `AU002`), 닉네임 변경과 프로필 등록의 `uk_member_nickname`(409 `M003`) — 은 「정상 결과」 로 볼지부터 정해야 한다. **board 와 같이 정상 결과로 바꾸는 충돌** — 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`) — 은 같은 모양이지만 재지 않았고, 사용자 결정의 범위가 board 다. 같은 로거를 지나므로 같은 두 줄을 남길 것으로 본다(그때의 추정이다). **로그인 실패 카운터의 `uk_login_attempt_email_key` 는 2026-11-23 `D-27` 부터 이 갈래에 들지 않는다** — 세는 문장이 그 키의 충돌을 갱신으로 바꿔 UNIQUE 충돌을 내지 않고, 그래도 나면 다시 하지 않고 실패로 드러낸다([domain-model.md §2.5](domain-model.md)). 앞 판은 그것을 「다시 한다」 로 이 갈래에 적었고, 아래 측정에서 그 충돌은 나지 않았다. 넘긴 자리는 [plan/phase2-auth-member.md §5.3](plan/phase2-auth-member.md)이다.
+> **가입의 잡는 코드는 「그 충돌만」 보다 넓다 — AU-25 가 좁힌다(2026-11-24 `D-31` 결정).** `AccountService` 는 계정 INSERT 의 무결성 위반을 모두 409 `AU002` 로 바꾼다(2026-11-24 코드 읽기). 그 밖의 위반을 다시 던지는 board·member 의 잡는 코드와 다르고, 위 「그 충돌만」 조건과 [../AGENTS.md](AGENTS.md) 불변식 9 에 어긋난다 — 그 밖의 위반이 「이미 사용 중인 이메일」 로 위장되고 마지막 그물의 ERROR 도 남지 않는다. AU-25 는 `uk_account_email` 의 위반만 `AU002` 로 바꾸고, 그 밖은 다시 던져 §6.1 의 마지막 그물(500 `C005`, ERROR)에 닿게 한다. 제약 이름은 member 의 잡는 코드처럼 예외의 원인 사슬에서 꺼낸다. 정본이 이미 요구하는 것에 코드를 맞추는 결함 수정이라 정본이 정한 응답은 그대로다 — 그 충돌은 409 `AU002` 다([api-contract.md §2.3](api-contract.md)). **좁히기 전에도 필터가 그 위장을 늘리지는 않는다** — 필터는 제약 이름으로 맞추므로 다른 위반의 ERROR 줄은 남는다.
+
+> **버린 대안**(2026-11-20 `D-25`). **로거 수준을 내린다** — 위 규칙 표의 「로거의 수준을 바꾸지 않는다」 행. [requirements/board.md §9.3](requirements/board.md)의 블록인용이 이미 반대했다. **충돌을 내는 INSERT 를 Hibernate 밖(예: `JdbcTemplate`)으로 옮긴다** — 그 경로는 `SqlExceptionHelper` 를 지나지 않아 줄이 생기지 않지만, 한 엔티티의 쓰기가 두 갈래가 되고 B-20·B-21 이 고정한 충돌 분류(Hibernate 가 분류한 위반의 종류)와 `saveAndFlush` 의 근거를 다시 세워야 한다. 로그의 문제를 쓰기 경로를 바꿔 풀지 않는다. **한계로 적고 둔다** — 사용자가 2026-11-20 에 택하지 않았다.
+
+> **auth·member 는 2026-11-24 `D-31` 부터 이 규칙에 든다**(사용자 결정). 앞 판은 「이 결정의 범위 밖이다」 였다 — 두 서비스도 `DataIntegrityViolationException` 을 잡는 경로를 갖지만(2026-11-20 코드 읽기) 성격이 둘로 갈렸다. **클라이언트 오류로 응답하는 충돌** — 가입의 `uk_account_email`(409 `AU002`), 닉네임 변경과 프로필 등록의 `uk_member_nickname`(409 `M003`) — 은 「정상 결과」 로 볼지부터 정해야 했다. **board 와 같이 정상 결과로 바꾸는 충돌** — 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`) — 은 같은 모양이지만 재지 않았고, 사용자 결정의 범위가 board 였다. 같은 로거를 지나므로 같은 두 줄을 남길 것으로 보았다(그때의 추정 — 위 「무엇이 남나」 가 이어 적는다). `D-31` 은 두 갈래를 모두 위 표에 넣었다 — 첫 갈래를 넣는 이유는 위 「409 로 응답하는 충돌도 넣는다」 다. 코드는 AU-25·M-17, 실 MySQL 재측정은 I-15 다([plan/phase2-auth-member.md](plan/phase2-auth-member.md), [plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md)). 앞 판이 이 물음을 넘긴 자리는 [plan/phase2-auth-member.md §5.3](plan/phase2-auth-member.md)이었다.
 >
-> **로그인 실패 카운터는 2026-11-20 I-08 이 실 MySQL 에서 쟀다**(`D-26`). 같은 키의 동시 첫 실패에서 UNIQUE 충돌(1062)은 없었고 교착(1213)이 났다. 교착마다 그 로거가 WARN `SQL Error: 1213, SQLState: 40001` 과 ERROR `Deadlock found when trying to get lock; try restarting transaction` 을 남겼고, `LoginAttemptService` 가 세지 못한 실패의 WARN 을 남겼다. 그 ERROR 는 위 표의 규칙을 auth 에 넓혀도 버리지 않는 「다른 SQL 오류」 다 — 위 표의 필터는 board 의 것이고 auth 에는 없다. 세지 못한 실패라 [security.md §11](security.md)의 한계로 적었다. **`D-27` 이 그 교착을 고친다**(2026-11-23, 코드는 AU-23, 앱의 재측정은 I-13 — [plan/phase2-auth-member.md](plan/phase2-auth-member.md), [plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md)). 고친 뒤에도 같은 키를 처음 넣은 트랜잭션이 되돌아가면 교착이 남고([domain-model.md §2.5](domain-model.md)), 그때도 같은 세 줄 — 그 로거의 WARN·ERROR 와 `LoginAttemptService` 의 WARN — 이 남을 것으로 본다(추정 — 그 경우를 잰 프로브는 앱 밖이라 로그를 보지 않았다).
+> **로그인 실패 카운터의 `uk_login_attempt_email_key` 는 2026-11-23 `D-27` 부터 이 규칙에 들지 않는다** — 세는 문장이 그 키의 충돌을 갱신으로 바꿔 UNIQUE 충돌을 내지 않고, 그래도 나면 다시 하지 않고 실패로 드러낸다([domain-model.md §2.5](domain-model.md)). `D-27` 앞의 판은 그것을 「다시 한다」 로 정상 결과로 바꾸는 갈래에 적었고, 아래 측정에서 그 충돌은 나지 않았다.
+>
+> **로그인 실패 카운터는 2026-11-20 I-08 이 실 MySQL 에서 쟀다**(`D-26`). 같은 키의 동시 첫 실패에서 UNIQUE 충돌(1062)은 없었고 교착(1213)이 났다. 교착마다 그 로거가 WARN `SQL Error: 1213, SQLState: 40001` 과 ERROR `Deadlock found when trying to get lock; try restarting transaction` 을 남겼고, `LoginAttemptService` 가 세지 못한 실패의 WARN 을 남겼다. 그 ERROR 는 위 표의 규칙이 버리지 않는 「다른 SQL 오류」 다 — 그 줄에는 위 표의 제약 이름이 없어, `D-31` 이 auth 에 넓힌 필터도 버리지 않는다. 앞 판은 「위 표의 필터는 board 의 것이고 auth 에는 없다」 였다. 세지 못한 실패라 [security.md §11](security.md)의 한계로 적었다. **`D-27` 이 그 교착을 고친다**(2026-11-23, 코드는 AU-23, 앱의 재측정은 I-13 — [plan/phase2-auth-member.md](plan/phase2-auth-member.md), [plan/phase2-frontend-integration.md](plan/phase2-frontend-integration.md)). 고친 뒤에도 같은 키를 처음 넣은 트랜잭션이 되돌아가면 교착이 남고([domain-model.md §2.5](domain-model.md)), 그때도 같은 세 줄 — 그 로거의 WARN·ERROR 와 `LoginAttemptService` 의 WARN — 이 남을 것으로 본다(추정 — 그 경우를 잰 프로브는 앱 밖이라 로그를 보지 않았다).
 
 ## 9. 테스트
 

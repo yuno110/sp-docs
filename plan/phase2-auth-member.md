@@ -2,7 +2,7 @@
 title: 2차 작업 계획 — auth·member 기능 확장
 type: plan
 status: living
-version: v7
+version: v8
 updated: 2026-11-24
 read_when: "2차 기능 확장의 auth·member 작업 항목(AU-12 부터·M-14 부터)의 범위·의존·마이그레이션 번호·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md 를 본다"
 related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../domain-model.md, ../api-contract.md, ../security.md, ../conventions.md, ../tech-stack.md]
@@ -21,7 +21,8 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | **기반** — member | M-14 | 에러 코드·예외 매핑·경로 선언 — `C009` 매핑은 제한기와 함께 M-15 가 둔다. member 는 마이그레이션이 없다(§2) |
 | **기능** — auth | AU-16~AU-21 | 기반 산출물을 읽고 자기 파일을 만든다. 같은 Service·Controller 를 고치는 항목이 있어 저장소 안에서는 §1.2 의 순서를 따른다 |
 | **기능** — member | M-15, M-16 | M-14 뒤 |
-| **결함 수정** — auth | AU-22~AU-24 | AU-22 는 1차 AU-08·AU-09 와 2차 AU-17 의 산출물을, AU-23 은 2차 AU-18 의 세기를, AU-24 는 2차 AU-14~AU-17 의 메일 실행기·발급 순서·확인을 고친다 — 그 항목들의 완료 기준과 먼저 대조한다. AU-22 는 2026-11-17 `D-22` 가, AU-23 은 2026-11-23 `D-27` 이 I-08 의 측정으로, AU-24 는 같은 날 `D-28` 이 I-09 와 메일 프로브의 측정으로 세웠다 |
+| **결함 수정** — auth | AU-22~AU-25 | AU-22 는 1차 AU-08·AU-09 와 2차 AU-17 의 산출물을, AU-23 은 2차 AU-18 의 세기를, AU-24 는 2차 AU-14~AU-17 의 메일 실행기·발급 순서·확인을, AU-25 는 1차 AU-05 의 가입이 잡는 무결성 위반의 범위와 그 충돌이 남기는 로그를 고친다 — 그 항목들의 완료 기준과 먼저 대조한다. AU-22 는 2026-11-17 `D-22` 가, AU-23 은 2026-11-23 `D-27` 이 I-08 의 측정으로, AU-24 는 같은 날 `D-28` 이 I-09 와 메일 프로브의 측정으로, AU-25 는 2026-11-24 `D-31` 이 사용자 결정으로 세웠다 |
+| **결함 수정** — member | M-17 | 1차 M-05·M-08 의 잡는 코드가 응답으로 바꾸는 충돌이 남기는 로그를 고친다 — 잡는 코드와 응답은 그대로다. 2026-11-24 `D-31` 이 AU-25 와 함께 세웠다 |
 
 [phase1.md §1.1](phase1.md)과 같은 이유로 **순서 의존과 공유 상태를 기반에 몰았다.** 에러 코드와 `SecurityConfig` 의 경로·CORS 를 기반이 끝내므로 기능 항목은 그 파일들을 고치지 않는다.
 
@@ -36,7 +37,8 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
       AU-13 에러 코드·경로      [기반]         ─────────────────────
       AU-14 메일 발송 기반      [기반]         M-15 요청 수 제한      [기능]
       AU-15 링크 토큰 발급      [기반]         M-16 프로필 일괄 조회  [기능]
-      ─────────────────────
+                                               ─────────────────────
+      ─────────────────────                    M-17 충돌 로그 거르기  [결함 수정]  <- M-16 뒤 (D-31 이 세웠다)
       AU-16 이메일 인증·AU006   [기능]  <- 화면의 가입 흐름(F-08)과 한 번에 커밋 (§1.3)
       AU-17 비밀번호 재설정     [기능]
       AU-18 로그인 잠금         [기능]
@@ -47,6 +49,7 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
       AU-22 계정 먼저 잠그기    [결함 수정]  <- 번호와 달리 AU-19 다음 (§1.2)
       AU-23 한 문장으로 세기    [결함 수정]  <- AU-18 뒤 (I-08 이 찾았다)
       AU-24 발송 뒤 지우기      [결함 수정]  <- AU-22 뒤 (I-09 가 찾았다)
+      AU-25 가입 충돌 로그·잡기 [결함 수정]  <- AU-24 뒤 (D-31 이 세웠다)
             \                                      /
              +---- 통합 측정 (§5.1) · 화면 항목 (§5.2) ----+
 ```
@@ -57,22 +60,24 @@ related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../do
 | --- | --- | --- | --- |
 | AU-12 | 없음 | `LoginAttemptRepository`·그 테스트 (AU-18·AU-21·AU-23), `AccountTokenRepository`·그 테스트 (AU-21·AU-24) — AU-13·AU-14 와는 없어 함께 돌 수 있다 | — |
 | AU-13 | 없음 | `GlobalExceptionHandler`·그 테스트 (AU-19) | 화면: 무인증 경로의 401 (§5.2) |
-| AU-14 | 없음 | `application.yml` (AU-19·AU-21·AU-24), `MailDispatcher`·`MailExecutorConfig`·그 테스트 (AU-24), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-19) | 로컬 `local` 기동이 메일 설정을 요구하게 된다 (§1.3) |
+| AU-14 | 없음 | `application.yml` (AU-19·AU-21·AU-24), `MailDispatcher`·`MailExecutorConfig`·그 테스트 (AU-24), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-19), `ProdProfileTest` (AU-25) | 로컬 `local` 기동이 메일 설정을 요구하게 된다 (§1.3) |
 | AU-15 | AU-12, AU-14 | `AccountTokenIssuer`·그 테스트 (AU-24) | — |
-| AU-16 | AU-13, AU-15 | `AccountController`·`AccountService` (AU-17·AU-19·AU-20·AU-22, `AccountService` 는 AU-24 도), `AuthService` (AU-18) | 화면의 가입 흐름 (§1.3) |
+| AU-16 | AU-13, AU-15 | `AccountController`·`AccountService` (AU-17·AU-19·AU-20·AU-22, `AccountService` 는 AU-24·AU-25 도), `AuthService` (AU-18) | 화면의 가입 흐름 (§1.3) |
 | AU-17 | AU-16 | `AccountController`·`AccountService` | 화면의 비밀번호 찾기·재설정 |
 | AU-18 | AU-12, AU-13, AU-16 | `AuthService` (AU-16), `LoginAttemptRepository`·그 테스트 (AU-12·AU-21·AU-23), `LoginAttemptService`·그 테스트 (AU-23), `AuthControllerTest` (AU-19) | 화면의 로그인 안내 |
 | AU-19 | AU-13, AU-16, AU-17 | `AccountController` (AU-16·AU-17·AU-20), `GlobalExceptionHandler`·그 테스트 (AU-13), `application.yml` (AU-14·AU-21·AU-24), `application-local.yml.example`·`application-test.yml`·`README.md` (AU-14), `AuthControllerTest` (AU-18) | 화면의 429 안내, 로컬 템플릿 (§1.3) |
 | AU-20 | AU-12, AU-13 | `AccountController`·`AccountService` | 화면의 관리자 회원 목록 (M-16 과 함께) |
 | AU-21 | AU-12, AU-16, AU-18 | `application.yml` (AU-14·AU-19·AU-24), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18·AU-23), `AccountTokenRepository`·그 테스트 (AU-12·AU-24) | — |
-| AU-22 | AU-18 | `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-24) | — |
+| AU-22 | AU-18 | `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-24·AU-25) | — |
 | AU-23 | AU-18 | `LoginAttemptService`·그 테스트 (AU-18), `LoginAttemptRepository`·그 테스트 (AU-12·AU-18·AU-21) | 실 MySQL 재측정 I-13 (§5.1) |
-| AU-24 | AU-15, AU-17, AU-22 | `AccountTokenIssuer`·그 테스트 (AU-15), `MailDispatcher`·`MailExecutorConfig`·그 테스트 (AU-14), `AccountTokenRepository`·그 테스트 (AU-12·AU-21), `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-22), `application.yml` (AU-14·AU-19·AU-21) | SMTP 소켓 경로 재측정 I-14 (§5.1). 측정의 기동 인자가 새 키를 쓴다 |
+| AU-24 | AU-15, AU-17, AU-22 | `AccountTokenIssuer`·그 테스트 (AU-15), `MailDispatcher`·`MailExecutorConfig`·그 테스트 (AU-14), `AccountTokenRepository`·그 테스트 (AU-12·AU-21), `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-22·AU-25), `application.yml` (AU-14·AU-19·AU-21) | SMTP 소켓 경로 재측정 I-14 (§5.1). 측정의 기동 인자가 새 키를 쓴다 |
+| AU-25 | AU-16, AU-24, `D-31` | `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-22·AU-24), `ProdProfileTest` (AU-14) | 실 MySQL 재측정 I-15 (§5.1) — 필터 전의 기준선은 이 항목의 부모 커밋으로 잰다 |
 | M-14 | 없음 | `GlobalExceptionHandler`·그 테스트 (M-15) | 화면: 무인증 경로의 401 |
 | M-15 | M-14 | `GlobalExceptionHandler`·그 테스트 (M-14), `MemberControllerTest` (M-16) | 화면의 429 안내, 로컬 템플릿 |
-| M-16 | M-14 | `MemberControllerTest` (M-15) | 화면의 관리자 회원 목록 (AU-20 과 함께) |
+| M-16 | M-14 | `MemberControllerTest` (M-15), `MemberService` (M-17) | 화면의 관리자 회원 목록 (AU-20 과 함께) |
+| M-17 | M-16, `D-31` | `MemberService` 의 javadoc (M-16) | 실 MySQL 재측정 I-15 (§5.1) — 필터 전의 기준선은 이 항목의 부모 커밋으로 잰다 |
 
-**저장소마다 구현 워커가 하나면**(두 저장소의 `CLAUDE.md` 가 그렇게 적는다 — 2026-11-12 읽기) auth 는 AU-12 → AU-13 → … → AU-21 의 번호 순서로 하나씩 한다. **AU-20 은 의존이 적어 앞당길 수 있다**(예: 화면의 회원 목록을 먼저 할 때). **AU-22 는 번호와 달리 AU-19 다음에 한다** — 사용자가 2026-11-17 에 그 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다(`D-22`). **AU-23 은 2026-11-23 `D-27` 이 세웠고 AU-18 뒤에 한다** — 사용자가 그날 I-08 의 교착을 고치기로 정했다. **AU-24 는 같은 날 `D-28` 이 세웠고 AU-22 뒤에 한다** — 사용자가 그날 메일 프로브를 보고 세 결함을 고치기로 정했다. AU-23 과는 겹치는 파일이 없다. 저장소 안의 병렬은 「겹치는 파일」 이 없는 항목끼리만 한다. auth 와 member 는 서로의 파일을 고치지 않으므로 두 저장소는 처음부터 함께 돈다.
+**저장소마다 구현 워커가 하나면**(두 저장소의 `CLAUDE.md` 가 그렇게 적는다 — 2026-11-12 읽기) auth 는 AU-12 → AU-13 → … → AU-21 의 번호 순서로 하나씩 한다. **AU-20 은 의존이 적어 앞당길 수 있다**(예: 화면의 회원 목록을 먼저 할 때). **AU-22 는 번호와 달리 AU-19 다음에 한다** — 사용자가 2026-11-17 에 그 결함을 「별도 수정 항목으로 지금 고친다」 고 정했다(`D-22`). **AU-23 은 2026-11-23 `D-27` 이 세웠고 AU-18 뒤에 한다** — 사용자가 그날 I-08 의 교착을 고치기로 정했다. **AU-24 는 같은 날 `D-28` 이 세웠고 AU-22 뒤에 한다** — 사용자가 그날 메일 프로브를 보고 세 결함을 고치기로 정했다. AU-23 과는 겹치는 파일이 없다. **AU-25 는 2026-11-24 `D-31` 이 세웠고 AU-24 뒤에 한다** — 사용자가 그날 board 의 로그 필터를 auth·member 로 넓히기로 정했다. 같은 `AccountService` 를 고친다. **M-17 은 같은 날 같은 결정으로 세웠고 M-16 뒤에 한다.** 저장소 안의 병렬은 「겹치는 파일」 이 없는 항목끼리만 한다. auth 와 member 는 서로의 파일을 고치지 않으므로 두 저장소는 처음부터 함께 돈다.
 
 ### 1.3 저장소 밖과 맞물리는 때
 
@@ -839,6 +844,100 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 
 > **2026-11-24 `D-29` 가 이 항목의 (b)·「고치는 모양」 의 형 문단·변이 표의 두 줄과 위 블록인용을 고쳤다** — 「삼키면 204」 는 대역에서만 맞고(AU-24 리뷰 minor-1, sp-auth `8050d0b` 의 `AccountService` 주석과 같은 문장), 형이 `OutgoingMail` 을 가지면 샌다는 문장은 그 형의 `toString` 과 맞지 않았다(리뷰 6번). 교착의 결과는 I-14 의 실측을 덧붙였다. 위 완료 기준의 「I-14 가 잰다」 는 정의 시점의 문장이라 그대로 둔다. **이 항목의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)).
 
+---
+
+### AU-25 가입의 UNIQUE 충돌 — 잡는 코드를 그 충돌로 좁히고, Hibernate 가 남기는 ERROR 를 버린다 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-auth` |
+| 의존 | AU-16, AU-24, `D-31`(정본 개정 — [phase1.md](phase1.md)) — 고치는 가입은 1차 AU-05 가 만들고 AU-16 이 커밋 뒤 발급을 더한 모양이다. AU-24 와는 같은 `AccountService` 를 고친다(§1.2) |
+| 공유 파일 | `AccountService`·그 테스트 (AU-16·AU-17·AU-20·AU-22·AU-24), `ProdProfileTest` (AU-14) |
+| 마이그레이션 | 없음 |
+| 참조 | [../conventions.md §8.1](../conventions.md)·§6.1·§7.2, [../tech-stack.md §4.8](../tech-stack.md)·§5.3, [../api-contract.md §2.3](../api-contract.md)·§8.4, [../domain-model.md §2.3](../domain-model.md), [phase1.md](phase1.md) AU-05·D-31, [phase2-board.md](phase2-board.md) 의 B-26, [../process/review-policy.md §4.1](../process/review-policy.md) |
+
+**2026-11-24 `D-31` 이 세웠다.** 사용자가 그날 [../conventions.md §8.1](../conventions.md)의 필터를 auth·member 로 넓히기로 정했고(auth 는 `uk_account_email`), 가입의 잡는 코드를 그 충돌로 좁히는 것은 같은 날 오케스트레이터가 정했다. **완료된 AU-05·AU-16 의 산출물을 고치므로** 그 항목들의 완료 기준과 먼저 대조한다 — 사전 검사와 실제 충돌의 409 `AU002`, 응답 본문, 커밋 뒤 발급은 그대로다. 바뀌는 것은 그 밖의 무결성 위반의 응답(409 `AU002` 에서 500 `C005` 로)과 그 충돌의 로그다.
+
+**무엇이 틀렸나**(sp-auth `09ff0f6`, 2026-11-24 코드 읽기)
+- **가입의 잡는 코드가 계정 INSERT 의 무결성 위반을 모두 409 `AU002` 로 바꾼다.** `AccountService.create` 는 `saveAndFlush` 가 던진 `DataIntegrityViolationException` 을 종류를 보지 않고 잡는다. 그 밖의 위반 — 예: member 의 같은 자리의 javadoc 이 드는 `created_at` 의 NOT NULL 위반 같은 서버 설정 오류 — 도 「이미 사용 중인 이메일」 로 위장되고 마지막 그물의 ERROR 도 남지 않는다. [../conventions.md §8.1](../conventions.md)의 「그 충돌만 잡는 코드」 조건과 [../AGENTS.md](../AGENTS.md) 불변식 9 에 어긋난다. member 의 같은 자리(`MemberService` 의 프로필 등록·닉네임 변경)는 예외의 원인 사슬에서 제약 이름을 꺼내 그 밖을 다시 던진다
+- **그 충돌이 Hibernate 의 ERROR 를 남길 것으로 본다.** board 에서 2026-11-20 I-11 이 잰 줄과 같은 로거(`SqlExceptionHelper`)를 지난다 — WARN `SQL Error: 1062, SQLState: 23000` 과, 중복 값으로 이메일을 실은 ERROR 다(추정 — auth 에서는 재지 않았다. I-15 가 잰다). auth 에는 그 줄을 버리는 설정 파일이 없다([../tech-stack.md §4.8](../tech-stack.md))
+
+**고치는 모양** — [../conventions.md §8.1](../conventions.md)과 그 절의 가입 블록인용 그대로다.
+
+```
+가입 (AccountService.create)   한 트랜잭션 — 지금 그대로
+  사전 검사 -> 계정 INSERT(saveAndFlush)               지금 그대로
+  무결성 위반을 잡으면
+    원인 사슬의 제약 이름에 uk_account_email 이 든다   -> 409 AU002 (지금 그대로의 응답)
+    그 밖                                              -> 다시 던진다 — 마지막 그물의 500 C005·ERROR
+로그 (logback-spring.xml 의 TurboFilter)
+  SqlExceptionHelper 의 ERROR 중 uk_account_email 이 든 줄(대소문자 무시)만 버린다
+  WARN 줄, 로거의 수준, 그 밖의 ERROR 는 그대로다
+```
+
+- **이름을 꺼내는 방법은 member 와 같다** — `DataIntegrityViolationException` 의 원인 사슬에서 Hibernate 의 `ConstraintViolationException` 을 찾아 그 이름에 `uk_account_email` 이 드는지 본다(sp-member `MemberService` 의 `constraintNameOf`). 방언이 이름을 바꾸므로 같음으로 보지 않는다 — H2 는 프로젝트의 테스트 URL 에서 접두어와 `_INDEX_n` 접미사를 붙인다(member 의 javadoc 이 적은 실측 모양, [../conventions.md §8.1](../conventions.md)의 규칙 표). 이름이 없으면 그 밖이다. 바깥 예외의 메시지로 맞추지 않는다 — 그 메시지에는 드라이버의 위반 문면과 함께 사용자가 고른 이메일이 실린다
+- **필터는 board 의 B-26 과 같은 동작을 auth 가 따로 쓴다**([../conventions.md §7.2](../conventions.md)) — 공유 모듈을 만들지 않는다. 맞추는 이름은 §8.1 의 표의 auth 행이다. 주석이 §8.1 의 행을 가리킬 때는 서수가 아니라 행의 이름으로 가리킨다 — board 필터 javadoc 의 「§8.1 의 셋째 행」 은 `D-31` 이 표를 더한 뒤 다른 행에 닿는다([phase1.md](phase1.md)의 D-31)
+- **잡는 코드는 로그를 더하지 않는다**(§8.1 의 「버린다」 행). 다시 던진 위반은 마지막 그물이 ERROR 로 남긴다
+- **바뀌는 응답은 그 밖의 위반뿐이다** — 정본이 409 `AU002` 로 정한 것은 `uk_account_email` 의 충돌이고([../api-contract.md §2.3](../api-contract.md)), 그 밖의 위반은 [../conventions.md §6.1](../conventions.md)의 마지막 그물이다
+
+**산출물**
+- `src/main/resources/logback-spring.xml` — [../tech-stack.md §4.8](../tech-stack.md)의 요건(Boot 의 기본 출력 유지, `base.xml` 을 포함하지 않는다, 프로파일로 가르지 않는다)
+- TurboFilter 클래스 — `global` 아래([../conventions.md §1.1](../conventions.md)). 맞추는 이름은 [../domain-model.md §2.3](../domain-model.md)의 이름 그대로다
+- `account/service/AccountService` — 가입의 잡는 코드를 `uk_account_email` 로 좁힌다. 그 자리의 주석에 그 밖을 다시 던지는 이유와, 그 충돌에 Hibernate 가 남기는 ERROR 는 [../conventions.md §8.1](../conventions.md)이 버린다는 것
+- 테스트 — 필터의 단위 테스트, 실제 Hibernate 출력을 Boot 가 읽은 설정 파일을 거쳐 받는 테스트, 가입의 그 밖의 위반 테스트, 운영 프로파일의 로거 수준 테스트(`ProdProfileTest` 확장). `AccountServiceTest` 의 경합 대역 테스트를 아래 기준대로 고친다
+
+**완료 기준**
+- [ ] **고치기 전에 검증표에서 「고치기 전 코드에서 깨진다」 를 적은 줄이 지금 코드에서 빨개지는 것을 보았다** — 가입의 그 밖의 위반 줄(지금은 409 `AU002`)과 실제 충돌의 로그 줄(지금은 그 로거의 ERROR 가 남는다)이다. 빨갛다는 것은 단언의 실패다 — 컴파일 실패는 빨강으로 세지 않는다. 결과를 보고에 적는다
+- [ ] **(a) 가입의 잡는 코드가 `uk_account_email` 의 위반만 409 `AU002` 로 바꾼다.** 그 밖의 `DataIntegrityViolationException` 은 다시 던져 500 `C005` 와 마지막 그물의 ERROR `unhandled exception` 이 된다. 이름은 원인 사슬에서 꺼낸다(위 「고치는 모양」)
+- [ ] **(b) 실제 충돌이 이름으로 맞는다** — H2 의 실제 `uk_account_email` 위반이 409 `AU002` 다. 사전 검사를 지난 뒤 같은 이메일의 행이 생기게 한다 — 수단은 구현이 고른다. 이름이 없는 대역만으로는 실제 위반이 싣는 이름의 모양을 보지 못한다. **H2 의 위반이 제약 이름을 싣는지 먼저 본다** — 싣지 않으면 잡는 코드도 필터도 H2 에서 맞추지 못하므로 멈추고 보고한다. 맞추는 조건을 바꾸는 것은 정본 개정이다(B-26 의 같은 기준)
+- [ ] **(c) 그 충돌에서 그 로거의 ERROR 가 없고, 그 로거의 WARN `SQL Error: …` 한 줄은 남는다**(H2 는 `SQL Error: 23505, SQLState: 23505`, MySQL 은 `SQL Error: 1062, SQLState: 23000`)
+- [ ] **(d) 다른 제약의 위반과 다른 SQL 오류는 그 로거의 ERROR 로 남는다** — 예: `uk_account_token_hash` 의 중복, `fk_account_token_account` 의 위반([../domain-model.md §2.3](../domain-model.md)). Hibernate 를 거쳐 낸다 — `JdbcTemplate` 은 `SqlExceptionHelper` 를 지나지 않는다. 필터를 넓힌 변이(그 로거의 ERROR 전부, 중복 키 위반 문면 전부 — MySQL `Duplicate entry`, H2 `Unique index or primary key violation`)에서 깨진다
+- [ ] **(e) 실제 출력은 Boot 가 읽은 설정 파일을 거쳐 본다** — 테스트가 필터를 손으로 붙이면 파일을 지운 변이가 살아남는다. 수단(appender 를 그 로거에 다는 것, 출력 캡처)은 구현이 고르고 파일을 지운 변이로 반증한다
+- [ ] **(f) 로거의 수준을 내린 변이에서 깨진다** — 그 로거를 `OFF` 로 둔 변이에서 위 WARN·다른 ERROR 의 단언이 빨개진다([../process/review-policy.md §4.1](../process/review-policy.md)의 「실패할 수 없는 단언」 을 피한다)
+- [ ] **(g) Boot 의 기본 출력이 그대로다** — 루트에 콘솔만 있고 파일 appender 가 없다. 운영 프로파일의 `logging.level`(SQL·바인드 로거 `warn`)이 이 파일 뒤에도 로거에 걸린다 — 로거에 직접 걸린 수준으로 본다. 지금 `ProdProfileTest` 는 속성값만 보아 파일이 속성을 덮어도 녹색이다(2026-11-24 코드 읽기 — board 는 B-26 이 같은 테스트를 더했다)
+- [ ] **(h) 필터의 단위 테스트가 MySQL 의 문면을 쓴다** — `Duplicate entry '…' for key 'account.uk_account_email'` 모양의 ERROR 는 버리고(대문자 이름도), 다른 제약 이름·다른 로거·같은 문면의 WARN·문면이 `null` 인 호출(수준 검사)은 버리지 않는다. 값은 지어낸 것을 쓴다
+- [ ] **(i) 변이로 잡힌다** — 아래 변이 표의 변이마다 빨개지는 테스트를 보고에 적는다([../process/review-policy.md §4.1](../process/review-policy.md))
+- [ ] **`AccountServiceTest` 의 경합 대역 테스트를 고친다** — 「UNIQUE 제약 위반이 500 으로 새지 않고 AU002 가 된다」 는 리포지터리가 원인 사슬이 없는 `DataIntegrityViolationException` 을 던지게 둔다(2026-11-24 코드 읽기). 좁힌 뒤에는 그 대역이 그 밖의 위반이 되어 빨개진다 — 결함이 아니라 대역의 모양이다. 대역이 실제 위반의 모양(원인 사슬의 Hibernate `ConstraintViolationException` 과 그 이름)을 싣게 하거나 (b) 의 실제 위반으로 바꾼다. 「`AU002` 가 된다」 단언은 약하게 하지 않는다. 바꾼 것을 보고에 적는다
+- [ ] AU-05·AU-16 의 완료 기준이 그대로다 — 중복 이메일과 탈퇴한 계정의 이메일은 409 `AU002`, 응답 본문, 커밋 뒤 발급
+- [ ] 기존 테스트가 깨지지 않는다 — 위 대역 테스트 말고
+- [ ] **실 MySQL 의 재측정은 이 항목의 완료 기준이 아니다** — I-15 가 잰다. MySQL 의 위반에서 Hibernate 가 꺼내는 이름도 I-15 가 응답으로 본다
+
+**검증** — 필터의 단위 테스트, 실제 출력 테스트, 서비스 테스트, `./gradlew test`
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| 가입의 계정 INSERT 가 그 밖의 무결성 위반을 낸다 — Hibernate 를 거친 실제 위반이나 원인 사슬에 다른 제약 이름을 실은 대역. 수단은 구현이 고른다 | 다시 던져진다 — 요청이면 500 `C005` 와 마지막 그물의 ERROR. `AU002` 가 아니다. **고치기 전 코드에서 깨진다**(409 `AU002`) |
+| 가입의 `uk_account_email` 실제 위반 — 사전 검사를 지난 뒤 같은 이메일의 행이 생긴다 | 409 `AU002`. 그 로거의 ERROR 0, 그 로거의 WARN `SQL Error: 23505, SQLState: 23505` 한 줄. **SQL·바인드 로거를 빼면 그 요청이 남긴 줄은 그 WARN 과(컨트롤러 경계를 지나면) 핸들러의 WARN `business exception: AU002` 뿐이고, 어느 줄에도 그 이메일이 없다**(§8.1 의 「버린다」 행 — 잡는 코드가 줄을 더하지 않고, 수준을 낮춰 다시 남기지 않는다). 로그 부분은 **고치기 전 코드에서 깨진다**. 파일·필터를 지운 변이에서 깨진다 |
+| `uk_account_token_hash` 의 중복 INSERT | 그 로거의 ERROR 1 — 제약 이름이 든다 |
+| `fk_account_token_account` 의 위반 — Hibernate 를 거쳐 낸다 | 그 로거의 ERROR 1 |
+| 그 로거를 `OFF` 로 둔 변이 | 위 WARN·ERROR 단언이 깨진다 |
+| 단위 — MySQL 문면(`Duplicate entry '…' for key 'account.uk_account_email'`), ERROR | 버린다. 대문자 이름도 버린다 |
+| 단위 — 다른 제약 이름(예: `uk_login_attempt_email_key`), 교착의 `Deadlock found …`, 다른 로거, 같은 문면의 WARN | 버리지 않는다 |
+| 단위 — 문면이 `null` 인 호출(수준 검사, 예: `isErrorEnabled`) | 버리지 않는다(NEUTRAL). 버리면 `logExceptions` 의 진입 검사가 거짓이 되어 WARN·다른 ERROR 가 모두 사라진다 |
+| 루트 logger 의 appender | 콘솔만 |
+| `prod` 프로파일의 SQL·바인드 로거 | 로거에 직접 `WARN` 이 걸려 있다 |
+| `logback-spring.xml` 의 내용 | `<springProfile>` 이 없다([../tech-stack.md §4.8](../tech-stack.md)) — 파일을 읽어 보는 정적 단언이나 리뷰의 확인. 프로파일마다 컨텍스트를 띄우는 테스트는 logback 의 초기화가 한 번뿐이라 실행 순서에 기댈 수 있다(추정 — 2026-11-24 D-31 리뷰) |
+| AU-05·AU-16 의 가입 검증표 | 그대로 통과한다 |
+
+**변이** — (i) 의 대상이다.
+
+| 변이 | 잡는 줄 |
+| --- | --- |
+| 가입의 잡는 코드를 되돌린다 — 모든 무결성 위반을 `AU002` 로 | 그 밖의 위반 줄 |
+| 그 밖의 위반을 다시 던지지 않고 다른 업무 예외로 바꾼다 | 그 밖의 위반 줄 |
+| 잡는 코드가 충돌을 이메일과 함께 로그로 남긴다(수준을 낮춰 다시 남기는 것 포함) | `uk_account_email` 실제 위반 줄의 「그 요청이 남긴 줄」 |
+| 필터를 `<springProfile>` 로 감싼다(예: `!prod`) | `logback-spring.xml` 의 내용 줄 |
+| 이름을 같음(`equals`)으로 맞춘다 | `uk_account_email` 실제 위반 줄 — H2 의 이름에 접두어·접미사가 붙는다 |
+| `logback-spring.xml` 을 지우거나 필터 줄을 뺀다 | `uk_account_email` 실제 위반 줄의 ERROR 0 |
+| 필터가 그 로거의 ERROR 를 모두 버린다 | 다른 제약의 위반 줄 |
+| 필터가 중복 키 위반 문면을 모두 버린다 | `uk_account_token_hash` 의 줄 |
+| 필터가 대소문자를 가린다 | 단위의 대문자 줄 |
+| 필터가 문면이 `null` 인 호출도 버린다 | 단위의 `null` 줄, 실제 위반 줄의 WARN |
+| 그 로거를 `OFF` 로 둔다 | WARN·다른 ERROR 의 단언 |
+| 설정 파일이 `base.xml` 을 포함한다 | 루트 logger 의 appender 줄 |
+
+> **이 항목은 실 MySQL 을 재지 않는다** — 그 자리는 I-15 다([phase2-frontend-integration.md](phase2-frontend-integration.md)). H2 의 녹색은 MySQL 의 문면에서 맞춘다는 근거가 아니다 — 단위 테스트는 MySQL 문면의 모양으로 맞추는 조건을 고정하고, 앱으로는 I-15 가 잰다.
+
 ## 4. member-service 작업 항목
 
 ### M-14 에러 코드·예외 매핑·경로 선언 [기반]
@@ -963,6 +1062,92 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 | 토큰 없음 | 401 `A001` |
 | `GET /api/v1/members/{accountId}` | 그대로 무인증으로 응답한다 |
 
+---
+
+### M-17 프로필 등록·닉네임 변경의 UNIQUE 충돌이 남기는 Hibernate ERROR 를 버린다 [결함 수정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-member` |
+| 의존 | M-16, `D-31`(정본 개정 — [phase1.md](phase1.md)) — 고치는 로그는 1차 M-05·M-08 의 잡는 코드가 바꾸는 충돌의 것이다. M-16 과는 같은 `MemberService` 를 고친다(§1.2) |
+| 공유 파일 | `MemberService` 의 javadoc (M-16) |
+| 마이그레이션 | 없음 |
+| 참조 | [../conventions.md §8.1](../conventions.md)·§6.1·§7.2, [../tech-stack.md §4.8](../tech-stack.md)·§5.3, [../api-contract.md §2.3](../api-contract.md)·§3·§8.2, [../requirements/member.md §7](../requirements/member.md), [../domain-model.md §3.2](../domain-model.md), [phase1.md](phase1.md) M-05·M-08·D-31, [phase2-board.md](phase2-board.md) 의 B-26, [../process/review-policy.md §4.1](../process/review-policy.md) |
+
+**2026-11-24 `D-31` 이 AU-25 와 함께 세웠다.** 사용자가 그날 [../conventions.md §8.1](../conventions.md)의 필터를 auth·member 로 넓히기로 정했다(member 는 `uk_member_nickname`·`uk_member_account_id`). **잡는 코드와 응답은 그대로다** — member 의 잡는 코드는 이미 그 충돌만 잡는다(아래). 완료된 M-05·M-08 의 산출물(그 자리의 javadoc)을 고치므로 그 항목들의 완료 기준과 먼저 대조한다.
+
+**무엇이 틀렸나**(sp-member `bf499f7`, 2026-11-24 코드 읽기)
+- **그 충돌이 Hibernate 의 ERROR 를 남길 것으로 본다.** 프로필 등록과 닉네임 변경은 두 제약의 위반을 잡아 409 `M003` 이나 프로필 등록의 멱등 표(200, 409 `M006`·`M007`)로 바꾸지만, 그 위반은 `SqlExceptionHelper` 를 지나 WARN 과 ERROR 를 남긴다. ERROR 줄의 중복 값에는 닉네임이나 계정 id 가 실릴 것으로 본다(추정 — member 에서는 재지 않았다. I-15 가 잰다). member 에는 그 줄을 버리는 설정 파일이 없다([../tech-stack.md §4.8](../tech-stack.md))
+- **잡는 코드는 이미 좁다** — `MemberService` 는 원인 사슬에서 제약 이름을 꺼내 `uk_member_nickname` 이면 `M003` 을 내고, 프로필 등록은 그보다 먼저 그 계정의 행을 새 트랜잭션에서 되읽어 멱등 표를 따른다. 그 밖은 다시 던진다. 이 항목은 그 판단을 바꾸지 않는다
+- **그 자리의 javadoc 은 §6.1 만 가리킨다** — 닉네임 변경의 javadoc 은 경합을 500 으로 내보내지 않는 이유로 마지막 그물의 `log.error` 를 든다. 그 충돌에 Hibernate 가 남기는 ERROR 는 [../conventions.md §8.1](../conventions.md)이 다룬다
+
+**고치는 모양**
+
+```
+로그 (logback-spring.xml 의 TurboFilter)
+  SqlExceptionHelper 의 ERROR 중 uk_member_nickname 이나 uk_member_account_id 가 든 줄(대소문자 무시)만 버린다
+  WARN 줄, 로거의 수준, 그 밖의 ERROR 는 그대로다
+잡는 코드 (MemberService)   그대로 — 그 자리의 javadoc 이 §8.1 도 가리킨다
+```
+
+- **필터는 board 의 B-26·auth 의 AU-25 와 같은 동작을 member 가 따로 쓴다**([../conventions.md §7.2](../conventions.md)). 맞추는 이름은 §8.1 의 표의 member 행 둘이다. §8.1 의 행은 서수가 아니라 이름으로 가리킨다(AU-25 와 같다)
+- **같은 계정·같은 본문의 등록 경합은 두 제약이 함께 깨지고, 보고되는 이름은 하나다** — 어느 쪽인지는 보장되지 않는다(`MemberService` 의 javadoc. 그 저장소의 H2 는 `uk_member_account_id` 쪽을 돌려주었다). 필터는 두 이름을 모두 맞추므로 어느 쪽이 보고되든 버린다. 테스트는 보고된 이름에 기대지 않는다
+- **잡는 코드는 로그를 더하지 않는다**(§8.1 의 「버린다」 행)
+
+**산출물**
+- `src/main/resources/logback-spring.xml` — [../tech-stack.md §4.8](../tech-stack.md)의 요건(Boot 의 기본 출력 유지, `base.xml` 을 포함하지 않는다, 프로파일로 가르지 않는다)
+- TurboFilter 클래스 — `global` 아래([../conventions.md §1.2](../conventions.md)). 맞추는 이름은 [../domain-model.md §3.2](../domain-model.md)의 이름 그대로다
+- `member/service/MemberService` — 프로필 등록·닉네임 변경의 javadoc 에, 그 충돌에 Hibernate 가 남기는 ERROR 는 [../conventions.md §8.1](../conventions.md)이 버린다는 것. 잡는 코드의 판단은 바꾸지 않는다
+- 테스트 — 필터의 단위 테스트, 실제 Hibernate 출력을 Boot 가 읽은 설정 파일을 거쳐 받는 테스트, 운영 프로파일의 로거 수준 테스트(`ProdProfileTest` 확장)
+
+**완료 기준**
+- [ ] **고치기 전에 검증표에서 「고치기 전 코드에서 깨진다」 를 적은 줄이 지금 코드에서 빨개지는 것을 보았다** — 실제 충돌의 로그 줄이다(지금은 그 로거의 ERROR 가 남는다). 빨갛다는 것은 단언의 실패다 — 컴파일 실패는 빨강으로 세지 않는다. 결과를 보고에 적는다
+- [ ] **(a) 실제 충돌에서 그 로거의 ERROR 가 없고, 그 로거의 WARN `SQL Error: …` 한 줄은 남는다** — 프로필 등록의 `uk_member_nickname`(409 `M003`), 프로필 등록의 `uk_member_account_id`(멱등 표의 응답), 닉네임 변경의 `uk_member_nickname`(409 `M003`). 응답은 지금 그대로다. 사전 검사를 지난 뒤 그 행이 생기게 한다 — 수단은 구현이 고른다. 기존 「확인–커밋 사이의 경합」 테스트가 사전 검사를 우회해 H2 의 실제 위반을 낸다(2026-11-24 코드 읽기)
+- [ ] **(b) 그 밖의 SQL 오류는 그 로거의 ERROR 로 남는다** — 예: 열 폭을 넘는 닉네임의 등록(기존 「UNIQUE 둘이 아닌 무결성 위반」 테스트의 입력), NOT NULL 위반. Hibernate 를 거쳐 낸다 — `JdbcTemplate` 은 `SqlExceptionHelper` 를 지나지 않는다. 필터가 그 로거의 ERROR 를 모두 버리는 변이에서 깨진다
+- [ ] **(c) 실제 출력은 Boot 가 읽은 설정 파일을 거쳐 본다** — 테스트가 필터를 손으로 붙이면 파일을 지운 변이가 살아남는다. 수단은 구현이 고르고 파일을 지운 변이로 반증한다
+- [ ] **(d) 로거의 수준을 내린 변이에서 깨진다** — 그 로거를 `OFF` 로 둔 변이에서 위 WARN·다른 ERROR 의 단언이 빨개진다([../process/review-policy.md §4.1](../process/review-policy.md)의 「실패할 수 없는 단언」 을 피한다)
+- [ ] **(e) Boot 의 기본 출력이 그대로다** — 루트에 콘솔만 있고 파일 appender 가 없다. 운영 프로파일의 `logging.level`(SQL·바인드 로거 `warn`)이 이 파일 뒤에도 로거에 걸린다 — 로거에 직접 걸린 수준으로 본다. 지금 `ProdProfileTest` 는 속성값만 본다(2026-11-24 코드 읽기)
+- [ ] **(f) 필터의 단위 테스트가 MySQL 의 문면을 쓴다** — `Duplicate entry '…' for key 'member.uk_member_nickname'`·`'member.uk_member_account_id'` 모양의 ERROR 는 버리고(대문자 이름도), 다른 키 이름(예: `member.PRIMARY`)·다른 로거·같은 문면의 WARN·문면이 `null` 인 호출(수준 검사)은 버리지 않는다. 값은 지어낸 것을 쓴다
+- [ ] **(g) 변이로 잡힌다** — 아래 변이 표의 변이마다 빨개지는 테스트를 보고에 적는다([../process/review-policy.md §4.1](../process/review-policy.md))
+- [ ] 잡는 코드의 판단이 그대로다 — M-05·M-08 의 완료 기준과 기존 경합 테스트(`M003`, 멱등 표, 그 밖은 다시 던진다)가 그대로 통과한다
+- [ ] 기존 테스트가 깨지지 않는다
+- [ ] **실 MySQL 의 재측정은 이 항목의 완료 기준이 아니다** — I-15 가 잰다
+
+**검증** — 필터의 단위 테스트, 실제 출력 테스트, `./gradlew test`
+
+| 케이스 | 기대 결과 |
+| --- | --- |
+| 프로필 등록 — 사전 검사를 지난 뒤 타인이 그 닉네임을 쥔다 | 409 `M003`. 그 로거의 ERROR 0, 그 로거의 WARN `SQL Error: 23505, SQLState: 23505` 한 줄. 로그 부분은 **고치기 전 코드에서 깨진다**. 파일·필터를 지운 변이에서 깨진다 |
+| 프로필 등록 — 사전 검사를 지난 뒤 같은 계정의 행이 다른 닉네임으로 생긴다 | 409 `M006`. 그 로거의 ERROR 0, WARN 한 줄. 로그 부분은 **고치기 전 코드에서 깨진다** |
+| 닉네임 변경 — 사전 검사를 지난 뒤 타인이 그 닉네임을 쥔다 | 409 `M003`, 내 닉네임이 그대로다. 그 로거의 ERROR 0, WARN 한 줄. 로그 부분은 **고치기 전 코드에서 깨진다** |
+| 위 세 줄 모두 — 그 요청이 남긴 줄 | **SQL·바인드 로거를 빼면 그 로거의 WARN 과(컨트롤러 경계를 지나면) 핸들러의 WARN `business exception: <코드>` 뿐이고, 어느 줄에도 그 닉네임이 없다**(§8.1 의 「버린다」 행 — 잡는 코드가 줄을 더하지 않고, 수준을 낮춰 다시 남기지 않는다) |
+| 열 폭을 넘는 닉네임의 등록 | 지금처럼 다시 던진다. 그 로거의 ERROR 1 |
+| 그 로거를 `OFF` 로 둔 변이 | 위 WARN·ERROR 단언이 깨진다 |
+| 단위 — MySQL 문면, 두 이름, ERROR | 버린다. 대문자 이름도 버린다 |
+| 단위 — 다른 키 이름(예: `member.PRIMARY`), 교착의 `Deadlock found …`, 다른 로거, 같은 문면의 WARN | 버리지 않는다 |
+| 단위 — 문면이 `null` 인 호출(수준 검사, 예: `isErrorEnabled`) | 버리지 않는다(NEUTRAL). 버리면 `logExceptions` 의 진입 검사가 거짓이 되어 WARN·다른 ERROR 가 모두 사라진다 |
+| 루트 logger 의 appender | 콘솔만 |
+| `prod` 프로파일의 SQL·바인드 로거 | 로거에 직접 `WARN` 이 걸려 있다 |
+| `logback-spring.xml` 의 내용 | `<springProfile>` 이 없다 — AU-25 의 같은 줄과 같다 |
+| M-05·M-08 의 검증표, 기존 경합 테스트 | 그대로 통과한다 |
+
+**변이** — (g) 의 대상이다.
+
+| 변이 | 잡는 줄 |
+| --- | --- |
+| `logback-spring.xml` 을 지우거나 필터 줄을 뺀다 | 실제 충돌 줄들의 ERROR 0 |
+| 필터가 한 이름만 맞춘다(예: `uk_member_account_id` 를 뺀다) | 같은 계정의 등록 경합 줄 |
+| 잡는 코드가 충돌을 닉네임과 함께 로그로 남긴다(수준을 낮춰 다시 남기는 것 포함) | 「그 요청이 남긴 줄」 |
+| 필터를 `<springProfile>` 로 감싼다(예: `!prod`) | `logback-spring.xml` 의 내용 줄 |
+| 필터가 그 로거의 ERROR 를 모두 버린다 | 열 폭 위반 줄 |
+| 필터가 중복 키 위반 문면을 모두 버린다 | 단위의 다른 키 이름 줄 |
+| 필터가 대소문자를 가린다 | 단위의 대문자 줄 |
+| 필터가 문면이 `null` 인 호출도 버린다 | 단위의 `null` 줄, 실제 충돌 줄의 WARN |
+| 그 로거를 `OFF` 로 둔다 | WARN·다른 ERROR 의 단언 |
+| 설정 파일이 `base.xml` 을 포함한다 | 루트 logger 의 appender 줄 |
+
+> **이 항목은 실 MySQL 을 재지 않는다** — 그 자리는 I-15 다([phase2-frontend-integration.md](phase2-frontend-integration.md)). H2 의 녹색은 MySQL 의 문면에서 맞춘다는 근거가 아니다 — 단위 테스트는 MySQL 문면의 모양으로 맞추는 조건을 고정하고, 앱으로는 I-15 가 잰다. 같은 계정·같은 본문의 등록 경합에서 MySQL 이 어느 이름을 보고하는지는 I-15 의 기준선이 관측값으로 적는다 — 판정은 응답으로 한다.
+
 ## 5. 넘기는 것
 
 ### 5.1 통합 계획이 I 항목으로 세울 측정 대상
@@ -989,13 +1174,14 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 | `C009` 의 본문·헤더를 auth·member 가 같게 내는가 — 둘의 비교다 | [../api-contract.md §8.1](../api-contract.md)의 `C009` 문단, [../conventions.md §6.1](../conventions.md) | AU-19, M-15 |
 | multipart 매핑이 세 서비스에서 같고, 한도를 넘는 multipart 가 실서버에서 413 `C008` 인가 — MockMvc 는 서블릿 컨테이너의 한도를 거치지 않는다 | [../conventions.md §6.1](../conventions.md)의 블록인용 | AU-13, M-14 (board 의 같은 매핑과 함께) |
 
-**결함 수정 항목이 실서버로 넘긴 것**(2026-11-17 `D-22`, AU-23 의 줄은 2026-11-23 `D-27`, AU-24 의 줄은 같은 날 `D-28`) — [phase2.md §5.4](phase2.md)의 단락에 없다. AU-22 의 줄은 [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 쟀고, AU-23 의 줄은 같은 문서의 I-13 이(2026-11-23), AU-24 의 줄은 I-14 가(2026-11-24) 쟀다.
+**결함 수정 항목이 실서버로 넘긴 것**(2026-11-17 `D-22`, AU-23 의 줄은 2026-11-23 `D-27`, AU-24 의 줄은 같은 날 `D-28`, AU-25·M-17 의 줄은 2026-11-24 `D-31`) — [phase2.md §5.4](phase2.md)의 단락에 없다. AU-22 의 줄은 [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 쟀고, AU-23 의 줄은 같은 문서의 I-13 이(2026-11-23), AU-24 의 줄은 I-14 가(2026-11-24) 쟀다. AU-25·M-17 의 줄은 같은 문서의 I-15 가 잰다.
 
 | 대상 | 근거 | 항목 |
 | --- | --- | --- |
 | 같은 계정의 로그인과 비밀번호 변경·탈퇴·재설정 확인을 겹칠 때 — 로그인의 저장이 쓰는 쪽의 트랜잭션 안에 든다. 재설정 확인이 토큰을 읽은 뒤 계정 잠금을 기다리는 사이에 로그인의 저장이 커밋되는 차례를 포함하고, 그 계정에 `refresh_token` 행이 없는 상태에서 시작한다. 차례를 만드는 방법은 I-08 이 고른다(예: 다른 연결이 계정 행을 잠금 읽기로 잡아 두 요청을 그 앞에 세운다 — 어느 요청이 먼저 잠금을 얻었는지는 관측값으로 적는다) — 쓰는 쪽이 커밋한 뒤 로그인이 넣은 행이 없는가. 로그인은 기다린 뒤 401 `AU003` 이거나, 먼저 커밋했으면 그 행을 쓰는 쪽이 지웠어야 한다. 어긋나면 결함이다 | [../security.md §5.3](../security.md)의 블록인용, AU-22 의 「무엇이 틀렸나」 | AU-22 |
 | 같은 이메일과 서로 다른 이메일의 동시 첫 실패, 한도 이상의 동시 실패를 앱(Connector/J·Hibernate)으로 보낼 때 — 교착·UNIQUE 충돌·세지 못한 실패가 없고, 한도 이상이면 잠금 한 번·`failed_count` 0 인가. 그 사이 로거마다 남은 줄 | [../domain-model.md §2.5](../domain-model.md)의 블록인용, AU-23 의 「무엇이 틀렸나」 | AU-23 |
 | SMTP 가 연결을 거부하거나 답하지 않거나 발송·발급 작업이 대기열에서 버려질 때 — 이미 받은 링크가 사는가, 발송이 성공하면 죽는가. 버림 WARN 에 작업의 종류·계정 id·목적이 있고 이메일·토큰이 없는가. 발송이 막혀도 가입의 토큰이 생기는가. 재설정 요청·재발송의 응답 시간이 여전히 계정 유무로 갈리지 않는가 | [../requirements/member.md §11.5](../requirements/member.md)의 블록인용, AU-24 의 「무엇이 틀렸나」 | AU-24 |
+| 같은 이메일의 동시 가입, 같은 닉네임의 동시 프로필 등록·닉네임 변경, 같은 계정의 동시 프로필 등록을 앱으로 보낼 때 — 그 충돌마다 `SqlExceptionHelper` 의 WARN `SQL Error: 1062` 는 남고 그 제약 이름이 든 ERROR 는 없는가. 응답은 정본대로인가(409 `AU002`·`M003`, 프로필 등록의 멱등 표, 500 없음) — MySQL 의 위반에서 잡는 코드가 제약 이름을 꺼내는가. 남은 줄에 이메일·닉네임이 없는가. 필터 전의 기준선부터 잰다 | [../conventions.md §8.1](../conventions.md), AU-25·M-17 의 「무엇이 틀렸나」 | AU-25, M-17 |
 
 ### 5.2 화면 항목이 필요로 하는 것
 
@@ -1038,7 +1224,7 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 - **auth·member 의 무인증 경로에 잘못된 토큰이 올 때의 응답.** 정본은 board 상세 조회에 대해서만 적는다([../requirements/board.md §9.1](../requirements/board.md)). AU-13·M-14 는 관측한 응답을 테스트로 묶을 뿐 정하지 않는다. claim 계약 위반 토큰(예: 열거 밖 `role`)이 무인증 경로로 올 때도 같다
 - **요청 수 제한 설정의 기동 가드.** [../tech-stack.md §4.6](../tech-stack.md)은 그 값들을 정본 값으로 분류해 가드를 요구하지 않는다. AU-19·M-15 의 가드는 AGENTS.md 불변식 9 를 근거로 이 계획이 정했다
 - **메일 헬스 지표.** 정본이 정하지 않았다. AU-14 의 끄기는 [../nfr.md §2](../nfr.md)를 근거로 이 계획이 정했다
-- **코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR.** 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다. 로그인 실패 카운터의 `uk_login_attempt_email_key` 는 이 줄에서 빠졌다 — 2026-11-20 I-08 에서 UNIQUE 충돌은 없었고 교착이 났으며(아래 줄), 2026-11-23 `D-27` 뒤에는 세는 문장이 그 충돌을 내지 않는다([../conventions.md §8.1](../conventions.md)). 앞 판은 그것을 「다시 한다」 로 이 줄에 적었다
+- **코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR — AU-25·M-17 이 받는다**(2026-11-24 `D-31`). 사용자가 그날 세 제약(`uk_account_email`·`uk_member_nickname`·`uk_member_account_id`)을 [../conventions.md §8.1](../conventions.md)의 규칙에 넣기로 정했다 — 409 로 응답하는 충돌도 넣는다. 가입의 잡는 코드를 그 충돌로 좁히는 것은 같은 날 오케스트레이터가 정했다(AU-25). 재측정은 I-15 다. 앞 판은 이렇게 적었다 — 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다. 로그인 실패 카운터의 `uk_login_attempt_email_key` 는 이 줄에서 빠졌다 — 2026-11-20 I-08 에서 UNIQUE 충돌은 없었고 교착이 났으며(아래 줄), 2026-11-23 `D-27` 뒤에는 세는 문장이 그 충돌을 내지 않는다([../conventions.md §8.1](../conventions.md)). 앞 판은 그것을 「다시 한다」 로 이 줄에 적었다
 
 **아래는 2026-11-20 `D-26` 이 2차 통합 측정(I-08·I-09)에서 옮긴 후속 후보다.** D-26 은 실측을 정본에 맞추기만 하고 동작을 바꾸지 않는다([phase1.md](phase1.md)의 D-26) — 그래서 코드나 마이그레이션을 바꿔야 풀리는 것을 여기에 둔다. 세울지와 어떻게 할지는 정하지 않았다.
 

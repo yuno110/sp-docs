@@ -2,7 +2,7 @@
 title: 도메인 모델
 type: spec
 status: frozen
-version: v27
+version: v28
 updated: 2026-11-24
 read_when: "엔티티 필드, 컬럼 타입, 제약, 인덱스, 마이그레이션 스크립트를 작성할 때"
 related: [architecture.md, api-contract.md, requirements/member.md, requirements/board.md]
@@ -220,7 +220,7 @@ DELETE FROM account_token
 - 발송이 실패하거나 발송 작업이 버려지면 지우지 않는다. 지우기가 실패하면 WARN 을 남기고 둘 다 둔다 — 그 행들은 확인의 지우기나 만료 뒤의 정리가 치운다
 - 확인의 지우기는 사용 처리(위의 조건부 UPDATE)와 같은 트랜잭션이다. 확인이 되돌려지면 지우기도 없다. **이 지우기는 발송 작업의 지우기·만료 행의 정리와 교착할 수 있다** — 확인은 사용 처리로 자기 토큰 행을 먼저 쥐고 마지막에 같은 계정·목적의 범위를 훑으므로, 그 범위를 먼저 훑던 지우기가 그 토큰 행을 기다리면 고리가 된다. 계정 행을 잡지 않아도 이 테이블의 next-key 락과 행 락만으로 생긴다(RR 의 락 규칙으로 본 추론이다. 발송의 지우기와의 고리는 아래처럼 쟀고, 정리와의 고리는 재지 않았다). 만료 행의 정리는 `idx_account_token_expires_at` → 행 → 계정·목적 인덱스 순으로 잡아 두 지우기(계정·목적 인덱스 → 행)와 순서가 반대다. InnoDB 가 한쪽을 되돌린다 — 발송의 지우기면 위의 「지우기가 실패하면」 이고(WARN, 둘 다 둔다), 확인이면 500 `C005` 로 끝나고 토큰 사용도 되돌려진다 — 정리와 겹쳤으면 그 링크가 다시 쓰이고, 발송의 지우기와 겹쳤으면 그 지우기가 이어서 그 링크를 지우므로 방금 넘겨진 새 메일의 링크가 산다. 계정 행의 락 순서(토큰 행 → 계정 → …, [requirements/member.md §11.4](requirements/member.md))는 바뀌지 않는다 — 확인은 계정 뒤 마지막에 이 범위를 잡고, 이 범위를 먼저 잡고 계정을 잡는 경로는 없다
 - **발송의 지우기와의 교착은 2026-11-24 I-14 가 실 MySQL 에서 쟀다**(sp-board `87b953a` 의 커밋 메시지, `D-29`). 발급이 커밋된 뒤 발송을 붙잡고, 다른 연결이 계정 행을 쥔 채 링크 1 을 확인하고, 발송을 놓은 결정적 차례에서 인증 3·재설정 3 모두 교착했다. 발송의 지우기는 `idx_account_token_account_purpose` 를 탔고 링크 1 의 행에서 섰다. **6/6 InnoDB 가 발송의 지우기를 되돌렸다** — 교착 기록의 무게가 발송 쪽 행 락 2·undo 0, 확인 쪽 인증 4·2, 재설정 6·3 이었다. 확인은 204 였고, 이긴 확인의 나머지 지우기가 새 행까지 지워 링크 1 과 새 링크 모두 400 `AU007` 이었다(새 메일은 나갔다). **확인이 되돌려지는 갈래는 이 차례로 나지 않았다** — 관측값이다. 링크 1 보다 오래된 행이 남아 있으면 발송의 지우기가 그 행을 먼저 지워 무거워질 수 있으므로(I-14 리뷰의 추론, 재지 않았다) 그 갈래가 없다고 적지 않는다
-- **교착이 남기는 줄.** 교착마다 Hibernate 의 `SqlExceptionHelper` 가 WARN `SQL Error: 1213, SQLState: 40001` 과 ERROR `Deadlock found when trying to get lock; try restarting transaction` 을 남긴다([conventions.md §8.1](conventions.md)). 발송의 지우기가 되돌려지면 그 둘과 `MailDispatcher` 의 WARN `mail sent, but after-send work failed`(계정 id·목적·예외의 종류) 세 줄이다(I-14, 6/6). 확인이 되돌려지면 그 둘과 마지막 그물의 ERROR `unhandled exception`(500 `C005`)일 것으로 본다(추론, 재지 않았다). auth 에는 그 로거의 필터가 없다([conventions.md §8.1](conventions.md)의 필터는 board 의 것이다). 이 ERROR 를 거르는 필터는 정하지 않았다 — 그 줄에는 어느 경로의 교착인지 가를 정보가 없어, 거르면 잡지 않은 교착의 ERROR 까지 사라진다(2026-11-24 I-14 리뷰가 권하지 않은 이유. 같은 절의 표도 교착 같은 다른 SQL 오류는 그대로 남긴다)
+- **교착이 남기는 줄.** 교착마다 Hibernate 의 `SqlExceptionHelper` 가 WARN `SQL Error: 1213, SQLState: 40001` 과 ERROR `Deadlock found when trying to get lock; try restarting transaction` 을 남긴다([conventions.md §8.1](conventions.md)). 발송의 지우기가 되돌려지면 그 둘과 `MailDispatcher` 의 WARN `mail sent, but after-send work failed`(계정 id·목적·예외의 종류) 세 줄이다(I-14, 6/6). 확인이 되돌려지면 그 둘과 마지막 그물의 ERROR `unhandled exception`(500 `C005`)일 것으로 본다(추론, 재지 않았다). 2026-11-24 `D-31` 이 [conventions.md §8.1](conventions.md)의 필터를 auth 로 넓혔지만 이 ERROR 는 버리지 않는다 — 그 필터는 그 절의 표에 있는 제약 이름이 든 줄만 버리고, 이 줄에는 그 이름이 없다. 앞 판은 「auth 에는 그 로거의 필터가 없다(… 필터는 board 의 것이다)」 였다. 이 ERROR 를 거르는 필터는 정하지 않았다 — 그 줄에는 어느 경로의 교착인지 가를 정보가 없어, 거르면 잡지 않은 교착의 ERROR 까지 사라진다(2026-11-24 I-14 리뷰가 권하지 않은 이유. 같은 절의 표도 교착 같은 다른 SQL 오류는 그대로 남긴다)
 
 > **앞 판은 발급 작업이 같은 트랜잭션에서 앞 행을 지우고 새 행을 넣었다**(2026-11-11 `D-19`). 그 순서에서는 메일이 나가지 못하면 받은 링크가 하나도 살지 않았다 — 2026-11-23 메일 프로브가 실 MySQL 에서 확인했다([requirements/member.md §11.5](requirements/member.md)의 블록인용). 코드는 [plan/phase2-auth-member.md](plan/phase2-auth-member.md)의 AU-24 가 바꾼다.
 

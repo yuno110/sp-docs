@@ -2,7 +2,7 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v83
+version: v84
 updated: 2026-11-24
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
@@ -3407,6 +3407,92 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | [../security.md §5.1](../security.md)의 고친 문장을 sp-member `bfc835f`·`bf499f7`, sp-board `c9b5bb4` 의 `LoginMember` diff 와 두 저장소의 지금 `LoginMember` 와 대조한다 | 맞는다 |
 | sp-docs 를 `6MB`·`10MB`·`max-request-size`·`max-swallow-size`·「예시인지」·「블록에만」·「multipart 한도」·「업로드 한도」·「사용자 결정이 아니」·「정책 결정으로 남긴다」·「각각 고친다」 로 훑는다 | 두 값을 예에만 있는 것으로, 정하지 않은 것으로, 사용자 결정이 아닌 것으로, `M-12`·`B-12` 의 javadoc 수정을 앞으로 할 일로 읽히게 하는 현재형 문장이 없다(날짜가 박힌 그날의 기록은 둔다) |
 | 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-24 이다 |
+
+### D-31 auth·member 의 UNIQUE 충돌이 남기는 Hibernate ERROR 로그 — D-25 의 규칙을 넓힌다 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 근거는 사용자의 2026-11-24 결정과 같은 날의 코드 읽기다 — auth·member 의 로그는 재지 않았다. 공백은 `D-25` 가 [../conventions.md §8.1](../conventions.md)의 블록인용과 [phase2-auth-member.md §5.3](phase2-auth-member.md)의 후보 줄로 넘겼다 |
+| 참조 | [../conventions.md §8.1](../conventions.md)·§6.1·§7.2, [../tech-stack.md §4.8](../tech-stack.md)·§4.5, [../domain-model.md §2.3](../domain-model.md)·§2.4·§3.2, [../requirements/member.md §7](../requirements/member.md), [../api-contract.md §2.3](../api-contract.md)·§3, [../security.md §1](../security.md)·§12, [phase2-auth-member.md §5.3](phase2-auth-member.md), [phase2-board.md](phase2-board.md) 의 B-26, [phase2-frontend-integration.md](phase2-frontend-integration.md) 의 I-12, D-25·D-27 |
+
+**사용자가 2026-11-24 에 정했다.** 2026-11-20 `D-25` 의 규칙([../conventions.md §8.1](../conventions.md) — 코드가 잡는 UNIQUE 충돌에 Hibernate 가 남기는 ERROR 줄을 버린다)을 auth·member 로 넓힌다. **동작을 바꾸는 개정이다** — 코드는 AU-25(sp-auth)·M-17(sp-member)이 고치고, 실 MySQL 재측정은 I-15 다. 두 단계로 했다 — 1단계는 사용자 결정을 정본에 적었고, 2단계는 1단계 보고를 받은 오케스트레이터의 결정을 정본에 적고 세 항목을 정의했다. 재지 않고 정했다 — 정본은 그 로그가 추정임을 드러낸다.
+
+**무엇이 열려 있었나**
+- **`D-25` 의 범위는 board 였다.** auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정하지만 성격이 둘로 갈렸다 — 가입의 `uk_account_email`(409 `AU002`)과 프로필 등록·닉네임 변경의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하고, 프로필 등록의 `uk_member_account_id` 는 그 계정의 행을 되읽어 멱등 표(200, 409 `M006`·`M007`)를 따른다. 앞의 갈래는 「정상 결과」 로 볼지부터 정해야 했다
+- **로그는 재지 않았다.** 같은 로거를 지나므로 충돌마다 WARN 과 ERROR 를 남기고, ERROR 에 중복 값(이메일·닉네임·계정 id)이 실릴 것으로 본다 — 추정이다
+- **409 로 응답하는 충돌에는 줄이 하나 더 있다** — 핸들러의 WARN `business exception: <코드>` 다. 코드만 싣고 값은 없다. 사전 검사가 낸 409 도 같은 줄이라 그 줄로는 충돌을 세지 못한다
+- **가입의 잡는 코드가 「그 충돌만」 보다 넓다** — `AccountService` 는 계정 INSERT 의 무결성 위반을 모두 409 `AU002` 로 바꾼다. member 의 잡는 코드는 원인 사슬의 제약 이름을 보고 그 밖을 다시 던진다
+- **auth·member 에는 logback 설정 파일이 없고**, 두 서비스의 `ProdProfileTest` 는 운영의 로거 수준을 속성값으로만 본다. 설정 파일의 요건은 board 의 것으로 [../tech-stack.md §4.5](../tech-stack.md)에 있었다
+
+사실은 sp-auth `09ff0f6`·sp-member `bf499f7` 의 `AccountService`·`MemberService`·`GlobalExceptionHandler`·`ProdProfileTest`·마이그레이션·테스트 설정·`application-local.yml.example` 과, sp-board `112983c`(B-26)의 `logback-spring.xml`·필터·`ProdProfileTest` 로 확인했다 — 2026-11-24 읽기. 두 서비스의 `application-local.yml` 은 열지 않았다. 이 항목은 실 MySQL 에 접속하지 않았다.
+
+**결정**(사용자 2026-11-24) — 세 제약을 모두 [../conventions.md §8.1](../conventions.md)의 규칙에 넣는다. 409 로 응답하는 충돌도 넣는다 — 코드가 잡아 정본이 정한 응답으로 바꾸므로 실패가 아니고, 그 응답에 맞는 줄은 핸들러의 WARN 이다. 이유는 §8.1 의 「409 로 응답하는 충돌도 넣는다」 문단이 갖는다.
+
+**오케스트레이터가 같은 날 정한 것**(1단계 보고를 받고)
+- **가입의 잡는 코드를 그 충돌로 좁힌다** — AU-25 가 `uk_account_email` 의 위반만 `AU002` 로 바꾸고, 그 밖의 `DataIntegrityViolationException` 은 다시 던져 [../conventions.md §6.1](../conventions.md)의 마지막 그물(500 `C005`, ERROR)에 닿게 한다. 제약 이름은 member 의 잡는 코드처럼 원인 사슬에서 꺼낸다. 근거는 [../AGENTS.md](../AGENTS.md) 불변식 9 와 §8.1 의 「그 충돌만 잡는 코드」 다. **정본이 이미 요구하는 것에 코드를 맞추는 결함 수정이다** — 정본이 정한 응답은 바뀌지 않는다
+- **필터 클래스를 복제하지 않는다** — [../conventions.md §7.2](../conventions.md)에 더했다. 맞추는 이름의 목록이 서비스마다 다르고, 같아야 하는 것은 §8.1 의 동작이다
+- 1단계 보고가 남긴 세 갈림은 이 항목의 판단대로 둔다 — 아래 「고치지 않은 자리」 의 첫 셋이다
+
+**이 항목이 정한 것**
+- **대상을 넓혔다** — 「코드가 잡아 정본이 정한 응답으로 바꾸는 UNIQUE 충돌」 이다. 응답이 200 이든 409 든 든다. 앞 판(`D-25`)은 「정본이 정상 결과로 정했고 코드가 잡아 정상 응답으로 바꾸는 UNIQUE 충돌」 이었다([../conventions.md §8.1](../conventions.md)의 머리)
+- **목록을 표로 바꿨다** — 서비스·제약·충돌의 결과(정본 문장)·잡아 바꾸는 코드. 뒤의 두 열이 제약을 더하는 조건(「제약을 더하려면 정본이 먼저다」)이다. 필터는 자기 서비스의 행의 이름만 맞춘다
+- **세는 줄을 정했다** — 충돌은 그 로거의 WARN `SQL Error: 1062` 로 센다. 핸들러의 WARN 은 사전 검사의 409 와 섞인다
+- **중복 값이 로그에 실리지 않게 하는 효과를 이메일·닉네임으로 넓혔다** — 닉네임은 탈퇴가 그 값을 비우는 것 밖에 남는다([../domain-model.md §3.1](../domain-model.md)). 메일 경로의 로그도 이메일을 싣지 않는다([../security.md §12](../security.md))
+- **설정 파일의 요건을 서비스 공통으로 옮겼다** — [../tech-stack.md §4.8](../tech-stack.md)(새 절). [../tech-stack.md §4.5](../tech-stack.md)에는 board 가 그 파일을 갖는다는 것과 §4.8 의 가리킴을 남겼다
+- **기존 문장을 맞췄다** — [../conventions.md §6.1](../conventions.md)의 「로그 수준을 가른다」 가 넓힌 범위를 적는다. §8.1 의 I-08 블록인용과 [../domain-model.md §2.4](../domain-model.md)의 「교착이 남기는 줄」 은 필터가 auth 로 넓어져도 교착의 ERROR 는 버리지 않는다고 적는다. [../requirements/member.md §7](../requirements/member.md)의 닉네임 변경 경합 문단이 §8.1 을 가리킨다
+- **오케스트레이터의 두 결정을 적었다** — 가입의 잡는 코드는 §8.1 의 가입 블록인용에, 필터 클래스는 [../conventions.md §7.2](../conventions.md)와 §8.1 의 필터 행에
+- **항목을 세웠다** — AU-25·M-17([phase2-auth-member.md](phase2-auth-member.md)), I-15([phase2-frontend-integration.md](phase2-frontend-integration.md)). I-15 는 앞선 측정이 없어 필터 전의 기준선부터 잰다
+
+**고치지 않은 자리**
+- **[../api-contract.md §2.3](../api-contract.md)·§3 에 로그의 가리킴을 더하지 않았다.** 가입·프로필 등록 경합의 결과 문장(「최종 판정은 UNIQUE 제약이고, 생성 요청이 409를 돌려준다」)은 그 절에만 있지만, 그 절은 응답의 계약이고 응답은 바뀌지 않는다. 가리킴은 닉네임 변경 경합의 문단([../requirements/member.md §7](../requirements/member.md))에만 더했다
+- **`uk_member_account_id` 의 경합 결과를 따로 적은 정본 문장이 없다.** 그 충돌의 결과는 [../api-contract.md §3](../api-contract.md)의 멱등 표(행이 있으면 200·`M006`·`M007`)이고, 경합에서 그 표를 따른다는 것은 sp-member `MemberService` 의 javadoc 과 §8.1 의 표가 적는다. 그 표를 그 충돌의 결과 문장으로 읽은 것이 이 항목의 판단이다 — 문장을 더하지 않았다
+- **[../security.md §1](../security.md)의 민감정보 로깅 줄(비밀번호·토큰·키)을 이메일·닉네임으로 넓히지 않았다.** 이 항목은 그 값이 로그에 실리지 않게 하는 것을 §8.1 의 효과로만 적었다. 넓히는 것은 로그 전반의 정책이라 따로 정한다
+- **[../tech-stack.md §4.5](../tech-stack.md)를 가리키는 계획·코드의 자리는 그대로 둔다** — B-26·I-12 의 정의와 sp-board 의 코드 주석(`logback-spring.xml`, 필터·`LogbackSpringConfigTest`·`ProdProfileTest` 의 javadoc)은 그날의 정본을 가리킨 기록이고, §4.5 가 §4.8 을 가리켜 따라가면 닿는다. 새 정의(AU-25·M-17·I-15)는 §4.8 을 가리킨다
+- **sp-board 필터 javadoc 의 「§8.1 의 셋째 행」 은 그날의 규칙 표 셋째 행(「로거의 수준을 바꾸지 않는다」)이다.** 이 개정 뒤 §8.1 의 첫 표는 제약 표라 그 서수는 다른 행(auth 의 `uk_account_email`)에 닿는다 — §4.5 의 가리킴과 달리 따라가도 원래 행에 닿지 않는다. 같은 javadoc 의 「이유는 §8.1 의 표다」 도 규칙 표를 뜻한다. 코드는 고치지 않는다 — 다음에 그 파일을 고치는 항목이 행 이름으로 바꾼다. AU-25·M-17 은 행을 이름으로 가리킨다(2026-11-24 이 항목의 리뷰 1라운드)
+- **D-25 절(위)의 「범위 — board 만이다」 와 D-27 절의 버린 대안(「auth 에는 board 의 필터 … 가 없어」)은 그날의 기록이라 그대로 둔다**
+- **로그 자체는 재지 않았다** — 409 경합이 그 ERROR 를 남긴다는 것과 중복 값이 실린다는 것은 추정이고, I-15 의 기준선이 잰다
+- **필터는 ERROR 줄의 부분 일치로 맞춘다** — 사용자가 고른 값이 다른 위반의 ERROR 줄에 실리고 그 값이 제약 이름을 담으면 그 줄도 버려진다. 닉네임은 한글·영문·숫자만이라([../requirements/member.md §2](../requirements/member.md)) 밑줄이 든 제약 이름을 담지 못한다. 이메일은 담을 수 있지만, 이메일을 싣는 다른 위반의 ERROR 를 2026-11-24 코드 읽기로 찾지 못했다 — 로그인 실패 카운터는 `D-27` 뒤 그 충돌을 내지 않는다. 추정이라 정본에 적지 않았다
+
+**산출물(1단계)**
+- [../conventions.md](../conventions.md) — §6.1 의 「로그 수준을 가른다」 의 끝 문장. §8.1 의 머리·표·「무엇이 남나」·규칙 표·「409 로 응답하는 충돌도 넣는다」·중복 값 문단·「제약을 더하려면」 문단과 블록인용 — 가입의 잡는 코드(새로), auth·member 와 그 안의 로그인 실패 카운터, I-08, 버린 대안의 행 가리킴(「셋째 행」 을 행의 이름으로)
+- [../tech-stack.md](../tech-stack.md) — §4.5 의 logback 문단, §4.8(새 절)
+- [../domain-model.md §2.4](../domain-model.md) — 「교착이 남기는 줄」 의 필터 문장
+- [../requirements/member.md §7](../requirements/member.md) — 닉네임 변경 경합 문단의 끝 문장
+
+**산출물(2단계)**
+- [../conventions.md](../conventions.md) — §7.2 의 필터 줄, §8.1 의 필터 행과 가입 블록인용
+- [phase1.md](phase1.md) — 이 절
+- [phase2-auth-member.md](phase2-auth-member.md) — AU-25·M-17, §1.1·§1.2 의 표·그림·문단, §5.1 의 결함 수정 표와 그 머리, §5.3 의 후보 줄
+- [phase2-frontend-integration.md](phase2-frontend-integration.md) — I-15, §1.1·§1.3 의 표와 그림
+- [../docs/checklist.md](../docs/checklist.md) — `D-31` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**코드 저장소는 고치지 않는다.** AU-25·M-17·I-15 의 체크리스트 줄은 그 저장소들의 상태 원본이 갖는다([README.md](README.md)의 상태의 위치).
+
+**완료 기준**
+- [ ] [../conventions.md §8.1](../conventions.md)의 표가 세 제약을 서비스·충돌의 결과(정본 문장)·잡아 바꾸는 코드와 함께 적고, 이름이 [../domain-model.md §2.3·§3.2](../domain-model.md)의 인덱스 표와 같다
+- [ ] 409 로 응답하는 충돌을 넣는 이유, 그 충돌이 남기는 줄(그 로거의 WARN·ERROR, 핸들러의 WARN), 충돌을 세는 줄이 적혀 있다
+- [ ] auth·member 의 로그를 재지 않았다는 것과 중복 값이 실린다는 것이 추정임이 드러나고, 재측정의 자리(I-15)를 가리킨다
+- [ ] 가입의 잡는 코드가 넓다는 것과 AU-25 가 좁힌다는 결정이 §8.1 에 있고, 정본이 정한 응답이 바뀌지 않는다
+- [ ] 필터 클래스를 복제하지 않는다는 것이 [../conventions.md §7.2](../conventions.md)에 있다
+- [ ] 설정 파일의 요건이 [../tech-stack.md §4.8](../tech-stack.md)에 서비스 공통으로 있고, §4.5 가 그것을 가리킨다
+- [ ] AU-25·M-17·I-15 의 정의가 §8.1 의 규칙과 [../tech-stack.md §4.8](../tech-stack.md)에 맞고, 각 계획의 표·그림에 들어 있다
+- [ ] D-25·D-27 절과 done 항목(B-26·I-12)의 기록과 판정을 고치지 않는다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| §8.1 의 표의 이름을 [../domain-model.md §2.3·§3.2](../domain-model.md)의 인덱스 표, sp-auth·sp-member 의 마이그레이션과 대조한다 | 같다 |
+| §8.1 의 가입 블록인용, AU-25·M-17 의 「무엇이 틀렸나」 를 sp-auth `09ff0f6` 의 `AccountService`, sp-member `bf499f7` 의 `MemberService` 와 대조한다 | 맞는다 |
+| 핸들러의 WARN 문장을 두 서비스의 `GlobalExceptionHandler` 와 대조한다 | 맞는다 — 코드만 싣고 값이 없다 |
+| AU-25·M-17 의 완료 기준·검증표·변이 표를 §8.1 의 규칙 표, [../tech-stack.md §4.8](../tech-stack.md), B-26 의 정의와 대조한다 | 규칙 표의 행과 §4.8 의 요건마다 그것을 고정하는 줄이 있다 |
+| sp-docs 를 「범위 밖」·「board 만」·「board 의 것」·「auth 에는 없다」·「정상 결과」·「정상 응답」·`uk_account_email`·`uk_member_nickname`·`uk_member_account_id`·`logback-spring.xml`·「§4.5」·「좁힐지」 로 훑는다 | auth·member 를 그 규칙 밖으로, 필터와 설정 파일의 요건을 board 만의 것으로, 가입의 잡는 코드를 정하지 않은 것으로 읽히게 하는 현재형 문장이 없다(날짜가 박힌 그날의 기록은 둔다) |
+| 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-24 이다. 1단계에서 올린 문서는 2단계에서 다시 올리지 않는다 |
 
 ---
 ## 7. 다음 단계
