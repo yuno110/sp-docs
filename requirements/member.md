@@ -2,8 +2,8 @@
 title: 계정·회원 기능 요구사항
 type: requirements
 status: frozen
-version: v28
-updated: 2026-11-24
+version: v29
+updated: 2026-11-26
 read_when: "auth-service·member-service의 기능을 구현하거나 완료 기준을 확인할 때"
 related: [../api-contract.md, ../domain-model.md, ../security.md, ../adr/0012-auth-as-separate-service.md]
 ---
@@ -280,7 +280,7 @@ PATCH /api/v1/members/me   { "nickname": "새닉네임" }
 >
 > 더 충실한 방법은 별도 인메모리 스키마에 `IGNORECASE=TRUE`를 더해 콜레이션을 실제로 비구분으로 만드는 것이다. M-08 리뷰가 만들어 돌려 보았고 동작했다. **그래도 지금 쓰지 않는다** — §5.3이 "이 URL을 그대로 쓴다. `<스키마>`만 서비스별로 바꾼다"로 정했으므로 두 번째 URL 형태를 쓰려면 그 절을 먼저 개정해야 한다. 필요해지면 명시적 결정으로 한다.
 
-**사전 검사와 UPDATE 사이에 타인이 그 닉네임을 등록하면 409 `M003`이다.** [../api-contract.md §2.3](../api-contract.md)이 생성 경로에 정한 것과 같다 — 최종 판정은 UNIQUE 제약이다. **500으로 내보내지 않는다.** 클라이언트가 잘못한 것이 없는데 마지막 그물이 `log.error`를 남겨 흔한 경합이 경보가 된다([../conventions.md §6.1](../conventions.md)의 로그 수준 분리). 다만 **`uk_member_nickname` 위반만 `M003`이고 그 밖의 무결성 위반은 다시 던진다** — M-05에서 전부 `M003`으로 돌린 구현이 서버 결함을 업무 오류로 위장했다. 그 충돌에 Hibernate 가 남기는 ERROR 줄은 생성 경로의 같은 충돌과 같이 버린다([../conventions.md §8.1](../conventions.md), 2026-11-24 `D-31`) — 그 로그는 재지 않았다.
+**사전 검사와 UPDATE 사이에 타인이 그 닉네임을 등록하면 409 `M003`이다.** [../api-contract.md §2.3](../api-contract.md)이 생성 경로에 정한 것과 같다 — 최종 판정은 UNIQUE 제약이다. **500으로 내보내지 않는다.** 클라이언트가 잘못한 것이 없는데 마지막 그물이 `log.error`를 남겨 흔한 경합이 경보가 된다([../conventions.md §6.1](../conventions.md)의 로그 수준 분리). 다만 **`uk_member_nickname` 위반만 `M003`이고 그 밖의 무결성 위반은 다시 던진다** — M-05에서 전부 `M003`으로 돌린 구현이 서버 결함을 업무 오류로 위장했다. 그 충돌에 Hibernate 가 남기는 ERROR 줄은 생성 경로의 같은 충돌과 같이 버린다([../conventions.md §8.1](../conventions.md), 2026-11-24 `D-31`). 그 로그는 2026-11-25 에 쟀다 — M-17 이 H2 에서(sp-member `c1d6fd6` 의 `LogbackSpringConfigTest`), I-15 가 실 MySQL 에서(sp-board `ea21555`) 그 ERROR 가 남지 않고 충돌의 WARN 이 남는 것을 보았다. 실 MySQL 의 측정은 [../conventions.md §8.1](../conventions.md)의 「무엇이 남나」 가 적는다(`D-32`).
 
 **탈퇴한 프로필은 수정할 수 없다. 404 `M001`이다**([../api-contract.md §3.1](../api-contract.md)). 조회와 같은 결론이다.
 

@@ -2,8 +2,8 @@
 title: 기술 스택과 로컬 환경
 type: spec
 status: frozen
-version: v43
-updated: 2026-11-24
+version: v44
+updated: 2026-11-26
 read_when: "의존성 버전을 정하거나, 프로젝트를 스캐폴딩하거나, 로컬 환경을 구성할 때"
 related: [conventions.md, adr/0005-no-docker-in-mvp.md, adr/0007-shared-code-policy.md]
 ---
@@ -527,9 +527,11 @@ account-cleanup:
 | 항목 | 값 |
 | --- | --- |
 | 설치 | 공식 배포의 실행 파일 하나를 받는다. 버전은 작업 항목이 고정한다 |
-| SMTP | `localhost:1025`(Mailpit 기본값). `application-local.yml` 의 `MAIL_HOST`·`MAIL_PORT` 자리에 넣는다 |
-| 웹 화면·API | `localhost:8025`(Mailpit 기본값). e2e 가 그 API 로 받은 메일을 읽어 링크의 토큰을 꺼낸다 |
+| SMTP | `localhost:1025` — 포트가 Mailpit 의 기본값이다. `application-local.yml` 의 `MAIL_HOST`·`MAIL_PORT` 자리에 넣는다 |
+| 웹 화면·API | `localhost:8025` — 포트가 Mailpit 의 기본값이다. e2e 가 그 API 로 받은 메일을 읽어 링크의 토큰을 꺼낸다 |
 | 인증 | 없다. `application-local.yml` 이 `spring.mail.username`·`password` 를 빈 값으로 준다 |
+
+**인자 없이 띄운 Mailpit 은 모든 인터페이스에 열렸다**(2026-11-25 I-15 의 관측, `D-32`). WSL 에서 인자 없이 띄운 Mailpit(v1.33.1)이 `[::]:1025`·`[::]:8025` 에 열렸고, 그 인터페이스로 닿는 어느 호스트에서든 API 를 부를 수 있다고 스스로 경고했다 — 그 WSL 은 mirrored 네트워킹이라 호스트의 인터페이스다(I-15 보고). WSL 밖에서도 그렇게 여는지는 재지 않았다 — 같을 것으로 보는 것은 I-15 리뷰의 추정이다. **루프백에만 여는 인자는 `--listen 127.0.0.1:8025 --smtp 127.0.0.1:1025` 다** — I-15 의 재측정이 그렇게 띄웠고, 서비스는 메일 호스트 `localhost` 로 그 Mailpit 에 닿았다. 서비스를 띄운 것과 같은 PATH 의 java 가 그 이름을 127.0.0.1 로 먼저 풀었고(`getAllByName` 의 순서가 127.0.0.1, `::1`), `::1` 로는 그 Mailpit 에 닿지 않았다(관측). e2e 가 API 를 읽는 `http://localhost:8025` 를 Node 가 어느 주소로 먼저 푸는지는 재지 않았다. 이 절은 로컬에서 Mailpit 을 띄우는 방법을 정하지 않는다 — 지금의 안내(sp-auth·sp-frontend 의 `README.md`)는 인자 없이 띄운다.
 
 **Mailpit 이 꺼져 있으면 가입은 201 이지만 메일이 나가지 않는다** — 발송 실패가 로그에만 남는다([requirements/member.md §11.5](requirements/member.md)). 로컬에서 가입한 계정이 로그인되지 않으면 Mailpit 부터 본다.
 
@@ -537,11 +539,11 @@ account-cleanup:
 
 **2026-11-24 `D-31` 이 서비스마다 같은 요건으로 정했다.** 앞 판은 board 의 요건으로 §4.5 에 있었다(2026-11-20 `D-25`). 서비스는 `src/main/resources/logback-spring.xml` 을 갖는다 — [conventions.md §8.1](conventions.md)의 필터를 두는 자리다. 무엇을 버리고 왜인지, 서비스마다 어느 제약 이름을 맞추는지는 그 절이 갖는다. 요건:
 
-- **Boot 의 기본 출력을 바꾸지 않는다** — Boot 의 `defaults.xml`·`console-appender.xml` 을 포함하고 루트(INFO)에 콘솔만 단다. `base.xml` 을 포함하지 않는다 — 그 파일은 파일 appender 를 함께 달아, 설정 파일이 없을 때는 없던 파일 출력(`LOG_FILE` 이 없으면 임시 디렉터리의 `spring.log`)이 생긴다(spring-boot 3.5.16 의 `base.xml` 읽기). `logging.level.*` 속성(예: 운영의 SQL·바인드 로거)은 그대로 적용된다(Boot 의 동작 — board 는 B-26 이 테스트로 확인했다). `logging.file.name`·`logging.file.path`·`logging.structured.format.console` 은 이 파일이 있으면 적용되지 않으므로, 그 속성을 쓰려면 이 파일을 함께 고친다(2026-11-24 코드 읽기 — 서비스마다 커밋된 설정에 없다)
+- **Boot 의 기본 출력을 바꾸지 않는다** — Boot 의 `defaults.xml`·`console-appender.xml` 을 포함하고 루트(INFO)에 콘솔만 단다. `base.xml` 을 포함하지 않는다 — 그 파일은 파일 appender 를 함께 달아, 설정 파일이 없을 때는 없던 파일 출력(`LOG_FILE` 이 없으면 임시 디렉터리의 `spring.log`)이 생긴다(spring-boot 3.5.16 의 `base.xml` 읽기). `logging.level.*` 속성(예: 운영의 SQL·바인드 로거)은 그대로 적용된다(Boot 의 동작 — 서비스마다 `ProdProfileTest` 가 그 두 로거에 걸린 수준으로 확인한다. board 는 B-26 이, auth·member 는 2026-11-25 AU-25·M-17 이 더했다). `logging.file.name`·`logging.file.path`·`logging.structured.format.console` 은 이 파일이 있으면 적용되지 않으므로, 그 속성을 쓰려면 이 파일을 함께 고친다(2026-11-24 코드 읽기 — 서비스마다 커밋된 설정에 없다)
 - **`<springProfile>` 로 가르지 않는다.** 필터는 모든 프로파일에 같다 — 테스트 프로파일도 이 파일을 읽는다
 - 의존성을 더하지 않는다 — logback 은 Boot 의 기본 로깅이다
 
-**auth·member 에는 2026-11-24 에 이 파일이 없다.** 더하는 것은 AU-25·M-17 이다([plan/phase2-auth-member.md](plan/phase2-auth-member.md)).
+**auth·member 는 2026-11-25 부터 이 파일을 갖는다** — AU-25(sp-auth `c1c53cc`)·M-17(sp-member `c1d6fd6`)이 더했다([plan/phase2-auth-member.md](plan/phase2-auth-member.md), `D-32`).
 
 ## 5. 테스트 환경
 
@@ -653,7 +655,7 @@ spring:
 
 `DB_CLOSE_DELAY=-1` 과 고정 스키마명이 한 쌍이라서, **같은 JVM 의 모든 테스트 클래스가 하나의 DB 를 본다.** 그래서 픽스처 정리를 `deleteAll()` 로 할 수 없다 — Flyway 가 다시 돌지 않으므로 seed 행(`V2__seed_admin_profile.sql` 의 `account_id = 1`)을 지우면 그 JVM 안에서 영구히 사라지고, seed 를 보는 테스트가 **무관한 이유로** 깨진다.
 
-**member 의 세 테스트 클래스는 "seed 를 뺀 전체 행" 을 지우는 방식으로 맞춰져 있다.** 그 선택의 대가를 적어 둔다.
+**member 는 픽스처를 "seed 를 뺀 전체 행" 을 지우는 방식으로 정리한다** — `findAll()` 에서 seed 의 `accountId` 를 걸러 낸 나머지를 `deleteAll` 한다. 그 정리를 쓰는 클래스는 sp-member 의 테스트 소스를 `deleteAll(` 로 찾는다. 수는 적지 않는다 — 앞 판의 「세 테스트 클래스」 는 2026-11-25 M-17(sp-member `c1d6fd6`)이 그 정리를 쓰는 클래스를 더해 맞지 않게 됐다(`D-32`, [process/review-policy.md §8.1](process/review-policy.md)). 그 선택의 대가를 적어 둔다.
 
 | | |
 | --- | --- |

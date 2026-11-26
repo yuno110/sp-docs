@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — auth·member 기능 확장
 type: plan
 status: living
-version: v8
-updated: 2026-11-24
+version: v9
+updated: 2026-11-26
 read_when: "2차 기능 확장의 auth·member 작업 항목(AU-12 부터·M-14 부터)의 범위·의존·마이그레이션 번호·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md 를 본다"
 related: [phase2.md, phase1.md, integration.md, ../requirements/member.md, ../domain-model.md, ../api-contract.md, ../security.md, ../conventions.md, ../tech-stack.md]
 ---
@@ -1174,14 +1174,14 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 | `C009` 의 본문·헤더를 auth·member 가 같게 내는가 — 둘의 비교다 | [../api-contract.md §8.1](../api-contract.md)의 `C009` 문단, [../conventions.md §6.1](../conventions.md) | AU-19, M-15 |
 | multipart 매핑이 세 서비스에서 같고, 한도를 넘는 multipart 가 실서버에서 413 `C008` 인가 — MockMvc 는 서블릿 컨테이너의 한도를 거치지 않는다 | [../conventions.md §6.1](../conventions.md)의 블록인용 | AU-13, M-14 (board 의 같은 매핑과 함께) |
 
-**결함 수정 항목이 실서버로 넘긴 것**(2026-11-17 `D-22`, AU-23 의 줄은 2026-11-23 `D-27`, AU-24 의 줄은 같은 날 `D-28`, AU-25·M-17 의 줄은 2026-11-24 `D-31`) — [phase2.md §5.4](phase2.md)의 단락에 없다. AU-22 의 줄은 [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 쟀고, AU-23 의 줄은 같은 문서의 I-13 이(2026-11-23), AU-24 의 줄은 I-14 가(2026-11-24) 쟀다. AU-25·M-17 의 줄은 같은 문서의 I-15 가 잰다.
+**결함 수정 항목이 실서버로 넘긴 것**(2026-11-17 `D-22`, AU-23 의 줄은 2026-11-23 `D-27`, AU-24 의 줄은 같은 날 `D-28`, AU-25·M-17 의 줄은 2026-11-24 `D-31`) — [phase2.md §5.4](phase2.md)의 단락에 없다. AU-22 의 줄은 [phase2-frontend-integration.md](phase2-frontend-integration.md)의 I-08 이 함께 쟀고, AU-23 의 줄은 같은 문서의 I-13 이(2026-11-23), AU-24 의 줄은 I-14 가(2026-11-24), AU-25·M-17 의 줄은 I-15 가(2026-11-25, sp-board `ea21555`) 쟀다.
 
 | 대상 | 근거 | 항목 |
 | --- | --- | --- |
 | 같은 계정의 로그인과 비밀번호 변경·탈퇴·재설정 확인을 겹칠 때 — 로그인의 저장이 쓰는 쪽의 트랜잭션 안에 든다. 재설정 확인이 토큰을 읽은 뒤 계정 잠금을 기다리는 사이에 로그인의 저장이 커밋되는 차례를 포함하고, 그 계정에 `refresh_token` 행이 없는 상태에서 시작한다. 차례를 만드는 방법은 I-08 이 고른다(예: 다른 연결이 계정 행을 잠금 읽기로 잡아 두 요청을 그 앞에 세운다 — 어느 요청이 먼저 잠금을 얻었는지는 관측값으로 적는다) — 쓰는 쪽이 커밋한 뒤 로그인이 넣은 행이 없는가. 로그인은 기다린 뒤 401 `AU003` 이거나, 먼저 커밋했으면 그 행을 쓰는 쪽이 지웠어야 한다. 어긋나면 결함이다 | [../security.md §5.3](../security.md)의 블록인용, AU-22 의 「무엇이 틀렸나」 | AU-22 |
 | 같은 이메일과 서로 다른 이메일의 동시 첫 실패, 한도 이상의 동시 실패를 앱(Connector/J·Hibernate)으로 보낼 때 — 교착·UNIQUE 충돌·세지 못한 실패가 없고, 한도 이상이면 잠금 한 번·`failed_count` 0 인가. 그 사이 로거마다 남은 줄 | [../domain-model.md §2.5](../domain-model.md)의 블록인용, AU-23 의 「무엇이 틀렸나」 | AU-23 |
 | SMTP 가 연결을 거부하거나 답하지 않거나 발송·발급 작업이 대기열에서 버려질 때 — 이미 받은 링크가 사는가, 발송이 성공하면 죽는가. 버림 WARN 에 작업의 종류·계정 id·목적이 있고 이메일·토큰이 없는가. 발송이 막혀도 가입의 토큰이 생기는가. 재설정 요청·재발송의 응답 시간이 여전히 계정 유무로 갈리지 않는가 | [../requirements/member.md §11.5](../requirements/member.md)의 블록인용, AU-24 의 「무엇이 틀렸나」 | AU-24 |
-| 같은 이메일의 동시 가입, 같은 닉네임의 동시 프로필 등록·닉네임 변경, 같은 계정의 동시 프로필 등록을 앱으로 보낼 때 — 그 충돌마다 `SqlExceptionHelper` 의 WARN `SQL Error: 1062` 는 남고 그 제약 이름이 든 ERROR 는 없는가. 응답은 정본대로인가(409 `AU002`·`M003`, 프로필 등록의 멱등 표, 500 없음) — MySQL 의 위반에서 잡는 코드가 제약 이름을 꺼내는가. 남은 줄에 이메일·닉네임이 없는가. 필터 전의 기준선부터 잰다 | [../conventions.md §8.1](../conventions.md), AU-25·M-17 의 「무엇이 틀렸나」 | AU-25, M-17 |
+| 같은 이메일의 동시 가입, 같은 닉네임의 동시 프로필 등록·닉네임 변경, 같은 계정의 동시 프로필 등록을 앱으로 보낼 때 — 그 충돌마다 `SqlExceptionHelper` 의 WARN `SQL Error: 1062` 는 남고 그 제약 이름이 든 ERROR 는 없는가. 응답은 정본대로인가(409 `AU002`·`M003`, 프로필 등록의 멱등 표, 500 없음) — MySQL 의 위반에서 잡는 코드가 제약 이름을 꺼내는가. 남은 줄에 이메일·닉네임·계정 id 가 없는가. 필터 전의 기준선부터 잰다 | [../conventions.md §8.1](../conventions.md), AU-25·M-17 의 「무엇이 틀렸나」 | AU-25, M-17 |
 
 ### 5.2 화면 항목이 필요로 하는 것
 
@@ -1224,7 +1224,7 @@ countFailure  새 트랜잭션 하나 (지금 그대로 REQUIRES_NEW, 서버 기
 - **auth·member 의 무인증 경로에 잘못된 토큰이 올 때의 응답.** 정본은 board 상세 조회에 대해서만 적는다([../requirements/board.md §9.1](../requirements/board.md)). AU-13·M-14 는 관측한 응답을 테스트로 묶을 뿐 정하지 않는다. claim 계약 위반 토큰(예: 열거 밖 `role`)이 무인증 경로로 올 때도 같다
 - **요청 수 제한 설정의 기동 가드.** [../tech-stack.md §4.6](../tech-stack.md)은 그 값들을 정본 값으로 분류해 가드를 요구하지 않는다. AU-19·M-15 의 가드는 AGENTS.md 불변식 9 를 근거로 이 계획이 정했다
 - **메일 헬스 지표.** 정본이 정하지 않았다. AU-14 의 끄기는 [../nfr.md §2](../nfr.md)를 근거로 이 계획이 정했다
-- **코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR — AU-25·M-17 이 받는다**(2026-11-24 `D-31`). 사용자가 그날 세 제약(`uk_account_email`·`uk_member_nickname`·`uk_member_account_id`)을 [../conventions.md §8.1](../conventions.md)의 규칙에 넣기로 정했다 — 409 로 응답하는 충돌도 넣는다. 가입의 잡는 코드를 그 충돌로 좁히는 것은 같은 날 오케스트레이터가 정했다(AU-25). 재측정은 I-15 다. 앞 판은 이렇게 적었다 — 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다. 로그인 실패 카운터의 `uk_login_attempt_email_key` 는 이 줄에서 빠졌다 — 2026-11-20 I-08 에서 UNIQUE 충돌은 없었고 교착이 났으며(아래 줄), 2026-11-23 `D-27` 뒤에는 세는 문장이 그 충돌을 내지 않는다([../conventions.md §8.1](../conventions.md)). 앞 판은 그것을 「다시 한다」 로 이 줄에 적었다
+- **auth·member 가 잡는 UNIQUE 충돌에도 Hibernate 가 중복 값을 실은 ERROR 를 남겼다 — `D-25` 의 규칙 밖이었다**(2026-11-25 I-15 의 기준선, sp-board `ea21555`). **2026-11-24 `D-31` 이 정했고 2026-11-25 AU-25·M-17 이 고쳤다** — 사용자가 2026-11-24 에 세 제약(`uk_account_email`·`uk_member_nickname`·`uk_member_account_id`)을 [../conventions.md §8.1](../conventions.md)의 규칙에 넣기로 정했다 — 409 로 응답하는 충돌도 넣는다. 가입의 잡는 코드를 그 충돌로 좁히는 것은 같은 날 오케스트레이터가 정했다(AU-25). 코드는 2026-11-25 의 sp-auth `c1c53cc`·sp-member `c1d6fd6` 이고, 같은 날 I-15 가 실 MySQL 에서 필터 전후를 쟀다 — 결과는 [../conventions.md §8.1](../conventions.md)의 「무엇이 남나」 다. 2026-11-26 `D-32` 앞의 판은 「코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR — AU-25·M-17 이 받는다」 로 시작해 「재측정은 I-15 다」 를 적었다. `D-31` 앞의 판은 이렇게 적었다 — 2026-11-20 `D-25` 는 board 의 정상 경합 충돌만 정했다([../conventions.md §8.1](../conventions.md)). auth·member 도 `DataIntegrityViolationException` 을 잡아 응답을 정한다(2026-11-20 코드 읽기). 같은 로거를 지나므로 충돌마다 ERROR 와 중복 값(이메일·이메일 키·닉네임 등)을 남길 것으로 보지만 재지 않았다. **둘로 갈린다** — 가입의 `uk_account_email`(409 `AU002`)과 닉네임 변경·프로필 등록의 `uk_member_nickname`(409 `M003`)은 클라이언트 오류로 응답하므로 「정상 결과」 로 볼지부터 정한다. 프로필 등록의 `uk_member_account_id`(되읽어 200 또는 `M006`·`M007`)는 board 와 같은 정상 결과지만 사용자 결정의 범위가 board 였다. 넓히려면 정본 개정이 그 제약을 §8.1 의 목록에 넣고 서비스마다 항목을 세운다. 로그인 실패 카운터의 `uk_login_attempt_email_key` 는 이 줄에서 빠졌다 — 2026-11-20 I-08 에서 UNIQUE 충돌은 없었고 교착이 났으며(아래 줄), 2026-11-23 `D-27` 뒤에는 세는 문장이 그 충돌을 내지 않는다([../conventions.md §8.1](../conventions.md)). 앞 판은 그것을 「다시 한다」 로 이 줄에 적었다
 
 **아래는 2026-11-20 `D-26` 이 2차 통합 측정(I-08·I-09)에서 옮긴 후속 후보다.** D-26 은 실측을 정본에 맞추기만 하고 동작을 바꾸지 않는다([phase1.md](phase1.md)의 D-26) — 그래서 코드나 마이그레이션을 바꿔야 풀리는 것을 여기에 둔다. 세울지와 어떻게 할지는 정하지 않았다.
 

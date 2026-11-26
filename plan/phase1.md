@@ -2,8 +2,8 @@
 title: 1차 작업 계획
 type: plan
 status: living
-version: v84
-updated: 2026-11-24
+version: v85
+updated: 2026-11-26
 read_when: "작업 항목의 범위·의존·완료 기준을 확인하거나 다음 할 일을 고를 때. 상태는 담당 저장소의 checklist.md를 본다"
 related: [README.md, integration.md, ../process/dev-workflow.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -3493,6 +3493,158 @@ H2 프로브와 변이의 결과는 sp-board 의 `LikeService`·`PostRepository`
 | AU-25·M-17 의 완료 기준·검증표·변이 표를 §8.1 의 규칙 표, [../tech-stack.md §4.8](../tech-stack.md), B-26 의 정의와 대조한다 | 규칙 표의 행과 §4.8 의 요건마다 그것을 고정하는 줄이 있다 |
 | sp-docs 를 「범위 밖」·「board 만」·「board 의 것」·「auth 에는 없다」·「정상 결과」·「정상 응답」·`uk_account_email`·`uk_member_nickname`·`uk_member_account_id`·`logback-spring.xml`·「§4.5」·「좁힐지」 로 훑는다 | auth·member 를 그 규칙 밖으로, 필터와 설정 파일의 요건을 board 만의 것으로, 가입의 잡는 코드를 정하지 않은 것으로 읽히게 하는 현재형 문장이 없다(날짜가 박힌 그날의 기록은 둔다) |
 | 이 항목이 고친 문서의 front matter | `version` 이 하나 오르고 `updated` 가 2026-11-24 이다. 1단계에서 올린 문서는 2단계에서 다시 올리지 않는다 |
+
+### D-32 AU-25·M-17·I-15 와 그 리뷰가 남긴 정본·계획의 문구 [정본 개정]
+
+| | |
+| --- | --- |
+| 저장소 | `yuno110/sp-docs` |
+| 의존 | 없다. **1차 완료를 되돌리지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)). 옮기는 사실은 `I-15`([phase2-frontend-integration.md](phase2-frontend-integration.md))가 2026-11-25 에 실 MySQL 에서 쟀고, 같은 날 I-15 의 독립 리뷰 1라운드와 `M-17`([phase2-auth-member.md](phase2-auth-member.md))의 독립 리뷰가 더했다. 근거는 sp-board `ea21555`(I-15)·sp-auth `c1c53cc`(AU-25)·sp-member `c1d6fd6`(M-17) 의 커밋과 커밋 메시지, I-15 의 보고와 리뷰, M-17 의 리뷰다 |
+| 참조 | [../conventions.md §8.1](../conventions.md), [../requirements/member.md §7](../requirements/member.md), [../tech-stack.md §4.7.1](../tech-stack.md)·§4.8·§5.3, [../domain-model.md §2.4](../domain-model.md), [../security.md §1](../security.md)·§1.2, [phase2-frontend-integration.md §1.3](phase2-frontend-integration.md)과 I-12·I-15, [phase2-auth-member.md §5.1](phase2-auth-member.md)·§5.3 과 AU-25·M-17, D-29·D-31 |
+
+**오케스트레이터가 2026-11-25 에 열었다. 사용자가 같은 날 문서 정리로 열기로 정했다.** 동작을 바꾸지 않는 문서 개정이다 — D-29 와 같은 종류다. 세 단계로 나눈다 — 1단계는 이 절과 [../docs/checklist.md](../docs/checklist.md)의 줄이고(사실을 근거와 대조하고 고칠 자리를 정한다), 2단계는 정본을, 3단계는 계획을 고친다. 2·3단계는 1단계의 보고를 받은 오케스트레이터가 배정한다.
+
+**1단계 — 옮길 사실과 낡은 자리**
+
+- **A. auth·member 의 UNIQUE 충돌 로그를 쟀다**(I-15, sp-board `ea21555`). 2026-11-25 에 MySQL 8.0.46 에서 필터 전의 기준선(sp-auth `09ff0f6`·sp-member `bf499f7`)과 재측정(`c1c53cc`·`c1d6fd6`)을 같은 방법 — 다섯 경우 × 8 동시 × 20 회차 — 으로 쟀다. 경우는 ① 같은 이메일의 가입, ② 다른 계정·같은 닉네임의 프로필 등록, ③ 다른 계정·같은 새 닉네임의 변경, ④-a 같은 계정·같은 본문의 등록, ④-b 같은 계정·다른 닉네임의 등록이다
+  - **기준선** — 제약 이름이 든 `SqlExceptionHelper` ERROR 가 경우마다 140·139·138·140·140 줄이었고 100 회차 모두 WARN `SQL Error: 1062` 의 수와 같았다. 그 줄마다 중복 값(① 이메일, ②·③ 닉네임, ④ 계정 id)이 실렸고, SQL·바인드 로거를 뺀 기록 가운데 값이 실린 것은 그 ERROR 뿐이었다
+  - **재측정** — 그 ERROR 는 0 이고 WARN `SQL Error: 1062` 는 경우마다 남았다(140·137·139·140·140). 그 로거의 그 밖의 ERROR, `unhandled exception`, 500 은 0 이다. SQL·바인드 로거를 뺀 모든 기록에 이메일·닉네임·계정 id 가 없었다
+  - **응답은 두 실행이 같았다** — ① 201 + 409 `AU002`, ② 201 + 409 `M003`, ③ 200 + 409 `M003`, ④-a 201 + 200, ④-b 201 + 409 `M006`. 핸들러의 WARN `business exception` 은 409 의 수와 같았다
+  - **잡는 코드가 MySQL 의 위반에서 제약 이름을 꺼냈다.** auth 는 재측정 ① 에서 `uk_account_email` 을 꺼냈다 — 409 `AU002` 가 WARN `SQL Error: 1062` 와 같은 140 이고 500 이 0 이다. 기준선의 잡는 코드는 이름을 보지 않으므로 재측정에서 처음 보인 것이다. member 는 두 실행의 ②·③ 에서 `uk_member_nickname` 을 꺼냈다. ④ 는 되읽기가 응답을 정하므로 이름 꺼내기의 증거가 아니다
+  - **④-a 에서 MySQL 이 보고한 이름은 `uk_member_account_id` 였다**(기준선 140/140, 관측). 두 제약이 함께 깨질 때 어느 이름이 보고되는지는 보장되지 않는다(sp-member `MemberService` 의 javadoc) — 그 까닭을 스키마의 순서로 본 것은 I-15 보고의 추정이다
+  - **낡은 자리** — [../conventions.md §8.1](../conventions.md)의 「무엇이 남나」 의 「auth·member 의 제약은 재지 않았다 … 실릴 것으로 본다(2026-11-24 의 추정이다. 실 MySQL 재측정은 I-15 다)」, 「409 로 응답하는 충돌도 넣는다」 의 「실릴 것으로 본다(위 「무엇이 남나」 의 추정 — 아래 문단)」, auth·member 블록인용의 끝 문장 「코드는 AU-25·M-17, 실 MySQL 재측정은 I-15 다」
+- **B. [../requirements/member.md §7](../requirements/member.md)의 닉네임 변경 경합 문단이 「그 로그는 재지 않았다」 로 끝난다.** 그 충돌은 2026-11-25 M-17 이 H2 에서(sp-member `c1d6fd6` 의 `LogbackSpringConfigTest`), I-15 가 실 MySQL 에서(A 의 ③) 쟀다. D-31 이 [../domain-model.md §2.4](../domain-model.md)의 「교착이 남기는 줄」 에 더한 문장(필터가 auth 로 넓어져도 교착의 ERROR 는 버리지 않는다)은 측정을 기다린 문장이 아니고, AU-25 의 필터 단위 테스트가 교착의 문면을 버리지 않는 것으로 받친다 — 낡지 않았다
+- **C. [../tech-stack.md §5.3](../tech-stack.md)의 「member 의 세 테스트 클래스는 "seed 를 뺀 전체 행" 을 지우는 방식으로 맞춰져 있다」.** 2026-11-25 M-17 이 같은 정리를 쓰는 클래스(`LogbackSpringConfigTest`)를 더해 그 수가 맞지 않는다 — sp-member `c1d6fd6` 의 테스트 소스에서 seed 의 `accountId` 를 빼고 `deleteAll` 하는 정리로 찾았다. 같은 절의 「지금」 칸(`build.gradle` 이 `maxParallelForks` 를 설정하지 않는다)은 같은 커밋에서 그대로 참이다. 그 아래 블록인용의 「그 시점에 세 클래스가」 는 M-10 리뷰 때의 기록이다
+- **D. [../conventions.md §8.1](../conventions.md)의 「중복 값이 로그에 실리지 않게 하는 것도 이 규칙의 효과다」 는 그 로거의 DEBUG 가 꺼져 있을 때만 맞는다**(M-17 의 리뷰가 찾았다)
+  - **Hibernate 가 DEBUG 줄에 위반 예외를 붙인다.** hibernate-core 6.6.53.Final 의 `SqlExceptionHelper.logExceptions` 는 ERROR 가 켜져 있을 때만 남기는데, DEBUG 도 켜져 있으면 WARN·ERROR 앞에 DEBUG 한 줄을 남기고 그 줄에 위반 예외를 붙인다. 그 줄의 문면은 Hibernate 의 메시지와 SQL 이고, 붙은 예외의 메시지가 드라이버의 위반 문면 — 중복 값과 제약 이름 — 이다. Boot 의 콘솔 형식은 붙은 예외를 찍는다(`%wEx`). 2026-11-25 javap 읽기다. I-15 의 재측정이 띄운 auth·member 의 기동 기록이 그 판을 적었다
+  - **필터는 그 줄을 버리지 않는다.** 세 서비스의 필터는 ERROR 가 아니면 판정하지 않고 문면만 본다 — DEBUG 줄은 지나가고, 그 줄의 문면에는 제약 이름이 없어 문면으로는 맞출 수도 없다. 세 필터의 단위 테스트가 「ERROR 가 아닌 수준은 버리지 않는다」 를 DEBUG 로도 고정한다
+  - **운영 설정은 그 로거의 수준을 정하지 않는다.** 세 서비스의 `application-prod.yml` 은 `org.hibernate.SQL`·`org.hibernate.orm.jdbc.bind` 만 `warn` 에 고정하고, 그 주석이 루트를 DEBUG 로 올리는 경우(`LOGGING_LEVEL_ROOT=DEBUG`)를 든다. Boot 의 `defaults.xml` 도 그 로거를 정하지 않는다. 그래서 루트를 DEBUG 로 올리면 그 줄이 난다 — 코드 읽기다
+  - **잰 것** — M-17 의 리뷰가 H2 에서 그 로거만 DEBUG 로 올린 변이를 돌리자 sp-member `LogbackSpringConfigTest` 의 충돌 테스트 셋이 모두 빨갰고 그 클래스의 나머지 셋은 통과했다(변이 기록). 셋 모두 소프트 단언을 모은 자리에서 실패해 그 안의 어느 단언인지는 기록에 남지 않았다. auth·board 는 코드 읽기뿐이고, 실 MySQL 에서는 어느 서비스도 재지 않았다
+  - **DEBUG 에서 값을 싣는 것은 그 로거만이 아니다**(이 항목의 훑기 — 2026-11-25 javap 읽기, 재지 않았다). 같은 판의 flush 는 DEBUG 에서 영속성 컨텍스트의 엔터티를 속성 값과 함께 낸다 — `AbstractFlushingEventListener.logFlushResults` 가 `EntityPrinter` 를 불러 한 번에 스물한 개까지 적고 그 뒤는 `More......` 한 줄로 끊는다. 그 엔터티가 영속성 컨텍스트에 있으면 이메일·닉네임과 sp-auth `Account` 의 비밀번호 해시, `RefreshToken` 의 토큰 원문이 실린다
+- **E. I-15 의 정의와 그 둘레**(I-15 보고의 「정의 문구 후보」 와 리뷰 1라운드가 더한 후보)
+  - **계정 id.** I-15 검증표의 「재측정 — 정한 줄에 실린 이메일·닉네임」 과 [phase2-auth-member.md §5.1](phase2-auth-member.md)의 결함 수정 표의 AU-25·M-17 줄(「남은 줄에 이메일·닉네임이 없는가」)이 계정 id 를 빠뜨렸다. ④ 의 중복 값은 계정 id 이고, 같은 정의의 양성 대조 줄은 이미 셋을 적었다. I-15 는 셋 모두로 쟀다
+  - **「같은 로거의 그 밖의 ERROR — 관측값」**(I-15 의 셈 목록과 검증표). 두 실행 모두 그 줄이 0 이라 I-15 는 필터의 통과 쪽 — 다른 제약의 위반과 다른 SQL 오류의 ERROR 를 남기는 쪽 — 을 보지 못했다(sp-board `ea21555` 의 커밋 메시지, I-15 보고). 그 쪽은 AU-25·M-17 의 테스트가 단언한다(2026-11-25 읽기) — 두 서비스의 필터 단위 테스트가 다른 제약 이름·다른 SQL 오류의 문면을 버리지 않고, 실제 설정을 띄운 `LogbackSpringConfigTest` 가 §8.1 의 표 밖의 위반이 그 로거의 ERROR 로 남는 것을 본다. I-12 의 완료 기준 「다른 제약의 위반이 ERROR 로 남는 것은 B-26 의 테스트가 맡는다」 가 선례다
+  - **Mailpit 이 모든 인터페이스에 열렸다.** I-15 의 1단계에서 인자 없이 띄운 Mailpit(v1.33.1, WSL)이 `[::]:1025`·`[::]:8025` 에 열렸고, API 가 그 인터페이스로 닿는 모든 호스트에서 열린다고 스스로 경고했다(그 실행의 Mailpit 기록). 2단계부터 `--listen 127.0.0.1:8025 --smtp 127.0.0.1:1025` 로 루프백에만 열었다. 그 Mailpit 에 메일 호스트 `localhost`(sp-auth `application-local.yml.example` 과 [../tech-stack.md §4.7.1](../tech-stack.md)의 값)로 닿는 것은 기본 JVM 이 그 이름을 127.0.0.1 로 먼저 풀기 때문이다 — 서비스를 띄운 것과 같은 PATH 의 java 에서 `getAllByName` 이 127.0.0.1 을 `::1` 보다 먼저 냈고, `::1` 로는 닿지 않았다(관측). 인자 없이 모든 인터페이스에 여는 것이 WSL 밖에서도 같은지는 I-15 리뷰의 추정이다. 낡은 자리 — [../tech-stack.md §4.7.1](../tech-stack.md)의 「`localhost:1025`(Mailpit 기본값)」·「`localhost:8025`(Mailpit 기본값)」 은 기본값이 포트뿐인데 주소까지 기본값으로 읽힌다. 측정에서 띄우는 방법은 [phase2-frontend-integration.md §1.3](phase2-frontend-integration.md)에 없다
+  - **정리 작업의 주기.** I-13·I-14·I-15 는 auth 를 `--account-cleanup.interval=PT24H` 로 띄워 정리 작업이 측정 중 돌지 않게 했다(sp-board `df3c72e`·`87b953a` 의 커밋 메시지, I-15 의 기동 인자) — 정리는 첫 실행도 그 주기만큼 늦춘다(sp-auth `AccountCleanup`). 돌면 만료된 `account_token` 과 오래된 `login_attempt` 를 지운다 — 측정 항목은 행을 지우지 않는다(I-14·I-15 의 완료 기준. I-15 는 「행을 지우는 것은 측정 뒤 사용자의 승인을 받아 따로 한다」 를 더했다). I-15 보고는 그 설정을 그 규칙을 지키는 공통 설정으로 [phase2-frontend-integration.md §1.3](phase2-frontend-integration.md)에 적자고 했고, 지금 그 절에 없다. board 의 조회수 판정 행 정리(`PostViewCleanup`)는 `@Scheduled` 에 첫 지연이 없어 `view-count.cleanup-interval` 을 덮어도 기동 때 한 번 돈다 — 기준 시각이 24시간을 넘은 `post_view` 를 지운다(2026-11-25 코드 읽기). I-15 는 board 를 띄우지 않았다
+- **F. AU-25·M-17·I-15 가 끝나 미래형으로 남은 자리**(이 항목의 훑기)
+  - [../conventions.md §8.1](../conventions.md)의 가입 블록인용 — 「가입의 잡는 코드는 「그 충돌만」 보다 넓다 — AU-25 가 좁힌다」 와 「`AccountService` 는 계정 INSERT 의 무결성 위반을 모두 409 `AU002` 로 바꾼다(2026-11-24 코드 읽기)」. sp-auth `c1c53cc` 의 `AccountService` 는 원인 사슬에서 꺼낸 이름에 `uk_account_email` 이 들 때만 `AU002` 로 바꾸고 그 밖은 다시 던진다
+  - [../tech-stack.md §4.8](../tech-stack.md)의 끝 줄 — 「auth·member 에는 2026-11-24 에 이 파일이 없다. 더하는 것은 AU-25·M-17 이다」. 두 저장소는 `c1c53cc`·`c1d6fd6` 에서 `logback-spring.xml` 을 갖는다
+  - [phase2-auth-member.md §5.1](phase2-auth-member.md)의 「결함 수정 항목이 실서버로 넘긴 것」 머리 문단의 「AU-25·M-17 의 줄은 같은 문서의 I-15 가 잰다」, 같은 계획 §5.3 의 후보 줄 「코드가 잡는 UNIQUE 충돌이 남기는 Hibernate ERROR — AU-25·M-17 이 받는다」(끝난 후보의 문체는 위 D-30 절이 [phase2-board.md §4.3](phase2-board.md)에 쓴 것이다)
+
+사실은 sp-board `ea21555`·`df3c72e`·`87b953a`, sp-auth `c1c53cc`, sp-member `c1d6fd6` 의 커밋 메시지와 그 커밋의 코드·테스트·설정, I-15 의 측정 보고와 결과 파일(세션 scratchpad 의 `i15/report.md`·`i15/run-base/`·`i15/run-fix/`), M-17 리뷰의 변이 기록(`m17-review/mut.py`·`m17-review/logs/X-helper-debug.log`), hibernate-core 6.6.53.Final 의 javap 와 spring-boot 3.5.16 의 `defaults.xml`, sp-auth `README.md`·`application-local.yml.example` 과 sp-frontend `README.md`·`e2e/live/flows.spec.ts` 로 확인했다 — 2026-11-25 읽기, 측정 보고·결과 파일·변이 기록은 저장소에 없다. 두 서비스의 `application-local.yml` 은 인용하지 않았다. 이 항목은 빌드·테스트·서비스 기동·DB 접속을 하지 않았다.
+
+**결정 — 문장만 실측에 맞춘다.** A·B·C·E·F 는 2·3단계가 그 자리를 고친다. **D 는 한계로만 적는다** — 2단계는 §8.1 의 효과 문단에 그 조건(그 로거의 DEBUG 가 꺼져 있을 때)과 근거를 적고, 막는 방법은 정하지 않는다. 후보는 사용자 결정이다.
+- **(가) 운영에서 그 로거의 수준을 DEBUG 위(예: `info`)에 고정한다** — `application-prod.yml` 이 SQL·바인드 로거를 고정한 것과 같은 모양이다. ERROR·WARN 이 켜진 채라 §8.1 의 「로거의 수준을 바꾸지 않는다」 행이 막으려는 것 — ERROR 가 꺼지면 WARN 도 남지 않아 위반이 흔적 없이 조용해진다 — 에는 닿지 않는다. 그러나 그 행의 문구와는 어긋난다 — 고르면 그 행을 이유대로 좁혀 다시 쓴다(ERROR 를 끄지 않는다)
+- **(나) 필터가 그 로거의 DEBUG 줄도 버린다** — 문면에 이름이 없으므로 붙은 예외의 메시지로 맞춰야 한다. 수준을 건드리지 않아 그 행과는 어긋나지 않지만, 규칙 표의 첫 행(「그 로거의 ERROR 중 … 든 줄만 버린다」)과 세 서비스의 필터·단위 테스트(「ERROR 가 아닌 수준은 버리지 않는다」)가 바뀐다
+- **(다) 한계로 둔다** — 운영에서 그 로거의 DEBUG 를 켜는 것을 그 효과 밖으로 적는다
+- **어느 쪽이든 flush 의 엔터티 목록(D 의 끝 줄)은 남는다.** 그것은 §8.1 의 일이 아니라 운영의 DEBUG 가 로그에 무엇을 싣는가 — [../security.md §1](../security.md)의 민감정보 로깅 — 의 일이고, 어떻게 다룰지도 사용자 결정이다. 그래서 2단계는 §8.1 에 그 로거의 조건만 적고 [../security.md](../security.md)를 고치지 않는다
+
+**고치지 않은 자리**
+- **`done` 항목의 본문.** AU-25·M-17 의 「무엇이 틀렸나」·완료 기준·블록인용의 「ERROR 를 남길 것으로 본다」·「I-15 가 잰다」·「그 자리는 I-15 다」, 위 D-31 절의 「로그 자체는 재지 않았다 … I-15 의 기준선이 잰다」 와 완료 기준, I-15 정의의 머리 문단의 「재지 않았다(… 2026-11-24 의 추정)」 와 검증표의 기준선 줄의 「(추정)」 은 정의 시점의 기록이라 그대로 둔다 — D-29 가 AU-23·AU-24 의 「I-13 이 잰다」·「I-14 가 잰다」 를 둔 것과 같다. AU-25·M-17 의 본문에 블록인용을 붙이지 않는다 — 결과는 §8.1 과 [phase2-auth-member.md §5.1](phase2-auth-member.md)이 갖는다
+- **I-15 정의의 바인드 로거 문장.** 「`local` 템플릿은 바인드 로거를 `trace` 로 켜서」 는 템플릿을 말해 참이다 — 각자의 `application-local.yml` 은 다를 수 있다. I-15 는 수준을 기동 인자로 정했고(`--logging.level.org.hibernate.orm.jdbc.bind=info`) 검사도 SQL·바인드 로거를 뺀 줄에서 했다(I-15 보고의 방법). 「수준을 기동 인자로 명시한다」 를 더하지 않는다 — 문장이 참이고, I-15 가 고른 것은 보고가 적었다
+- **[../domain-model.md §2.4](../domain-model.md)** — B 대로 낡지 않았다
+- **두 계획의 표가 적은 I-15** — [phase2-auth-member.md](phase2-auth-member.md) §1.2 의 「실 MySQL 재측정 I-15 (§5.1)」 와 [phase2-frontend-integration.md](phase2-frontend-integration.md) §1.1 의 「I-15 는 AU-25·M-17 뒤의 재측정이다」 는 항목이 무엇을 재는지 적은 현재형이라 참이다 — 같은 표의 I-11~I-14 와 같은 모양이다
+
+**다루지 않는다 — 사용자 결정이다**
+- **코드 저장소의 낡은 문장.** sp-auth·sp-member 의 `ExpectedUniqueConflictLogFilter` javadoc 의 「MySQL 은 … 낼 것으로 본다 (§8.1 의 추정 — 실 MySQL 은 재지 않았다)」 와 member 의 같은 javadoc 의 「H2 에서 보았다 — MySQL 은 §8.1 의 추정이다」, sp-member `MemberService` javadoc 의 같은 괄호 두 자리, sp-board 필터 javadoc 의 「§8.1 의 셋째 행」(위 D-31 절이 다음에 그 파일을 고치는 항목에 넘겼다), sp-auth `README.md` 「Mailpit — 로컬의 SMTP」 와 `application-local.yml.example` 주석의 「(Mailpit 의 기본값)」, sp-frontend `e2e/live/flows.spec.ts` 의 `MAILPIT` 주석 「§4.7.1 의 기본 주소」(2단계가 [../tech-stack.md §4.7.1](../tech-stack.md)의 기본값을 포트에만 걸어 낡았다 — 2단계 보고가 찾았고 오케스트레이터가 2026-11-26 에 이 목록에 넣었다). D-32 는 코드 저장소를 고치지 않는다 — 다음 AU·M·B 항목이나 따로 세운 항목이 맡는다(I-15 리뷰 1라운드의 후보)
+- **로컬에서 Mailpit 을 띄우는 방법.** 지금의 안내(sp-auth `README.md`, sp-frontend `README.md`)는 인자 없이 띄운다. 루프백에만 열게 바꿀지 정하지 않는다 — 실제 서비스 e2e 는 Mailpit 의 API 를 `http://localhost:8025` 로 읽고(sp-frontend `e2e/live/flows.spec.ts`), 그 이름을 Node 가 어느 주소로 먼저 푸는지는 재지 않았다. 2단계는 [../tech-stack.md §4.7.1](../tech-stack.md)에 관측과 루프백에만 여는 인자를 적고, 3단계는 측정에서 띄우는 방법만 정한다
+- **auth·member 가 모든 인터페이스(`::`)에 연다**(I-15 보고의 관측 — Spring Boot 의 기본값이고 앞선 I 항목도 같았다)
+- **board 의 정리가 기동 때 한 번 도는 것**(E 의 정리 작업). board 를 띄우는 측정이 그 정리를 어떻게 다룰지 정하지 않는다
+- **D 의 막는 방법과, 운영의 DEBUG 가 엔터티의 값을 싣는 것**(위 결정)
+
+**산출물(1단계)**
+- [phase1.md](phase1.md) — 이 절
+- [../docs/checklist.md](../docs/checklist.md) — `D-32` 줄, 그 파일 머리의 범위 표기와 출처 문단
+
+**코드 저장소는 어느 단계에서도 고치지 않는다.**
+
+**완료 기준(1단계)**
+- [ ] A~F 가 근거(커밋·보고·리뷰·코드 읽기)와 함께 있고, 잰 것과 추론이 갈린다
+- [ ] D 의 막는 방법을 정하지 않는다 — 후보와, 후보마다 §8.1 의 규칙 표와 어떻게 맞물리는지를 적는다
+- [ ] 고치지 않는 자리와 다루지 않는 것이 이유와 함께 있다
+- [ ] 이 단계는 이 절과 [../docs/checklist.md](../docs/checklist.md)만 고친다
+- [ ] 이 변경이 거짓으로 만드는 문장이 남지 않는다 — **근거의 모양으로 훑는다**([../process/review-policy.md §8.1](../process/review-policy.md))
+- [ ] 정본 산문 규칙([../process/review-policy.md §8.1](../process/review-policy.md))을 지킨다
+- [ ] `tools/check_refs.py` 통과
+
+**검증(1단계)**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| A 의 수치와 응답을 sp-board `ea21555` 의 커밋 메시지, I-15 보고의 결과·관측과 대조한다 | 맞는다 |
+| C 를 sp-member `c1d6fd6` 의 테스트 소스·`build.gradle` 과 대조한다 | 맞는다 |
+| D 를 hibernate-core 6.6.53.Final 의 javap(`SqlExceptionHelper`·`AbstractFlushingEventListener`·`EntityPrinter`), I-15 재측정의 기동 기록, 세 서비스의 필터·필터 단위 테스트·`logback-spring.xml`·`application-prod.yml`, M-17 리뷰의 변이 기록과 대조한다 | 맞는다 |
+| E 를 I-15 보고의 방법·정의 문구 후보, 두 실행의 Mailpit 기록, sp-board `df3c72e`·`87b953a` 의 커밋 메시지와 대조한다 | 맞는다 |
+| sp-docs 를 「I-15 가」·「I-15 다」·「I-15 는」·「재지 않았다」·「추정」·「실릴 것으로」·「Mailpit 기본값」·「세 테스트 클래스」·`SqlExceptionHelper`·`DEBUG`·「좁힌다」·「더하는 것은」 으로 훑는다 | 걸린 자리가 A~F 의 자리이거나, 위 「고치지 않은 자리」 이거나, 이 항목과 무관한 사실이다 |
+| sp-docs 의 `git diff --cached --name-only` | `docs/checklist.md`·`plan/phase1.md` 다 |
+| 이 항목이 고친 문서의 front matter | [phase1.md](phase1.md)의 `version` 이 하나 오르고 `updated` 가 2026-11-25 다. [../docs/checklist.md](../docs/checklist.md)에는 front matter 가 없다 |
+
+**2단계 — 정본**
+
+**산출물(2단계)**
+- [../conventions.md §8.1](../conventions.md) — 「무엇이 남나」 의 auth·member 문장을 A 의 측정으로(잡는 코드가 이름을 꺼낸 것과 ④-a 의 이름을 함께), 「409 로 응답하는 충돌도 넣는다」 의 추정 괄호(A), 중복 값 문단에 그 로거의 DEBUG 조건(D — DEBUG 가 켜지면 같은 충돌이 DEBUG 한 줄을 더 남기고 그 줄이 값을 싣는다는 것과 근거, 막는 방법은 정하지 않았다는 것), 가입 블록인용을 AU-25 뒤의 일로(F — 지우지 않고 고친다. sp-auth `AccountService` 의 주석이 그 블록인용을 가리킨다), auth·member 블록인용의 끝 문장(A)
+- [../requirements/member.md §7](../requirements/member.md) — 닉네임 변경 경합 문단의 끝(B)
+- [../tech-stack.md](../tech-stack.md) — §4.7.1 의 SMTP·웹 화면·API 행의 「(Mailpit 기본값)」 을 포트에만 걸고, 인자 없이 띄우면 여는 주소(관측)와 루프백에만 여는 인자를 적는다(E). §4.8 의 끝 줄(F). §5.3 의 「세 테스트 클래스」 를 수 없이, 세는 방법과 함께(C)
+
+**완료 기준(2단계)**
+- [ ] auth·member 의 로그가 측정으로 적히고 날짜·DB 판·근거(I-15, sp-board `ea21555`)가 함께 있다. 잰 것과 추정(④-a 의 이름이 그렇게 된 까닭, Mailpit 이 WSL 밖에서도 그렇게 여는지)이 갈린다
+- [ ] 효과 문단이 그 로거의 DEBUG 조건을 근거와 함께 적고 막는 방법을 정하지 않는다. 규칙 표의 행을 고치지 않는다
+- [ ] 세 코드 저장소의 주석이 가리키는 §8.1 의 자리(「conventions.md §8.1」·「§8.1 의」 로 찾는다)를 지우거나 이름을 바꾸지 않는다 — 코드 저장소를 고치지 않으므로 참조가 끊긴다. 이 단계가 낡게 만드는 주석(「§8.1 의 추정」)은 위 「다루지 않는다」 다
+- [ ] §5.3 이 그 정리를 쓰는 클래스의 수를 적지 않는다
+- [ ] §4.7.1 이 로컬에서 Mailpit 을 띄우는 방법을 바꾸지 않는다
+- [ ] [../security.md](../security.md)와 [../domain-model.md](../domain-model.md)를 고치지 않는다
+- [ ] 1단계의 완료 기준 가운데 산문 규칙·「근거의 모양으로 훑는다」·`tools/check_refs.py` 를 이 단계에도 지킨다
+
+**검증(2단계)**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| 고친 수치와 문면을 sp-board `ea21555` 의 커밋 메시지, I-15 보고의 결과와 대조한다 | 맞는다 |
+| 가입 블록인용과 §4.8 을 sp-auth `c1c53cc`·sp-member `c1d6fd6` 와 대조한다 | 맞는다 |
+| §5.3 의 세는 방법을 sp-member 의 테스트 소스에 돌린다 | 그 정리를 쓰는 클래스를 모두 찾는다 |
+| sp-docs 를 「재지 않았다」·「추정」·「실릴 것으로」·「I-15 다」·「좁힌다」·「더하는 것은」·「Mailpit 기본값」·「세 테스트 클래스」·`DEBUG` 로 훑는다 | auth·member 의 로그를 재지 않은 것으로, AU-25·M-17 을 앞으로 할 일로, 필터가 DEBUG 에서도 값을 막는 것으로, 그 정리를 쓰는 클래스를 셋으로, 인자 없는 Mailpit 이 루프백에만 여는 것으로 읽히게 하는 현재형 문장이 없다(날짜가 박힌 그날의 기록과 위 「고치지 않은 자리」 는 둔다) |
+| 2단계에서 고친 정본의 front matter | `version` 이 하나 오르고 `updated` 가 그 단계의 날이다 |
+
+**2단계에서 정한 것**(2026-11-26)
+- **이 절의 제목과 [../docs/checklist.md](../docs/checklist.md)의 줄 이름을 「AU-25·M-17·I-15 와 그 리뷰가 남긴 …」 으로 바꿨다** — AU-25 의 리뷰에서 옮긴 사실이 없다(오케스트레이터 결정). 앞 이름은 「I-15 와 AU-25·M-17 리뷰가 남긴 …」 였다. 같은 파일 출처 문단의 D-32 문장도 같은 이름으로 맞췄다 — 앞 문장 「I-15 의 측정과 그 리뷰, M-17 의 리뷰가 드러낸 문구」 는 항목 자체가 남긴 C·F 를 덮지 못했다
+- **[phase1.md](phase1.md)의 `updated` 를 2026-11-26 으로 바꿨다** — `version` 은 1단계가 올린 v85 그대로다. 1단계와 같은 커밋이 된다(오케스트레이터 결정). 위 1단계 검증표의 「`updated` 가 2026-11-25 다」 와 다르다
+- **[../tech-stack.md §4.7.1](../tech-stack.md)에 E 의 관측 둘을 더 적었다** — 루프백 인자로 띄운 Mailpit 에 서비스가 `localhost` 로 닿은 것과, 그 java 가 그 이름을 127.0.0.1 로 먼저 풀고 `::1` 로는 닿지 않은 것이다. 산출물(2단계)보다 넓다 — 인자만 적으면 그 인자가 어느 클라이언트에나 맞는 것으로 읽힌다. Node 는 재지 않았다고 적었다
+- **[../tech-stack.md §4.8](../tech-stack.md)의 요건 글머리 「board 는 B-26 이 테스트로 확인했다」 를 서비스마다의 `ProdProfileTest` 로 넓혔다**(이 단계의 훑기). AU-25·M-17 이 같은 테스트를 더했다(sp-auth `c1c53cc`·sp-member `c1d6fd6`) — 끝 줄(F)만 고치면 그 글머리가 board 만 확인한 것으로 읽힌다
+- **[../tech-stack.md §5.3](../tech-stack.md)의 세는 방법은 sp-member 테스트 소스의 `deleteAll(` 이다** — `c1d6fd6` 에서 그 정리를 쓰는 클래스를 모두 찾고, 그 밖의 것은 찾지 않는다
+- **[../conventions.md §8.1](../conventions.md)의 가입 블록인용에서 「좁히기 전에도 필터가 그 위장을 늘리지는 않는다」 를 지웠다** — AU-25 는 좁히기와 필터를 한 커밋(`c1c53cc`)에 넣어 그 판이 없었고, 필터가 다른 위반의 ERROR 를 남기는 것은 규칙 표의 첫 행이 적는다. 블록인용과 그 첫머리의 이름(「가입의 잡는 코드는」)은 둔다 — sp-auth `AccountService` 의 주석이 그 블록인용을 가리킨다
+
+**3단계 — 계획**
+
+**산출물(3단계)**
+- [phase2-frontend-integration.md §1.3](phase2-frontend-integration.md) — 측정의 두 공통 설정(E): Mailpit 은 `--listen 127.0.0.1:8025 --smtp 127.0.0.1:1025` 로 루프백에만 연다, auth 는 `--account-cleanup.interval=PT24H` 로 띄워 정리 작업이 측정 동안 돌지 않게 한다. 둘 다 같은 절의 「측정에만 쓰는 설정의 덮음」 이라 커밋하지 않고 보고에 적는다. 정리 작업 일반으로 넓히지 않는다 — board 의 정리는 주기를 덮어도 기동 때 돈다(E)
+- 같은 계획의 I-15 — 셈 목록과 검증표의 「그 밖의 ERROR」 두 줄에 「다른 제약의 위반이 ERROR 로 남는 것은 AU-25·M-17 의 테스트가 맡는다」, 검증표의 「정한 줄에 실린 이메일·닉네임」 에 계정 id(E). 검증표 뒤에 블록인용 — 무엇을 왜 고쳤는지와 「I-15 의 판정을 뒤집지 않는다」
+- [phase2-auth-member.md §5.1](phase2-auth-member.md) — 머리 문단의 「I-15 가 잰다」 를 잰 날과 커밋으로(F), 결함 수정 표의 AU-25·M-17 줄에 계정 id(E). §5.3 의 후보 줄을 끝난 후보의 문체로(F)
+
+**완료 기준(3단계)**
+- [ ] I-15 의 판정을 뒤집지 않는다 — 고친 줄 뒤의 블록인용이 무엇을 왜 고쳤는지 적는다
+- [ ] AU-25·M-17 과 위 D-31 절의 본문을 고치지 않는다
+- [ ] §1.3 의 두 설정은 측정의 규칙이고 서비스의 설정·코드를 바꾸지 않는다. 로컬에서 Mailpit 을 띄우는 방법을 정하지 않는다
+- [ ] 1단계의 완료 기준 가운데 산문 규칙·「근거의 모양으로 훑는다」·`tools/check_refs.py` 를 이 단계에도 지킨다
+
+**검증(3단계)**
+
+| 확인 | 기대 |
+| --- | --- |
+| `python tools/check_refs.py` | 종료 코드 0, `version bumps: OK` |
+| I-15 의 고친 줄과 블록인용을 sp-board `ea21555` 의 커밋 메시지, I-15 보고와 대조한다 | 맞는다 |
+| 「그 밖의 ERROR」 에 덧붙인 문장을 AU-25·M-17 의 테스트와 대조한다 | 그 테스트가 다른 제약의 위반이나 다른 SQL 오류의 ERROR 가 남는다고 단언한다 |
+| §1.3 의 두 설정을 sp-board `df3c72e`·`87b953a` 의 커밋 메시지, I-15 보고의 방법, sp-auth `AccountCleanup` 과 대조한다 | 맞는다 |
+| sp-docs 를 「I-15 가 잰다」·「I-15 가」·「이메일·닉네임이 없는가」·「그 밖의 ERROR」·`account-cleanup` 으로 훑는다 | 끝난 측정을 앞으로 할 일로, 계정 id 를 뺀 값 검사로, 필터의 통과 쪽을 I-15 가 본 것으로 읽히게 하는 현재형 문장이 없다(done 항목 정의 시점의 기록은 둔다) |
+| 이 항목의 front matter | 커밋마다 고친 문서의 `version` 이 하나 오른다([../process/review-policy.md §8](../process/review-policy.md)의 「한 개정 = +1」). 같은 커밋에서 앞 단계가 올린 문서는 다시 올리지 않는다 |
+
+**3단계에서 정한 것**(2026-11-26)
+- **I-15 의 「그 밖의 ERROR」 두 줄에 「다른 SQL 오류」 를 더했다.** 산출물(3단계)의 문장은 I-12 의 것 — 「다른 제약의 위반이 ERROR 로 남는 것은 … 테스트가 맡는다」 — 이었다. I-15 가 보지 못한 통과 쪽은 다른 제약의 위반과 다른 SQL 오류 둘이고(E), 두 항목의 테스트가 둘 다 단언한다 — 두 필터 단위 테스트의 「다른 제약 위반·다른 SQL 오류」(auth)·「다른 키 이름·다른 SQL 오류」(member) 의 ERROR 를 버리지 않는 테스트, sp-auth `LogbackSpringConfigTest` 의 다른 UNIQUE·FK 위반, sp-member `LogbackSpringConfigTest` 의 열 폭 위반(sp-auth `c1c53cc`·sp-member `c1d6fd6`)
+- **[phase2-frontend-integration.md §1.3](phase2-frontend-integration.md)의 Mailpit 줄이 [../tech-stack.md §4.7.1](../tech-stack.md)의 관측 — 서비스가 `localhost` 로 닿은 까닭 — 을 한 구절로 가리킨다.** 루프백 인자로 띄우면 그 이름을 127.0.0.1 로 먼저 푸는 것이 전제가 된다(I-15 보고의 정의 문구 후보). 로컬과 실제 서비스 e2e 에서 띄우는 방법은 그 줄이 정하지 않는다고 적었다
+- **[phase2-auth-member.md §5.1](phase2-auth-member.md)의 머리 문단은 D-29 가 I-13·I-14 를 적은 꼴로 이었다** — 「AU-25·M-17 의 줄은 I-15 가(2026-11-25, sp-board `ea21555`) 쟀다」. 같은 절 결함 수정 표의 AU-25·M-17 줄에는 계정 id 만 더하고 블록인용을 달지 않았다 — 그 표는 넘긴 측정 대상의 목록이고 판정을 갖지 않는다
+- **같은 계획 §5.3 의 후보 줄은 머리를 잰 사실로 바꾸고 「2026-11-24 `D-31` 이 정했고 2026-11-25 AU-25·M-17 이 고쳤다」 를 D-30 의 꼴로 적었다.** 앞 판의 머리와 「재측정은 I-15 다」 는 「`D-32` 앞의 판」 으로, D-31 이 남긴 「앞 판은 이렇게 적었다」 는 「`D-31` 앞의 판은」 으로 갈랐다
+- **고치지 않은 것 — 같은 §5.3 의 끝난 후보 네 줄.** 「— AU-23 이 받는다」(`D-27`)와 「— AU-24 가 받는다」(`D-28`, 셋)는 같은 문체로 남았다. AU-23·AU-24 는 끝났고 I-13·I-14 가 쟀지만 이 항목의 사실(A~F) 밖이라 두었다 — 고칠지는 다음 D 가 정한다
 
 ---
 ## 7. 다음 단계

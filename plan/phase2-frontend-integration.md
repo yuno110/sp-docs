@@ -2,8 +2,8 @@
 title: 2차 작업 계획 — 화면·통합
 type: plan
 status: living
-version: v10
-updated: 2026-11-24
+version: v11
+updated: 2026-11-26
 read_when: "2차 기능 확장의 화면 항목(F-07 부터)·통합 항목(I-06 부터)의 범위·의존·완료 기준을 확인하거나, 2차 전체(B·AU·M·F·I)의 순서와 병렬을 볼 때. 상태는 F 는 sp-frontend, I 는 sp-board 의 docs/checklist.md 를 본다"
 related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, phase1.md, ../api-contract.md, ../security.md, ../tech-stack.md, ../requirements/member.md, ../requirements/board.md]
 ---
@@ -92,6 +92,10 @@ related: [phase2.md, phase2-board.md, phase2-auth-member.md, integration.md, pha
 - **I 는 F 를 의존으로 두지 않는다** — 재는 것이 서버의 성질이다. 브라우저로 재는 줄(I-10)도 수단을 그 항목이 고른다. 그래도 I-06 은 AU-16 을 거쳐 F-07·F-08 을 기다린다 — AU-16 은 F-08 과 한 번에 커밋된다(§1.1·§1.4). **다만 같은 서비스 인스턴스·DB 에 F 의 실제 서비스 e2e 와 I 의 측정을 동시에 돌리지 않는다** — e2e 의 요청이 집계·로그 수준·제한기 카운터의 측정에 섞인다
 - **측정이 정본의 기대와 다르면 코드를 고치지 않고 보고한다.** 고치는 항목은 계획을 먼저 개정해 세운다([README.md](README.md)의 항목 ID 규칙) — 1차의 B-10 이 그렇게 생겼다([phase1.md §7](phase1.md)). 정본이 측정을 기다린 자리도 바꾸는 것은 측정 뒤의 항목이다 — 예: 조회수 판정은 I-07 의 측정 뒤 2026-11-20 `D-24` 가 정본을 고치고 B-25 가 코드를 고친다([phase2-board.md §4.1](phase2-board.md)). 앞 판은 이 자리를 「측정이 뒤집으면 바꾼다」 고 적은 판정 순서로 들었다
 - **측정은 코드·스키마·seed 를 바꾸지 않는다**([integration.md](integration.md) I-04 의 블록인용). 1차 I-04 와 달리 측정에만 쓰는 설정의 덮음(예: 한도에 닿을 수 있는 요청 수 제한)은 허용한다 — 그 실행의 덮음이고, 커밋하지 않고 보고에 적는다
+- **측정의 두 공통 설정**(2026-11-26 `D-32`). 둘 다 위 줄의 측정에만 쓰는 설정의 덮음이다 — 서비스의 설정·코드를 바꾸지 않고, 커밋하지 않고 보고에 적는다
+  - **측정이 띄우는 Mailpit 은 루프백에만 연다** — `--listen 127.0.0.1:8025 --smtp 127.0.0.1:1025`. 인자 없이 띄우면 모든 인터페이스에 열린다(2026-11-25 I-15 의 관측, [../tech-stack.md §4.7.1](../tech-stack.md)). 루프백 인자로 띄운 Mailpit 에 서비스는 메일 호스트 `localhost` 로 닿았다 — 서비스를 띄운 것과 같은 PATH 의 java 가 그 이름을 127.0.0.1 로 먼저 풀었고 `::1` 로는 닿지 않았다(같은 절의 관측). 루프백 인자는 그 순서를 전제로 한다. 로컬과 실제 서비스 e2e 에서 띄우는 방법은 이 줄이 정하지 않는다
+  - **auth 는 `--account-cleanup.interval=PT24H` 로 띄워 정리 작업이 측정 동안 돌지 않게 한다.** 정리 작업은 첫 실행도 그 주기만큼 늦추고(sp-auth `AccountCleanup`), 돌면 만료된 `account_token` 과 오래된 `login_attempt` 를 지운다 — 측정은 행을 지우지 않는다(I-14·I-15 의 완료 기준). I-13·I-14 가 그렇게 띄웠고(sp-board `df3c72e`·`87b953a` 의 커밋 메시지) I-15 도 같았다(I-15 보고의 기동 인자)
+  - **정리 작업 일반으로 넓히지 않는다** — board 의 조회수 판정 행 정리(`PostViewCleanup`)는 첫 지연이 없어 `view-count.cleanup-interval` 을 덮어도 기동 때 한 번 돌고, 기준 시각이 24시간을 넘은 `post_view` 를 지운다(sp-board `PostViewCleanup`, 2026-11-25 코드 읽기). board 를 띄우는 측정이 그 정리를 어떻게 다룰지는 정하지 않았다
 - **정본이 기대를 정하지 않은 줄은 관측값을 적는다** — 예: `account.email` 의 콜레이션이 같다고 보는 표기(I-08). 그 값을 통과·실패로 적지 않는다
 
 ### 1.4 저장소 밖과 맞물리는 때
@@ -806,7 +810,7 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 - [ ] **로그를 로거·수준·이름으로 갈라 센다** — 실행마다, 경우마다. 전체 로그의 ERROR 수로 세지 않는다([integration.md](integration.md) I-04 의 로그 수준 줄)
   - `SqlExceptionHelper` 의 ERROR 중 세 제약 이름이 든 줄 — 이름마다
   - 같은 로거의 WARN `SQL Error: 1062` — **충돌 수다**([../conventions.md §8.1](../conventions.md)의 「WARN 줄은 그대로 둔다」 행)
-  - 같은 로거의 그 밖의 ERROR — 관측값
+  - 같은 로거의 그 밖의 ERROR — 관측값. 다른 제약의 위반과 다른 SQL 오류가 ERROR 로 남는 것은 AU-25·M-17 의 테스트가 맡는다
   - `GlobalExceptionHandler` 의 WARN `business exception: <코드>`(`AU002`·`M003`·`M006`·`M007`) — 사전 검사가 낸 409 와 섞이므로 충돌 수로 쓰지 않는다
   - `GlobalExceptionHandler` 의 ERROR `unhandled exception`
   - `Duplicate entry` 가 든 줄 — 로거마다
@@ -831,9 +835,11 @@ F 항목마다 되풀이하지 않는다. **규칙의 정본은 sp-frontend `CLA
 | 기준선 — 이름이 든 `SqlExceptionHelper` ERROR | 관측값 — 정본은 WARN `SQL Error: 1062` 의 수와 같고 중복 값이 실릴 것으로 보았다(추정) |
 | 재측정 — 이름이 든 `SqlExceptionHelper` ERROR | 0 |
 | 재측정 — WARN `SQL Error: 1062` | 경우마다 0 보다 크다. 그 수를 충돌 수로 적는다 |
-| 재측정 — `SqlExceptionHelper` 의 그 밖의 ERROR | 관측값. 나면 그 줄과 경우를 적는다 |
+| 재측정 — `SqlExceptionHelper` 의 그 밖의 ERROR | 관측값. 나면 그 줄과 경우를 적는다. 다른 제약의 위반과 다른 SQL 오류가 ERROR 로 남는 것은 AU-25·M-17 의 테스트가 맡는다 |
 | 두 실행의 WARN `business exception: <코드>` | 409 응답의 수와 같다 — 충돌 수가 아니다 |
-| 재측정 — 정한 줄에 실린 이메일·닉네임 | 없다. 기준선의 같은 검사가 값을 찾았을 때만 이 줄을 판정한다 |
+| 재측정 — 정한 줄에 실린 이메일·닉네임·계정 id | 없다. 기준선의 같은 검사가 값을 찾았을 때만 이 줄을 판정한다 |
+
+> **2026-11-26 `D-32` 가 위 셈 목록과 표의 「그 밖의 ERROR」 두 줄에 테스트의 몫을 더하고, 표의 「정한 줄에 실린 …」 에 계정 id 를 더했다.** 두 실행 모두 그 밖의 ERROR 가 0 이라 I-15 는 필터의 통과 쪽 — 다른 제약의 위반과 다른 SQL 오류의 ERROR 를 남기는 쪽 — 을 보지 못했다(sp-board `ea21555` 의 커밋 메시지, I-15 보고). 네 경우는 그런 위반을 내지 않는다(I-15 보고의 다른 점과 정의 문구 후보). 그 쪽은 AU-25·M-17 의 테스트가 단언한다 — 두 서비스의 필터 단위 테스트와, 실제 설정을 띄운 `LogbackSpringConfigTest` 다(sp-auth `c1c53cc`·sp-member `c1d6fd6`). I-12 의 같은 문장이 선례다. 계정 id 는 ④ 의 중복 값이고, 위 양성 대조 줄은 이미 셋을 적었다. 앞 판은 「관측값」·「관측값. 나면 그 줄과 경우를 적는다」·「재측정 — 정한 줄에 실린 이메일·닉네임」 이었다. **I-15 의 판정을 뒤집지 않는다**([../process/review-policy.md §8.1](../process/review-policy.md)) — I-15 는 계정 id 도 쟀다(SQL·바인드 로거를 뺀 기록에서 기준선 280 줄, 재측정 0). 머리 문단과 완료 기준, 기준선 줄의 「(추정)」 은 정의 시점의 기록이라 그대로 둔다.
 
 ---
 
